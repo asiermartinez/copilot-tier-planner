@@ -1,0 +1,55 @@
+{
+  "name": "primer-nextjs-template",
+  "version": "1.0.0",
+  "description": "Advanced prototyping with Next.js, Primer and other goodies",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build --turbopack",
+    "start": "next start",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "type-check": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/github/primer-nextjs-template.git"
+  },
+  "keywords": [
+    "primer",
+    "nextjs",
+    "template",
+    "prototyping"
+  ],
+  "author": "Asier Martinez <git@asier.io>",
+  "bugs": {
+    "url": "https://github.com/github/primer-nextjs-template/issues"
+  },
+  "homepage": "https://github.com/github/primer-nextjs-template#readme",
+  "dependencies": {
+    "@primer/octicons-react": "^19.16.0",
+    "@primer/primitives": "^11.1.0",
+    "@primer/react": "^37.31.0",
+    "clsx": "^2.1.1",
+    "dotenv": "^17.2.1",
+    "next": "^15.5.0",
+    "octokit": "^5.0.3",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
+    "@types/node": "^24.3.0",
+    "@types/react": "^19.1.11",
+    "@types/react-dom": "^19.1.8",
+    "eslint": "^9.34.0",
+    "eslint-config-next": "^15.5.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.2"
+  }
+}

@@ -1,0 +1,58 @@
+.container {
+  background-color: var(--bgColor-muted);
+  display: flex;
+  flex-direction: column;
+}
+
+.headerRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  box-shadow: inset 0 calc(var(--borderWidth-thin, 1px) * -1)
+    var(--borderColor-default);
+}
+
+.globalNavRow {
+  padding: 0;
+}
+.container:has(.globalNavRow) .headerRow {
+  padding: 1rem 1rem 0.5rem 1rem;
+  box-shadow: none;
+}
+
+.leftSection {
+  display: flex;
+  flex-direction: row;
+  gap: var(--base-size-12);
+  align-items: center;
+}
+
+.rightSection {
+  display: flex;
+  flex-direction: row;
+  gap: var(--controlStack-large-gap-auto);
+  align-items: center;
+}
+
+.searchSection {
+  display: flex;
+  flex-direction: row;
+  gap: var(--controlStack-large-gap-auto);
+  align-items: center;
+}
+
+.divider {
+  width: 1px;
+  height: 20px;
+  background-color: var(--borderColor-default);
+  margin: 0 4px;
+}
+
+.actionsSection {
+  display: flex;
+  flex-direction: row;
+  gap: var(--controlStack-large-gap-auto);
+  align-items: center;
+}
