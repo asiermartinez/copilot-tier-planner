@@ -2,7 +2,7 @@
 
 ## Development Workflow
 
-This project follows a structured development plan outlined in `PLAN.md` at the root of the repository.
+This project follows a structured development plan outlined in `PLAN.md` at the root of the repository. Don't create summary documents, update the README or create additional documentation unless explicitly requested. Don't use emojis in code comments or documentation.
 
 **How to work with the plan**:
 1. Review `PLAN.md` to understand the current phase and tasks

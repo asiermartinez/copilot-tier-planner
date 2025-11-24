@@ -33,16 +33,22 @@ export interface ResourceUsage {
   limit: number | null;
   /** Amount over the quota (0 if under quota) */
   overage: number;
+  /** Cost of overage in USD */
+  overageCostUsd: number;
   /** Percentage of quota used (0-100, null if unlimited) */
   percentageUsed: number | null;
   /** Whether the quota has been exceeded */
   isOverQuota: boolean;
   /** Whether usage is currently blocked due to quota/budget limits */
   isBlocked: boolean;
+  /** Reason for blocking (if blocked) */
+  blockReason?: string | null;
   /** Warning threshold percentage (e.g., 80 for 80%) */
   warningThreshold: number;
   /** Whether the warning threshold has been reached */
   hasReachedWarning: boolean;
+  /** Last usage timestamp (ISO 8601) */
+  lastUsedAt?: string | null;
 }
 
 /**
@@ -95,31 +101,8 @@ export interface CostBreakdown {
   additionalPurchasesUsd: number;
   /** Total cost for the period in USD */
   totalCostUsd: number;
-  /** Projected cost for the full billing period based on current usage trends */
+  /** Projected cost for the full billing period based on current usage */
   projectedTotalUsd: number;
-}
-
-/**
- * Historical usage data for trend analysis
- */
-export interface UsageHistory {
-  /** Usage data points with timestamps */
-  dataPoints: Array<{
-    /** Timestamp of the data point (ISO 8601) */
-    timestamp: string;
-    /** Premium requests used at this point */
-    premiumRequests: number;
-    /** Chat messages used at this point */
-    chatMessages: number;
-    /** Code completions used at this point */
-    codeCompletions: number;
-  }>;
-  /** Average daily premium request usage */
-  averageDailyPremiumRequests: number;
-  /** Peak daily premium request usage */
-  peakDailyPremiumRequests: number;
-  /** Usage trend direction ("increasing", "decreasing", "stable") */
-  trend: "increasing" | "decreasing" | "stable";
 }
 
 /**
@@ -200,9 +183,6 @@ export interface UserState {
 
   /** Cost breakdown for the current period */
   costs: CostBreakdown;
-
-  /** Historical usage data (optional, for trend analysis) */
-  usageHistory?: UsageHistory;
 
   /** Custom metadata for extensions */
   metadata?: Record<string, unknown>;

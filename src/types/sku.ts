@@ -66,22 +66,6 @@ export interface OveragePolicy {
 }
 
 /**
- * User-defined budget for managing overage costs
- */
-export interface OverageBudget {
-  /** Maximum amount user is willing to spend on overages (in USD) */
-  maxBudgetUsd: number;
-  /** Current amount spent on overages in the billing period (in USD) */
-  currentSpentUsd: number;
-  /** Whether to block usage when budget is exceeded */
-  blockWhenExceeded: boolean;
-  /** Whether to send alerts as budget thresholds are approached */
-  enableAlerts: boolean;
-  /** Alert thresholds (percentages, e.g., [50, 75, 90, 100]) */
-  alertThresholds?: number[];
-}
-
-/**
  * Quota and limit constraints for a SKU
  */
 export interface SkuLimits {

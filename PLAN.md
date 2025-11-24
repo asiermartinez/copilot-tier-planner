@@ -57,7 +57,7 @@ Define how user's current plan state is represented and structured.
   - Include: current SKU, usage data, account info, timestamp
   - Location: `src/types/userState.ts`
 
-- [ ] **Task 2.2**: Define usage and quota tracking structure
+- [x] **Task 2.2**: Define usage and quota tracking structure
   - Current usage for premium requests, chat messages, code completions
   - Quota limits per resource type
   - Overage amounts and overage costs calculation
@@ -66,119 +66,112 @@ Define how user's current plan state is represented and structured.
   - Support decision flows: increase overage budget OR upgrade plan
   - Historical usage patterns (if needed)
   - Billing period tracking (monthly reset logic)
-  - Usage timestamps and rate limiting
+  - Usage timestamps
 
-- [ ] **Task 2.3**: Create mock user state data
+- [x] **Task 2.3**: Create mock user state data
   - Sample user states for different scenarios
   - Edge cases: over quota, under quota, at limit
+  - This should be user configurable to test various scenarios
   - Location: `src/data/mockUserStates.ts`
+  - **IMPROVEMENT**: Created `src/utils/mockStateGenerator.ts` to generate mock states from SKU definitions
+  - All quota limits, prices, warning thresholds, and overage policies are now derived from SKU data
+  - Eliminates hardcoded values and ensures consistency with SKU definitions
+  - Mock states only specify scenario-specific values (current usage, account info, dates)
+  - All calculated values (percentages, overage costs, blocking) are automatically computed
 
-- [ ] **Task 2.4**: Create state utility functions
-  - Calculate remaining quota, overage costs, upgrade savings
-  - State validation and transformation helpers
+- [x] **Task 2.4**: Add state validation and transformation utilities
+  - State validation functions (complement existing calculations in `usageCalculations.ts`)
+  - State serialization/deserialization helpers
+  - User-friendly formatting utilities
+  - NOTE: Quota, overage, and decision calculations already implemented in Task 2.2
   - Location: `src/utils/stateHelpers.ts`
 
 ---
 
 ## Phase 2.5: Premium Request Management & Control Logic
 
-Build comprehensive logic for tracking, controlling, and managing premium requests.
+~~Build comprehensive logic for tracking, controlling, and managing premium requests.~~
 
-- [ ] **Task 2.5.1**: Create premium request tracking utilities
-  - Track current premium request usage count
-  - Calculate remaining premium requests in billing period
-  - Detect when user is approaching quota limits (warning thresholds)
-  - Calculate percentage of quota used
-  - Location: `src/utils/premiumRequestTracking.ts`
+**STATUS**: This phase has been consolidated into Task 2.2. Most functionality already implemented.
 
-- [ ] **Task 2.5.2**: Implement overage calculation logic
-  - Calculate overage amount when quota is exceeded
-  - Calculate overage costs based on SKU pricing ($0.04/request)
-  - Project future overage costs based on usage trends
-  - Compare overage costs vs. upgrade costs
-  - Location: `src/utils/overageCalculations.ts`
+- [x] ~~**Task 2.5.1**: Create premium request tracking utilities~~ → **OBSOLETE** (implemented in Task 2.2)
+  - Already in `src/utils/usageCalculations.ts`
+  - Functions: `calculateQuotaPercentage()`, `checkThresholdCrossed()`, `createUsageThresholds()`
 
-- [ ] **Task 2.5.3**: Create budget management utilities
-  - Track overage budget allocation and consumption
-  - Calculate remaining overage budget
-  - Detect when budget thresholds are reached (50%, 75%, 90%, 100%)
-  - Determine if usage should be blocked when budget is exceeded
-  - Generate budget alerts and warnings
-  - Location: `src/utils/budgetManagement.ts`
+- [x] ~~**Task 2.5.2**: Implement overage calculation logic~~ → **OBSOLETE** (implemented in Task 2.2)
+  - Already in `src/utils/usageCalculations.ts`
+  - Functions: `calculateOverageAmount()`, `calculateOverageCost()`, `calculateOverageDetails()`
 
-- [ ] **Task 2.5.4**: Implement quota reset and billing period logic
-  - Track billing period start/end dates
-  - Calculate days until quota reset
-  - Handle monthly quota resets
-  - Manage pro-rated quotas for mid-cycle plan changes
-  - Location: `src/utils/billingPeriod.ts`
+- [x] ~~**Task 2.5.3**: Create budget management utilities~~ → **OBSOLETE** (implemented in Task 2.2)
+  - Already in `src/utils/usageCalculations.ts`
+  - Functions: `calculateBudgetAllocation()`, threshold detection, blocking logic
 
-- [ ] **Task 2.5.5**: Create upgrade recommendation engine
-  - Analyze usage patterns to recommend plan upgrades
-  - Compare cost of overages vs. upgrading to next tier
-  - Calculate break-even point for upgrades
-  - Suggest optimal SKU based on usage history
-  - Generate "You could save $X by upgrading" messages
-  - Location: `src/utils/upgradeRecommendations.ts`
+- [x] ~~**Task 2.5.4**: Implement quota reset and billing period logic~~ → **OBSOLETE** (implemented in Task 2.2)
+  - Already in `src/utils/usageCalculations.ts`
+  - Functions: `calculateQuotaReset()`, `calculateProRatedQuota()`, `calculateDaysRemaining()`
+
+- [x] ~~**Task 2.5.5**: Create upgrade recommendation engine~~ → **OBSOLETE** (implemented in Task 2.2)
+  - Already in `src/utils/usageCalculations.ts`
+  - Function: `evaluateDecisionPoint()` provides recommendations, cost comparisons, break-even analysis
 
 - [ ] **Task 2.5.6**: Implement additional premium request purchase logic
   - Calculate cost to purchase additional premium requests
-  - Compare one-time purchase vs. upgrading vs. increasing budget
-  - Track purchased additional requests separately from base quota
-  - Handle expiration of purchased requests (if applicable)
-  - Location: `src/utils/additionalRequestPurchase.ts`
+  - Compare one-time purchase vs. upgrading vs. increasing budget (use existing `evaluateDecisionPoint()`)
+  - Add UI-friendly formatting for purchase options
+  - Add purchase expiration tracking helpers (if applicable)
+  - Location: `src/utils/additionalRequestPurchase.ts` or add to `usageCalculations.ts`
 
 ---
 
-## Phase 3: URL State Management
-
-Enable sharing and persisting state through URL parameters.
-
-- [ ] **Task 3.1**: Implement state serialization
-  - Convert user state object to URL-safe string
-  - Use compression if needed for long URLs
-  - Location: `src/utils/urlState.ts`
-
-- [ ] **Task 3.2**: Implement state deserialization
-  - Parse URL parameters back to user state object
-  - Handle malformed or missing parameters gracefully
-  - Validate decoded state
-
-- [ ] **Task 3.3**: Create URL state context/hook
-  - React hook to read state from URL on mount
-  - Update URL when state changes (without page reload)
-  - Location: `src/contexts/UrlStateContext.tsx` or `src/hooks/useUrlState.ts`
-
-- [ ] **Task 3.4**: Add share functionality
-  - Copy-to-clipboard button for current state URL
-  - Visual confirmation when URL is copied
-  - Test URL length limits
-
----
-
-## Phase 4: Visual Roadmap UI
+## Phase 3: Visual Roadmap UI
 
 Build the main SKU progression visualization.
 
-- [ ] **Task 4.1**: Design roadmap layout component
+- [ ] **Task 3.1**: Design roadmap layout component
   - Horizontal or vertical linear progression
   - Show all SKU tiers in order
   - Location: `src/components/SkuRoadmap/`
 
-- [ ] **Task 4.2**: Create SKU card component
+- [ ] **Task 3.2**: Create SKU card component
   - Display individual SKU details (name, tier, limits)
   - Visual indicator for current user's SKU
   - Accessible and keyboard navigable
 
-- [ ] **Task 4.3**: Implement progression indicators
+- [ ] **Task 3.3**: Implement progression indicators
   - Visual connections between SKUs (arrows, lines)
   - Highlight upgrade/downgrade paths
   - Show direction and relationships
 
-- [ ] **Task 4.4**: Add current position highlighting
+- [ ] **Task 3.4**: Add current position highlighting
   - Clearly mark user's current SKU on roadmap
   - Show available upgrade/downgrade options
   - Visual distinction between available and unavailable paths
+
+---
+
+## Phase 4: URL State Management
+
+Enable sharing and persisting state through URL parameters.
+
+- [ ] **Task 4.1**: Implement state serialization
+  - Convert user state object to URL-safe string
+  - Use compression if needed for long URLs
+  - Location: `src/utils/urlState.ts`
+
+- [ ] **Task 4.2**: Implement state deserialization
+  - Parse URL parameters back to user state object
+  - Handle malformed or missing parameters gracefully
+  - Validate decoded state
+
+- [ ] **Task 4.3**: Create URL state context/hook
+  - React hook to read state from URL on mount
+  - Update URL when state changes (without page reload)
+  - Location: `src/contexts/UrlStateContext.tsx` or `src/hooks/useUrlState.ts`
+
+- [ ] **Task 4.4**: Add share functionality
+  - Copy-to-clipboard button for current state URL
+  - Visual confirmation when URL is copied
+  - Test URL length limits
 
 ---
 
@@ -227,7 +220,6 @@ Build controls for simulating usage, overages, and budgets with focus on premium
 
 - [ ] **Task 5.6**: Display quota analytics dashboard
   - Visual charts/graphs for premium request usage over time
-  - Daily/weekly usage trends
   - Projections based on current usage patterns
   - Time until quota reset countdown
   - Cost analysis: current spend vs. projected spend

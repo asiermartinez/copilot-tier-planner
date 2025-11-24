@@ -8,12 +8,7 @@
  * including FREE, Pro, Pro+, Business, and Enterprise tiers.
  */
 
-import {
-  Sku,
-  SkuTier,
-  OverageBehavior,
-  type SkuId,
-} from "@/types/sku";
+import { Sku, SkuTier, OverageBehavior, type SkuId } from "@/types/sku";
 
 /**
  * GitHub Copilot Free
@@ -183,7 +178,8 @@ export const PRO_PLUS_SKU: Sku = {
   id: "pro-plus",
   name: "GitHub Copilot Pro+",
   tier: SkuTier.PRO_PLUS,
-  description: "Unlock advanced AI models, extended request limits, and extra capabilities",
+  description:
+    "Unlock advanced AI models, extended request limits, and extra capabilities",
   longDescription:
     "Offers the highest level of access for individual developers. In addition to everything in Copilot Pro, this plan includes a larger allowance of premium requests, and full access to all available models in Copilot Chat. Ideal for AI power users who want access to the most advanced capabilities.",
   pricing: {
@@ -338,7 +334,8 @@ export const ENTERPRISE_SKU: Sku = {
   id: "enterprise",
   name: "GitHub Copilot Enterprise",
   tier: SkuTier.ENTERPRISE,
-  description: "For enterprises with advanced features and centralized management",
+  description:
+    "For enterprises with advanced features and centralized management",
   longDescription:
     "For enterprises using GitHub Enterprise Cloud. It includes all the features of Copilot Business, plus additional enterprise-grade capabilities. Enterprise owners can assign Copilot Enterprise or Copilot Business to individual organizations, or assign Copilot Business directly to users and teams.",
   pricing: {
@@ -448,27 +445,84 @@ export function getAllSkus(): Sku[] {
 export function getSkusByAudience(
   audience: "individual" | "organization" | "enterprise"
 ): Sku[] {
-  return ALL_SKUS.filter((sku) => sku.audience === audience);
+  return ALL_SKUS.filter(sku => sku.audience === audience);
 }
 
 /**
  * Get the next tier up from a given SKU (upgrade path)
+ * Respects audience boundaries - only returns SKUs with the same audience
  */
 export function getNextTier(currentSkuId: SkuId): Sku | null {
   const currentSku = SKU_MAP[currentSkuId];
   const nextTierSku = ALL_SKUS.find(
-    (sku) => sku.tier === currentSku.tier + 1
+    sku =>
+      sku.tier === currentSku.tier + 1 && sku.audience === currentSku.audience
   );
   return nextTierSku || null;
 }
 
 /**
  * Get the previous tier down from a given SKU (downgrade path)
+ * Respects audience boundaries - only returns SKUs with the same audience
  */
 export function getPreviousTier(currentSkuId: SkuId): Sku | null {
   const currentSku = SKU_MAP[currentSkuId];
   const previousTierSku = ALL_SKUS.find(
-    (sku) => sku.tier === currentSku.tier - 1
+    sku =>
+      sku.tier === currentSku.tier - 1 && sku.audience === currentSku.audience
   );
   return previousTierSku || null;
+}
+
+/**
+ * Get all possible upgrade paths from a given SKU
+ * Returns all SKUs with the same audience that are higher tier
+ */
+export function getUpgradePaths(currentSkuId: SkuId): Sku[] {
+  const currentSku = SKU_MAP[currentSkuId];
+  return ALL_SKUS.filter(
+    sku => sku.tier > currentSku.tier && sku.audience === currentSku.audience
+  );
+}
+
+/**
+ * Get all possible downgrade paths from a given SKU
+ * Returns all SKUs with the same audience that are lower tier
+ */
+export function getDowngradePaths(currentSkuId: SkuId): Sku[] {
+  const currentSku = SKU_MAP[currentSkuId];
+  return ALL_SKUS.filter(
+    sku => sku.tier < currentSku.tier && sku.audience === currentSku.audience
+  );
+}
+
+/**
+ * Check if an upgrade to a target SKU is valid
+ * Validates both tier progression and audience compatibility
+ */
+export function canUpgradeTo(currentSkuId: SkuId, targetSkuId: SkuId): boolean {
+  const currentSku = SKU_MAP[currentSkuId];
+  const targetSku = SKU_MAP[targetSkuId];
+
+  return (
+    targetSku.tier > currentSku.tier &&
+    targetSku.audience === currentSku.audience
+  );
+}
+
+/**
+ * Check if a downgrade to a target SKU is valid
+ * Validates both tier progression and audience compatibility
+ */
+export function canDowngradeTo(
+  currentSkuId: SkuId,
+  targetSkuId: SkuId
+): boolean {
+  const currentSku = SKU_MAP[currentSkuId];
+  const targetSku = SKU_MAP[targetSkuId];
+
+  return (
+    targetSku.tier < currentSku.tier &&
+    targetSku.audience === currentSku.audience
+  );
 }
