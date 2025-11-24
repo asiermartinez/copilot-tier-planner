@@ -19,7 +19,7 @@ Define the foundational data structures for GitHub Copilot SKUs.
   - Include fields: id, name, tier level, display name, description
   - Location: `src/types/sku.ts`
 
-- [ ] **Task 1.2**: Define SKU limits and quotas
+- [x] **Task 1.2**: Define SKU limits and quotas
   - Check https://docs.github.com/en/copilot/get-started/plans as reference for all plans
   - Add quota/limit properties to SKU interface
   - Include: message limits, overage policies, feature flags
@@ -48,7 +48,9 @@ Define how user's current plan state is represented and structured.
 
 - [ ] **Task 2.2**: Define usage and quota tracking structure
   - Current usage, quota limits, overage amounts
-  - Budget allocation for overages
+  - Budget allocation for overages (track budget consumed vs remaining)
+  - Detect when overage budget is fully consumed
+  - Support decision flows: increase overage budget OR upgrade plan
   - Historical usage patterns (if needed)
 
 - [ ] **Task 2.3**: Create mock user state data
