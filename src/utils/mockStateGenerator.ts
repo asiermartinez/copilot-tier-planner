@@ -353,3 +353,324 @@ export function generateUserState(
 
   return userState;
 }
+
+// ============================================================================
+// PRESET SCENARIOS
+// ============================================================================
+
+/**
+ * Generate a Free tier user at 80% quota (warning threshold)
+ */
+export function generateFreeUserNearQuota(): UserState {
+  const now = new Date();
+  const periodStart = new Date(now);
+  periodStart.setDate(1); // Start of month
+  const periodEnd = new Date(periodStart);
+  periodEnd.setMonth(periodEnd.getMonth() + 1);
+  periodEnd.setDate(0); // Last day of month
+
+  return generateUserState({
+    id: "free-near-quota",
+    timestamp: now.toISOString(),
+    skuId: "free",
+    account: {
+      userId: "user-001",
+      username: "free_user",
+      accountType: "individual",
+      email: "free@example.com",
+    },
+    billing: {
+      startDate: periodStart.toISOString(),
+      status: "active",
+      billingFrequency: "monthly",
+      autoRenew: true,
+    },
+    billingPeriod: {
+      startDate: periodStart.toISOString(),
+      endDate: periodEnd.toISOString(),
+      daysRemaining: 15,
+    },
+    usage: {
+      premiumRequests: 40, // 80% of 50
+      chatMessages: 40, // 80% of 50
+      codeCompletions: 1600, // 80% of 2000
+    },
+  });
+}
+
+/**
+ * Generate a Free tier user with quota exhausted (blocked)
+ */
+export function generateFreeUserBlocked(): UserState {
+  const now = new Date();
+  const periodStart = new Date(now);
+  periodStart.setDate(1);
+  const periodEnd = new Date(periodStart);
+  periodEnd.setMonth(periodEnd.getMonth() + 1);
+  periodEnd.setDate(0);
+
+  return generateUserState({
+    id: "free-blocked",
+    timestamp: now.toISOString(),
+    skuId: "free",
+    account: {
+      userId: "user-002",
+      username: "blocked_free_user",
+      accountType: "individual",
+      email: "blocked@example.com",
+    },
+    billing: {
+      startDate: periodStart.toISOString(),
+      status: "active",
+      billingFrequency: "monthly",
+      autoRenew: true,
+    },
+    billingPeriod: {
+      startDate: periodStart.toISOString(),
+      endDate: periodEnd.toISOString(),
+      daysRemaining: 10,
+    },
+    usage: {
+      premiumRequests: 50, // 100% of quota - blocked
+      chatMessages: 50,
+      codeCompletions: 2000,
+    },
+  });
+}
+
+/**
+ * Generate a Pro user with overage costs
+ */
+export function generateProUserWithOverages(): UserState {
+  const now = new Date();
+  const periodStart = new Date(now);
+  periodStart.setDate(1);
+  const periodEnd = new Date(periodStart);
+  periodEnd.setMonth(periodEnd.getMonth() + 1);
+  periodEnd.setDate(0);
+
+  return generateUserState({
+    id: "pro-overages",
+    timestamp: now.toISOString(),
+    skuId: "pro",
+    account: {
+      userId: "user-003",
+      username: "pro_user",
+      accountType: "individual",
+      email: "pro@example.com",
+    },
+    billing: {
+      startDate: periodStart.toISOString(),
+      status: "active",
+      billingFrequency: "monthly",
+      autoRenew: true,
+    },
+    billingPeriod: {
+      startDate: periodStart.toISOString(),
+      endDate: periodEnd.toISOString(),
+      daysRemaining: 15,
+    },
+    usage: {
+      premiumRequests: 400, // 100 over quota (300 + 100)
+    },
+    overageBudget: {
+      maxBudgetUsd: 50,
+      blockWhenExceeded: true,
+      enableAlerts: true,
+      alertThresholds: [50, 75, 90, 100],
+    },
+  });
+}
+
+/**
+ * Generate a Pro user with budget nearly exhausted
+ */
+export function generateProUserBudgetWarning(): UserState {
+  const now = new Date();
+  const periodStart = new Date(now);
+  periodStart.setDate(1);
+  const periodEnd = new Date(periodStart);
+  periodEnd.setMonth(periodEnd.getMonth() + 1);
+  periodEnd.setDate(0);
+
+  return generateUserState({
+    id: "pro-budget-warning",
+    timestamp: now.toISOString(),
+    skuId: "pro",
+    account: {
+      userId: "user-004",
+      username: "pro_user_budget_warning",
+      accountType: "individual",
+      email: "prowarning@example.com",
+    },
+    billing: {
+      startDate: periodStart.toISOString(),
+      status: "active",
+      billingFrequency: "monthly",
+      autoRenew: true,
+    },
+    billingPeriod: {
+      startDate: periodStart.toISOString(),
+      endDate: periodEnd.toISOString(),
+      daysRemaining: 10,
+    },
+    usage: {
+      premiumRequests: 525, // 225 over quota at $0.04 = $9 overage (90% of $10 budget)
+    },
+    overageBudget: {
+      maxBudgetUsd: 10,
+      blockWhenExceeded: true,
+      enableAlerts: true,
+      alertThresholds: [50, 75, 90, 100],
+    },
+  });
+}
+
+/**
+ * Generate a Pro+ user well under quota
+ */
+export function generateProPlusUserUnderQuota(): UserState {
+  const now = new Date();
+  const periodStart = new Date(now);
+  periodStart.setDate(1);
+  const periodEnd = new Date(periodStart);
+  periodEnd.setMonth(periodEnd.getMonth() + 1);
+  periodEnd.setDate(0);
+
+  return generateUserState({
+    id: "proplus-under-quota",
+    timestamp: now.toISOString(),
+    skuId: "pro-plus",
+    account: {
+      userId: "user-005",
+      username: "proplus_user",
+      accountType: "individual",
+      email: "proplus@example.com",
+    },
+    billing: {
+      startDate: periodStart.toISOString(),
+      status: "active",
+      billingFrequency: "monthly",
+      autoRenew: true,
+    },
+    billingPeriod: {
+      startDate: periodStart.toISOString(),
+      endDate: periodEnd.toISOString(),
+      daysRemaining: 20,
+    },
+    usage: {
+      premiumRequests: 450, // 30% of 1500
+    },
+  });
+}
+
+/**
+ * Generate a Business user for organization with multiple seats
+ */
+export function generateBusinessUserMultiSeat(): UserState {
+  const now = new Date();
+  const periodStart = new Date(now);
+  periodStart.setDate(1);
+  const periodEnd = new Date(periodStart);
+  periodEnd.setMonth(periodEnd.getMonth() + 1);
+  periodEnd.setDate(0);
+
+  return generateUserState({
+    id: "business-multi-seat",
+    timestamp: now.toISOString(),
+    skuId: "business",
+    account: {
+      userId: "org-001",
+      username: "acme_corp",
+      accountType: "organization",
+      email: "admin@acme.com",
+      organizationName: "Acme Corporation",
+      seats: 10,
+    },
+    billing: {
+      startDate: periodStart.toISOString(),
+      status: "active",
+      billingFrequency: "monthly",
+      autoRenew: true,
+    },
+    billingPeriod: {
+      startDate: periodStart.toISOString(),
+      endDate: periodEnd.toISOString(),
+      daysRemaining: 15,
+    },
+    usage: {
+      premiumRequests: 250, // Per user: 250/300
+    },
+    overageBudget: {
+      maxBudgetUsd: 200,
+      blockWhenExceeded: false,
+      enableAlerts: true,
+      alertThresholds: [50, 75, 90, 100],
+    },
+  });
+}
+
+/**
+ * Generate an Enterprise user with purchased additional requests
+ */
+export function generateEnterpriseUserWithPurchases(): UserState {
+  const now = new Date();
+  const periodStart = new Date(now);
+  periodStart.setDate(1);
+  const periodEnd = new Date(periodStart);
+  periodEnd.setMonth(periodEnd.getMonth() + 1);
+  periodEnd.setDate(0);
+  const expiresAt = new Date(periodEnd);
+  expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+  return generateUserState({
+    id: "enterprise-purchased",
+    timestamp: now.toISOString(),
+    skuId: "enterprise",
+    account: {
+      userId: "ent-001",
+      username: "big_enterprise",
+      accountType: "enterprise",
+      email: "admin@bigcorp.com",
+      organizationName: "Big Enterprise Corp",
+      seats: 50,
+    },
+    billing: {
+      startDate: periodStart.toISOString(),
+      status: "active",
+      billingFrequency: "monthly",
+      autoRenew: true,
+    },
+    billingPeriod: {
+      startDate: periodStart.toISOString(),
+      endDate: periodEnd.toISOString(),
+      daysRemaining: 20,
+    },
+    usage: {
+      premiumRequests: 1200, // 1000 base + 200 from purchased
+      additionalPurchasedPremiumRequests: 500,
+      purchasedExpiresAt: expiresAt.toISOString(),
+    },
+    overageBudget: {
+      maxBudgetUsd: 1000,
+      blockWhenExceeded: false,
+      enableAlerts: true,
+      alertThresholds: [50, 75, 90, 100],
+    },
+  });
+}
+
+/**
+ * Get all preset scenarios
+ */
+export function getAllPresets(): UserState[] {
+  return [
+    generateFreeUserNearQuota(),
+    generateFreeUserBlocked(),
+    generateProUserWithOverages(),
+    generateProUserBudgetWarning(),
+    generateProPlusUserUnderQuota(),
+    generateBusinessUserMultiSeat(),
+    generateEnterpriseUserWithPurchases(),
+  ];
+}

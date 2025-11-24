@@ -85,7 +85,7 @@ export const FREE_SKU: Sku = {
     contentExclusion: false,
     knowledgeBases: false,
     copilotCli: false,
-    gitHubSpark: false,
+    gitHubSpark: true, // Available in public preview for all tiers
   },
   audience: "individual",
   available: true,

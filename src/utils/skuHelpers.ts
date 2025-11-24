@@ -40,6 +40,7 @@ export function getSkusByAudience(
 /**
  * Get SKUs available for a specific audience with upgrade paths
  * Returns SKUs that can be upgraded to from the current SKU
+ * Respects audience boundaries - only returns SKUs with the same audience
  * @param currentSkuId - Current SKU ID
  * @returns Array of SKUs that can be upgraded to
  */
@@ -47,11 +48,14 @@ export function getUpgradeOptions(currentSkuId: SkuId): Sku[] {
   const currentSku = getSkuById(currentSkuId);
   if (!currentSku) return [];
 
-  return ALL_SKUS.filter(sku => sku.tier > currentSku.tier);
+  return ALL_SKUS.filter(
+    sku => sku.tier > currentSku.tier && sku.audience === currentSku.audience
+  );
 }
 
 /**
  * Get SKUs available for downgrade from current SKU
+ * Respects audience boundaries - only returns SKUs with the same audience
  * @param currentSkuId - Current SKU ID
  * @returns Array of SKUs that can be downgraded to
  */
@@ -59,31 +63,45 @@ export function getDowngradeOptions(currentSkuId: SkuId): Sku[] {
   const currentSku = getSkuById(currentSkuId);
   if (!currentSku) return [];
 
-  return ALL_SKUS.filter(sku => sku.tier < currentSku.tier);
+  return ALL_SKUS.filter(
+    sku => sku.tier < currentSku.tier && sku.audience === currentSku.audience
+  );
 }
 
 /**
  * Get the immediate next tier up from a given SKU
+ * Respects audience boundaries - only returns SKUs with the same audience
  * @param currentSkuId - Current SKU ID
- * @returns The next tier SKU, or null if already at highest tier
+ * @returns The next tier SKU, or null if already at highest tier or no matching audience
  */
 export function getNextTier(currentSkuId: SkuId): Sku | null {
   const currentSku = getSkuById(currentSkuId);
   if (!currentSku) return null;
 
-  return ALL_SKUS.find(sku => sku.tier === currentSku.tier + 1) || null;
+  return (
+    ALL_SKUS.find(
+      sku =>
+        sku.tier === currentSku.tier + 1 && sku.audience === currentSku.audience
+    ) || null
+  );
 }
 
 /**
  * Get the immediate previous tier down from a given SKU
+ * Respects audience boundaries - only returns SKUs with the same audience
  * @param currentSkuId - Current SKU ID
- * @returns The previous tier SKU, or null if already at lowest tier
+ * @returns The previous tier SKU, or null if already at lowest tier or no matching audience
  */
 export function getPreviousTier(currentSkuId: SkuId): Sku | null {
   const currentSku = getSkuById(currentSkuId);
   if (!currentSku) return null;
 
-  return ALL_SKUS.find(sku => sku.tier === currentSku.tier - 1) || null;
+  return (
+    ALL_SKUS.find(
+      sku =>
+        sku.tier === currentSku.tier - 1 && sku.audience === currentSku.audience
+    ) || null
+  );
 }
 
 /**
@@ -103,22 +121,34 @@ export function compareSkuTiers(skuId1: SkuId, skuId2: SkuId): number {
 
 /**
  * Check if upgrading from one SKU to another is valid
+ * Validates both tier progression and audience compatibility
  * @param fromSkuId - Source SKU ID
  * @param toSkuId - Target SKU ID
- * @returns True if upgrade is valid (target tier is higher)
+ * @returns True if upgrade is valid (target tier is higher and same audience)
  */
 export function isValidUpgrade(fromSkuId: SkuId, toSkuId: SkuId): boolean {
-  return compareSkuTiers(fromSkuId, toSkuId) < 0;
+  const fromSku = getSkuById(fromSkuId);
+  const toSku = getSkuById(toSkuId);
+
+  if (!fromSku || !toSku) return false;
+
+  return toSku.tier > fromSku.tier && toSku.audience === fromSku.audience;
 }
 
 /**
  * Check if downgrading from one SKU to another is valid
+ * Validates both tier progression and audience compatibility
  * @param fromSkuId - Source SKU ID
  * @param toSkuId - Target SKU ID
- * @returns True if downgrade is valid (target tier is lower)
+ * @returns True if downgrade is valid (target tier is lower and same audience)
  */
 export function isValidDowngrade(fromSkuId: SkuId, toSkuId: SkuId): boolean {
-  return compareSkuTiers(fromSkuId, toSkuId) > 0;
+  const fromSku = getSkuById(fromSkuId);
+  const toSku = getSkuById(toSkuId);
+
+  if (!fromSku || !toSku) return false;
+
+  return toSku.tier < fromSku.tier && toSku.audience === fromSku.audience;
 }
 
 /**
@@ -460,39 +490,57 @@ export function formatSkuPrice(skuId: SkuId, seats: number = 1): string {
 
 /**
  * Get upgrade path from one SKU to another (all intermediate SKUs)
+ * Respects audience boundaries - only returns path within same audience
  * @param fromSkuId - Starting SKU ID
  * @param toSkuId - Target SKU ID
- * @returns Array of SKU IDs representing the upgrade path (including from and to)
+ * @returns Array of SKU IDs representing the upgrade path (including from and to), or empty if invalid
  */
 export function getUpgradePath(fromSkuId: SkuId, toSkuId: SkuId): SkuId[] {
   const fromSku = getSkuById(fromSkuId);
   const toSku = getSkuById(toSkuId);
 
-  if (!fromSku || !toSku || fromSku.tier >= toSku.tier) {
+  if (
+    !fromSku ||
+    !toSku ||
+    fromSku.tier >= toSku.tier ||
+    fromSku.audience !== toSku.audience
+  ) {
     return [];
   }
 
   return ALL_SKUS.filter(
-    sku => sku.tier >= fromSku.tier && sku.tier <= toSku.tier
+    sku =>
+      sku.tier >= fromSku.tier &&
+      sku.tier <= toSku.tier &&
+      sku.audience === fromSku.audience
   ).map(sku => sku.id);
 }
 
 /**
  * Get downgrade path from one SKU to another (all intermediate SKUs)
+ * Respects audience boundaries - only returns path within same audience
  * @param fromSkuId - Starting SKU ID
  * @param toSkuId - Target SKU ID
- * @returns Array of SKU IDs representing the downgrade path (including from and to)
+ * @returns Array of SKU IDs representing the downgrade path (including from and to), or empty if invalid
  */
 export function getDowngradePath(fromSkuId: SkuId, toSkuId: SkuId): SkuId[] {
   const fromSku = getSkuById(fromSkuId);
   const toSku = getSkuById(toSkuId);
 
-  if (!fromSku || !toSku || fromSku.tier <= toSku.tier) {
+  if (
+    !fromSku ||
+    !toSku ||
+    fromSku.tier <= toSku.tier ||
+    fromSku.audience !== toSku.audience
+  ) {
     return [];
   }
 
   return ALL_SKUS.filter(
-    sku => sku.tier <= fromSku.tier && sku.tier >= toSku.tier
+    sku =>
+      sku.tier <= fromSku.tier &&
+      sku.tier >= toSku.tier &&
+      sku.audience === fromSku.audience
   )
     .map(sku => sku.id)
     .reverse();

@@ -216,14 +216,14 @@ export const STANDARD_BUDGET_THRESHOLDS = [50, 75, 90, 100] as const;
 
 /**
  * Default overage costs per unit (in USD)
- * These are example values and should be updated based on actual pricing
+ * Based on GitHub Copilot pricing: https://docs.github.com/en/copilot/get-started/plans
+ *
+ * Note: Only premium requests have documented overage pricing.
+ * Chat messages and code completions are either hard-blocked (Free tier)
+ * or unlimited (paid tiers) with no per-unit overage charges.
  */
-export const DEFAULT_OVERAGE_COSTS: Record<ResourceType, number> = {
-  [ResourceType.PREMIUM_REQUESTS]: 0.1, // $0.10 per premium request
-  [ResourceType.CHAT_MESSAGES]: 0.01, // $0.01 per chat message
-  [ResourceType.CODE_COMPLETIONS]: 0.001, // $0.001 per completion
-  [ResourceType.CLI_COMPLETIONS]: 0.001, // $0.001 per CLI completion
-  [ResourceType.API_CALLS]: 0.01, // $0.01 per API call
+export const DEFAULT_OVERAGE_COSTS: Partial<Record<ResourceType, number>> = {
+  [ResourceType.PREMIUM_REQUESTS]: 0.04, // $0.04 per premium request (documented)
 };
 
 /**

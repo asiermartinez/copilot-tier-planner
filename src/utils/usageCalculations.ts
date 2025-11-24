@@ -375,7 +375,7 @@ export function evaluateDecisionPoint(
   if (nextPlanCostUsd !== null && nextPlanQuota !== null) {
     const costDiff = nextPlanCostUsd - currentPlanCostUsd;
     const overageCostPerUnit =
-      DEFAULT_OVERAGE_COSTS[ResourceType.PREMIUM_REQUESTS];
+      DEFAULT_OVERAGE_COSTS[ResourceType.PREMIUM_REQUESTS] ?? 0;
     if (overageCostPerUnit > 0) {
       breakEvenUsage = totalQuota + costDiff / overageCostPerUnit;
     }

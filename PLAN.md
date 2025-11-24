@@ -9,412 +9,339 @@ This document outlines the development plan for the SKU Planner project. Move th
 
 ## Project Overview
 
-The SKU Planner is an internal GitHub playground tool designed to help teams reason about GitHub Copilot SKUs in an intuitive way. This application simulates different Copilot license tiers, their limits, and upgrade/downgrade paths through a visual SKU roadmap combined with scenario analysis capabilities.
+The SKU Planner is an internal GitHub playground tool that helps teams quickly make sense of GitHub Copilot SKUs. It shows how users move through different license tiers, what limits apply, and how upgrades or downgrades happen. With an interactive visual roadmap and built-in scenario analysis, the SKU Planner makes it easier to explore how SKU decisions play out in practice.
 
-**Target Users**: Internal GitHub teams
+**Primary Users**:
+- Product teams testing SKU logic and validating entitlement rules
+- Design teams exploring user journeys and UI messaging for tier transitions
+
+**Core Use Cases**:
+1. **Testing SKU logic**: Validate how users transition between tiers when quota is consumed
+2. **Reasoning about user state**: Understand user position in the SKU hierarchy and available actions
+3. **UI messaging validation**: Test and refine the wording used to guide users toward their best next action (upgrade vs. overage budget setup)
+
+**Success Criteria**:
+- Product/design teams can quickly simulate quota consumption scenarios
+- Clear visualization of user state at each tier
+- UI messaging samples that help users choose between upgrading or managing overages
+- Visual representation of all UI elements (banners, alerts, CTAs) in the playground
+- Real-time preview of how messages appear to end users in different states
+
+**SKU Data Model**:
+
+Based on the current implementation and [GitHub Copilot plans](https://docs.github.com/en/copilot/get-started/plans), the tool tracks:
+
+- **Tiers**: FREE (0) → PRO (1) → PRO_PLUS (2) → BUSINESS (3) → ENTERPRISE (4)
+- **Audiences**: Individual, Organization, Enterprise (upgrade paths respect audience boundaries)
+- **Quota Limits**:
+  - Premium requests per month (50-1500 depending on tier)
+  - Chat messages per month (50 for Free, unlimited for paid tiers)
+  - Code completions per month (2000 for Free, unlimited for paid tiers)
+- **Overage Policies**:
+  - `BLOCK`: Hard limit, no overages allowed (Free tier)
+  - `BILL`: Pay-as-you-go at $0.04/request (paid tiers)
+  - `ALLOW`: Unlimited (not currently used)
+  - Budget caps: Users can set spending limits on overages
+  - Warning thresholds: Default 80% quota consumption
+- **Pricing**:
+  - Monthly/annual rates (individual plans)
+  - Per-seat pricing (organization/enterprise plans)
+  - Additional premium request costs ($0.04/request)
+- **Features**: 30+ feature flags covering agents, chat, models, customization, and enterprise capabilities
+- **User State Tracking**:
+  - Real-time usage tracking per resource type
+  - Overage calculations and cost projections
+  - Budget allocation and consumption
+  - Decision point recommendations (upgrade vs. manage overages)
+  - Alert thresholds and notifications
+
+**UI Messaging Scenarios**:
+
+The playground must visually represent all key UI messaging elements that appear to users:
+
+1. **Quota Warning Messages**: 
+   - Triggered at configurable thresholds (default 80%)
+   - Example: "You've used 80% of your 300 premium requests this month"
+   - Display as informational banners or alerts in the playground
+
+2. **Quota Exhausted Messages**:
+   - Triggered when quota is fully consumed
+   - Example: "You've reached your limit of 2000 completions. Upgrade or wait until reset"
+   - Display as warning/error banners with action buttons
+
+3. **Upgrade CTAs**:
+   - Contextual calls-to-action for tier upgrades
+   - Example: "Upgrade to Pro for unlimited completions and 300 premium requests"
+   - Display as prominent action cards or banners
+
+4. **Overage Budget Setup Prompts**:
+   - Prompts to configure overage budgets (for paid tiers)
+   - Example: "Set a budget to keep using premium features beyond your quota"
+   - Display as action prompts with budget input options
+
+5. **Upgrade vs. Overage Cost Comparison**:
+   - Cost analysis showing upgrade vs. overage expenses
+   - Example: "Upgrading to Pro+ saves you $15/month compared to current overages"
+   - Display as comparison cards or decision helpers
+
+6. **Block/Restriction Notices**:
+   - Messages when usage is blocked due to quota/budget limits
+   - Example: "Premium requests paused. Upgrade your plan or increase your budget to continue"
+   - Display as blocking alerts with clear action paths
+
+**UI Representation Requirements**:
+- All messages must be rendered as actual UI components in the playground
+- Messages should update dynamically based on simulated user state
+- Product/design teams should see exactly how messages appear to users
+- Support for testing different message variations by editing state/config
+- Visual hierarchy should match production UI priorities
 
 **Key Features**:
-- Visual SKU progression/roadmap showing the linear path from FREE to Enterprise plans
-- Tools for reasoning about edge cases, scenarios, and missing opportunities
-- Interactive simulation environment for license planning
+
+- Interactive visual Copilot Tier map: See user consumption, entitlements, and upgrade nudges across every tier—from Free all the way to Enterprise.
+- Flexible modeling: Set up and simulate different user states, license tiers, limits, and transitions to understand how changes affect the overall experience.
+- Simulation sandbox: Interactive simulation environment for license planning. A sandbox where teams can experiment with different license strategies, forecast outcomes, and reason about upgrade/downgrade flows before implementing them.
+- UI messaging playground: Test different wordings and calls-to-action for quota exhaustion scenarios
+- Extensible by design: Based on today's Copilot plans https://docs.github.com/en/copilot/get-started/plans, but built to easily accommodate future SKUs, features, and entitlement rules right from the UI.
 
 ---
 
-## Phase 1: Core SKU Data & Types
+## Current State Assessment
 
-Define the foundational data structures for GitHub Copilot SKUs.
+**Existing Work**:
+- ✅ Project setup with Next.js 15, Primer React v38, TypeScript (strict mode)
+- ✅ Basic layout with Primer ThemeProvider and BaseStyles
+- ✅ Complete type definitions for SKUs, user states, and usage tracking
+- ✅ All five SKU tier data definitions (Free, Pro, Pro+, Business, Enterprise)
+- ✅ Utility functions for SKU queries, state calculations, and usage tracking
+- ✅ Mock user state generator and sample data
+- ✅ Component directories created (SkuCard, SkuRoadmap) but empty
 
-- [x] **Task 1.1**: Define SKU type interfaces
-  - Check https://docs.github.com/en/copilot/get-started/plans as reference for Copilot SKU tiers
-  - Create TypeScript interfaces for SKU tiers (FREE, mid-tiers, Enterprise)
-  - Include fields: id, name, tier level, display name, description
-  - Location: `src/types/sku.ts`
+**What's Missing**:
+- ❌ No UI components built yet (page.tsx is a placeholder)
+- ❌ No state management implementation
+- ❌ No simulation engine
+- ❌ No UI messaging components
 
-- [x] **Task 1.2**: Define SKU limits and quotas
-  - Check https://docs.github.com/en/copilot/get-started/plans as reference for all plans
-  - Add quota/limit properties to SKU interface
-  - Include: message limits, overage policies, feature flags
-  - Consider extensibility for future limit types
-
-- [x] **Task 1.3**: Create initial SKU data set
-  - Check https://docs.github.com/en/copilot/get-started/plans as reference for all plans
-  - Define at least 3-4 SKU tiers with realistic data
-  - Include FREE and Enterprise as bookends
-  - Location: `src/data/skus.ts` or similar
-
-- [x] **Task 1.4**: Create SKU utility functions
-  - Helper functions: getSku by id, compare SKUs, validate SKU transitions based on limits and other useful operations. Check the plan to inference needed functions, and implement them.
-  - Location: `src/utils/skuHelpers.ts`
+**Development Approach**:
+- Start fresh with implementation but leverage existing data layer and types
+- Review and validate existing utilities before using them
+- Build UI components from scratch following Primer React guidelines
+- Reference existing code as needed but don't assume it's complete
 
 ---
 
-## Phase 2: User State Model (JSON Response Structure)
+## Development Phases
 
-Define how user's current plan state is represented and structured.
+### Phase 1: Core Data Layer & Foundation
+**Goal**: Establish the data structures, type definitions, and helper utilities needed to model SKUs, user states, and transitions.
 
-- [x] **Task 2.1**: Define user state interface
-  - Create interface representing user's current Copilot license state
-  - Include: current SKU, usage data, account info, timestamp
-  - Location: `src/types/userState.ts`
+**Tasks**:
+- [x] 1.1 Review and validate existing SKU type definitions (`src/types/sku.ts`)
+  - Verify all SKU tiers are represented (FREE through ENTERPRISE)
+  - Check OverageBehavior enum covers all needed cases
+  - Validate feature flags match current GitHub docs
+- [x] 1.2 Review and validate user state type definitions (`src/types/userState.ts`)
+  - Verify UserState interface covers all tracking needs
+  - Check alert types and severity levels are comprehensive
+  - Validate ResourceUsage and PremiumRequestUsage structures
+- [x] 1.3 Review and validate usage tracking types (`src/types/usage.ts`)
+  - Check ResourceType enum is complete
+  - Verify UsageDecisionPoint supports needed recommendation logic
+  - Validate threshold and budget tracking structures
+- [x] 1.4 Review SKU data definitions for all tiers (`src/data/skus.ts`)
+  - Cross-reference with https://docs.github.com/en/copilot/get-started/plans
+  - Update any pricing, limits, or features that have changed
+  - Verify helper functions (getNextTier, canUpgradeTo, etc.) work correctly
+- [x] 1.5 Review SKU helper utilities (`src/utils/skuHelpers.ts`)
+  - Test upgrade/downgrade path calculations
+  - Verify audience boundary logic
+  - Add any missing comparison or query functions
+- [x] 1.6 Review state helper utilities (`src/utils/stateHelpers.ts`)
+  - Verify state calculation logic
+  - Test state transitions and validations
+  - Add any missing state manipulation functions
+- [x] 1.7 Review usage calculation utilities (`src/utils/usageCalculations.ts`)
+  - Verify quota and overage calculations
+  - Test cost projection logic
+  - Validate threshold detection
+- [x] 1.8 Review mock state generator (`src/utils/mockStateGenerator.ts`)
+  - Test generator can create all needed scenarios
+  - Verify generated states are realistic and valid
+  - Add presets for common testing scenarios
+- [x] 1.9 Review mock user states dataset (`src/data/mockUserStates.ts`)
+  - Ensure coverage of all key scenarios (quota warnings, exhausted, overages, etc.)
+  - Add any missing edge cases
+  - Validate data accuracy
 
-- [x] **Task 2.2**: Define usage and quota tracking structure
-  - Current usage for premium requests, chat messages, code completions
-  - Quota limits per resource type
-  - Overage amounts and overage costs calculation
-  - Budget allocation for overages (track budget consumed vs remaining)
-  - Detect when overage budget is fully consumed
-  - Support decision flows: increase overage budget OR upgrade plan
-  - Historical usage patterns (if needed)
-  - Billing period tracking (monthly reset logic)
-  - Usage timestamps
 
-- [x] **Task 2.3**: Create mock user state data
-  - Sample user states for different scenarios
-  - Edge cases: over quota, under quota, at limit
-  - This should be user configurable to test various scenarios
-  - Location: `src/data/mockUserStates.ts`
-  - **IMPROVEMENT**: Created `src/utils/mockStateGenerator.ts` to generate mock states from SKU definitions
-  - All quota limits, prices, warning thresholds, and overage policies are now derived from SKU data
-  - Eliminates hardcoded values and ensures consistency with SKU definitions
-  - Mock states only specify scenario-specific values (current usage, account info, dates)
-  - All calculated values (percentages, overage costs, blocking) are automatically computed
 
-- [x] **Task 2.4**: Add state validation and transformation utilities
-  - State validation functions (complement existing calculations in `usageCalculations.ts`)
-  - State serialization/deserialization helpers
-  - User-friendly formatting utilities
-  - NOTE: Quota, overage, and decision calculations already implemented in Task 2.2
-  - Location: `src/utils/stateHelpers.ts`
+**Acceptance Criteria**:
+- All SKU tiers (Free, Pro, Pro+, Business, Enterprise) are properly defined with accurate data from GitHub docs
+- Type definitions are comprehensive and support all required use cases
+- Helper functions cover common queries (upgrade paths, feature comparisons, cost calculations)
+- Mock data generator can create realistic user states for all scenarios
+- All utilities have proper TypeScript types and are well-documented
 
----
-
-## Phase 2.5: Premium Request Management & Control Logic
-
-~~Build comprehensive logic for tracking, controlling, and managing premium requests.~~
-
-**STATUS**: This phase has been consolidated into Task 2.2. Most functionality already implemented.
-
-- [x] ~~**Task 2.5.1**: Create premium request tracking utilities~~ → **OBSOLETE** (implemented in Task 2.2)
-  - Already in `src/utils/usageCalculations.ts`
-  - Functions: `calculateQuotaPercentage()`, `checkThresholdCrossed()`, `createUsageThresholds()`
-
-- [x] ~~**Task 2.5.2**: Implement overage calculation logic~~ → **OBSOLETE** (implemented in Task 2.2)
-  - Already in `src/utils/usageCalculations.ts`
-  - Functions: `calculateOverageAmount()`, `calculateOverageCost()`, `calculateOverageDetails()`
-
-- [x] ~~**Task 2.5.3**: Create budget management utilities~~ → **OBSOLETE** (implemented in Task 2.2)
-  - Already in `src/utils/usageCalculations.ts`
-  - Functions: `calculateBudgetAllocation()`, threshold detection, blocking logic
-
-- [x] ~~**Task 2.5.4**: Implement quota reset and billing period logic~~ → **OBSOLETE** (implemented in Task 2.2)
-  - Already in `src/utils/usageCalculations.ts`
-  - Functions: `calculateQuotaReset()`, `calculateProRatedQuota()`, `calculateDaysRemaining()`
-
-- [x] ~~**Task 2.5.5**: Create upgrade recommendation engine~~ → **OBSOLETE** (implemented in Task 2.2)
-  - Already in `src/utils/usageCalculations.ts`
-  - Function: `evaluateDecisionPoint()` provides recommendations, cost comparisons, break-even analysis
-
-- [ ] **Task 2.5.6**: Implement additional premium request purchase logic
-  - Calculate cost to purchase additional premium requests
-  - Compare one-time purchase vs. upgrading vs. increasing budget (use existing `evaluateDecisionPoint()`)
-  - Add UI-friendly formatting for purchase options
-  - Add purchase expiration tracking helpers (if applicable)
-  - Location: `src/utils/additionalRequestPurchase.ts` or add to `usageCalculations.ts`
+**Deliverables**:
+- Complete type system for SKUs, user states, and usage tracking
+- SKU data for all five tiers
+- Reusable utility functions for state and SKU manipulation
+- Mock data for testing and development
 
 ---
 
-## Phase 3: Visual Roadmap UI
+### Phase 2: UI Implementation & Interactive Messaging
+**Goal**: Build the complete user interface with interactive controls and dynamic messaging that responds to state changes.
 
-Build the main SKU progression visualization.
+**Layout Structure**:
+- Header: App title, help, account type selector, base SKU selector
+- Main section (side-by-side): Left panel (controls) + Right panel (visualization with toggle)
+- Right panel toggles between: UI Messages view and State Payload (JSON) view
 
-- [ ] **Task 3.1**: Design roadmap layout component
-  - Horizontal or vertical linear progression
-  - Show all SKU tiers in order
-  - Location: `src/components/SkuRoadmap/`
+**Tasks**:
 
-- [ ] **Task 3.2**: Create SKU card component
-  - Display individual SKU details (name, tier, limits)
-  - Visual indicator for current user's SKU
-  - Accessible and keyboard navigable
+**Foundation & Layout (2.1-2.4)**:
+- [ ] 2.1 Create main app layout with header and side-by-side panels
+- [ ] 2.2 Implement header with account type selector (Individual/Organization/Enterprise)
+- [ ] 2.3 Implement header base SKU selector (filtered by account type)
+- [ ] 2.4 Set up React Context for global state management (current SKU, usage, budget)
 
-- [ ] **Task 3.3**: Implement progression indicators
-  - Visual connections between SKUs (arrows, lines)
-  - Highlight upgrade/downgrade paths
-  - Show direction and relationships
+**Left Panel - Interactive Controls (2.5-2.12)**:
+- [ ] 2.5 Create plan selector component (current plan with expand/collapse for upgrade/downgrade paths)
+- [ ] 2.6 Implement visual upgrade/downgrade path display (respects audience boundaries)
+- [ ] 2.7 Add quick SKU switch buttons in expanded plan selector
+- [ ] 2.8 Create usage control sliders (premium requests, chat messages, code completions)
+- [ ] 2.9 Display real-time usage percentages and quota limits
+- [ ] 2.10 Create budget configuration controls (max budget, block when exceeded)
+- [ ] 2.11 Create billing period controls (days into period, days remaining)
+- [ ] 2.12 Add quick preset buttons (Under Quota, At Warning, Over Quota, With Overages, Budget Exhausted)
 
-- [ ] **Task 3.4**: Add current position highlighting
-  - Clearly mark user's current SKU on roadmap
-  - Show available upgrade/downgrade options
-  - Visual distinction between available and unavailable paths
+**Right Panel - Messages & Visualization (2.13-2.22)**:
+- [ ] 2.13 Create tab toggle component (UI Messages / State Payload)
+- [ ] 2.14 Implement State Payload view (formatted JSON display with copy button)
+- [ ] 2.15 Create alert/banner component system with Primer (info, warning, error, critical)
+- [ ] 2.16 Implement quota warning message component (triggered at 80% threshold)
+- [ ] 2.17 Implement quota exhausted message component (triggered at 100%)
+- [ ] 2.18 Implement block/restriction notice component (when usage is blocked)
+- [ ] 2.19 Implement upgrade CTA component with cost comparison
+- [ ] 2.20 Implement overage budget setup prompt component
+- [ ] 2.21 Create cost comparison card (upgrade vs staying on current plan with overages)
+- [ ] 2.22 Implement plan comparison UI (side-by-side SKU comparison)
 
----
+**Integration & Logic (2.23-2.26)**:
+- [ ] 2.23 Wire up usage controls to recalculate state in real-time
+- [ ] 2.24 Implement message triggering logic based on current state (quota %, budget %, blocking)
+- [ ] 2.25 Implement decision point evaluation (upgrade vs budget recommendations)
+- [ ] 2.26 Add keyboard navigation support for all interactive elements
 
-## Phase 4: URL State Management
+**Acceptance Criteria**:
+- Users can select account type and SKU, filtered by audience boundaries
+- Users can manually adjust usage via sliders and see instant state updates
+- Messages appear/disappear dynamically based on quota and budget thresholds
+- Upgrade recommendations show cost savings calculations
+- State payload view shows complete UserState JSON
+- Plan selector shows current plan with expandable upgrade/downgrade options
+- All components use Primer React and follow accessibility guidelines
+- Full keyboard navigation support
 
-Enable sharing and persisting state through URL parameters.
-
-- [ ] **Task 4.1**: Implement state serialization
-  - Convert user state object to URL-safe string
-  - Use compression if needed for long URLs
-  - Location: `src/utils/urlState.ts`
-
-- [ ] **Task 4.2**: Implement state deserialization
-  - Parse URL parameters back to user state object
-  - Handle malformed or missing parameters gracefully
-  - Validate decoded state
-
-- [ ] **Task 4.3**: Create URL state context/hook
-  - React hook to read state from URL on mount
-  - Update URL when state changes (without page reload)
-  - Location: `src/contexts/UrlStateContext.tsx` or `src/hooks/useUrlState.ts`
-
-- [ ] **Task 4.4**: Add share functionality
-  - Copy-to-clipboard button for current state URL
-  - Visual confirmation when URL is copied
-  - Test URL length limits
-
----
-
-## Phase 5: Interactive Quota & Overage Controls
-
-Build controls for simulating usage, overages, and budgets with focus on premium requests.
-
-- [ ] **Task 5.1**: Create premium request usage meter
-  - Visual progress bar showing premium requests used vs. quota
-  - Display exact numbers (e.g., "250 / 300 used")
-  - Color-coded indicators (green < 80%, yellow 80-95%, red > 95%)
-  - Show percentage used prominently
-  - Location: `src/components/PremiumRequestMeter/`
-
-- [ ] **Task 5.2**: Create premium request usage slider/input
-  - Interactive control to simulate different usage amounts
-  - Instant feedback on quota status
-  - Ability to input exact numbers or use slider
-  - Show "what-if" scenarios for usage levels
-  - Location: `src/components/QuotaControls/`
-
-- [ ] **Task 5.3**: Create overage simulation controls
-  - Input for simulating premium request overages
-  - Real-time overage cost calculation and display
-  - Show cost per additional request ($0.04)
-  - Display total overage cost
-  - Compare overage cost vs. upgrade cost
-  - Location: `src/components/OverageSimulator/`
-
-- [ ] **Task 5.4**: Create budget controls and alerts
-  - Set overage budget cap (dollar amount)
-  - Visual budget meter (spent vs. allocated)
-  - Alert threshold configuration (50%, 75%, 90%, 100%)
-  - Show when budget is exceeded
-  - Block/allow toggle when budget exceeded
-  - Calculate cost implications and recommendations
-  - Location: `src/components/BudgetControls/`
-
-- [ ] **Task 5.5**: Create premium request alerts/warnings
-  - Warning banners when approaching quota (at 80%, 90%, 100%)
-  - Budget warning banners (at configured thresholds)
-  - Overage notifications with cost information
-  - Upgrade recommendations when cost-effective
-  - Dismissible with smart re-showing logic
-  - Location: `src/components/PremiumRequestAlerts/`
-
-- [ ] **Task 5.6**: Display quota analytics dashboard
-  - Visual charts/graphs for premium request usage over time
-  - Projections based on current usage patterns
-  - Time until quota reset countdown
-  - Cost analysis: current spend vs. projected spend
-  - Recommendations for SKU changes or budget adjustments
-  - Location: `src/components/QuotaAnalytics/`
-
-- [ ] **Task 5.7**: Create additional request purchase UI
-  - Interface to purchase additional premium requests
-  - Calculate cost for desired number of requests
-  - Compare with upgrade cost (show savings/loss)
-  - One-time purchase confirmation flow
-  - Track purchased requests separately in UI
-  - Location: `src/components/AdditionalRequestsPurchase/`
+**Deliverables**:
+- Complete interactive playground with controls and messaging
+- Dynamic message system triggered by state changes
+- State payload viewer for developers
+- Responsive layout working on desktop screens
 
 ---
 
-## Phase 6: Dynamic SKU Management
+### Phase 3: Enhanced Features & Sharing
+**Goal**: Add convenience features for testing workflows and sharing scenarios.
 
-Enable adding and editing SKUs on the fly.
+**URL State Encoding Strategy**:
+- Use Base64-encoded `SimpleUserState` in URL query param (`?state=...`)
+- Auto-update URL on every state change (control adjustments)
+- Derive full `UserState` from `SimpleUserState` on load using existing utilities
+- Display full `UserState` JSON in State Payload view, but encode only inputs
 
-- [ ] **Task 6.1**: Create "Add SKU" interface
-  - Form to define new SKU tier
-  - Input all SKU properties (name, limits, pricing, etc.)
-  - Location: `src/components/SkuEditor/`
+**Tasks**:
+- [ ] 3.1 Implement URL encoding/decoding utilities for SimpleUserState (Base64)
+- [ ] 3.2 Auto-update URL query param whenever state changes
+- [ ] 3.3 Implement state restoration from URL on page load
+- [ ] 3.4 Add "Copy Shareable Link" button to copy current URL
+- [ ] 3.5 Add "Reset to Default" button to clear all adjustments
+- [ ] 3.6 Implement JSON export button (download full UserState as file)
+- [ ] 3.7 Implement JSON import (upload state file to restore)
+- [ ] 3.8 Add preset scenario descriptions/tooltips
+- [ ] 3.9 Implement additional purchased requests control
+- [ ] 3.10 Add subscription status selector (active, trial, suspended)
+- [ ] 3.11 Create pro-rated billing toggle for mid-cycle upgrades
 
-- [ ] **Task 6.2**: Implement SKU editing
-  - Edit existing SKU properties
-  - Validation to prevent breaking changes
-  - Preserve relationships in roadmap
+**Acceptance Criteria**:
+- Users can share scenarios via URL links
+- State persists in URL and can be bookmarked
+- Users can export/import states as JSON files
+- Quick presets load predefined scenarios instantly
+- Additional controls allow fine-tuning edge cases
 
-- [ ] **Task 6.3**: Handle dynamic SKU insertion
-  - Insert new SKU at correct position in linear progression
-  - Update roadmap visualization dynamically
-  - Recalculate upgrade/downgrade paths
-
-- [ ] **Task 6.4**: SKU persistence in URL state
-  - Include custom SKUs in URL state encoding
-  - Deserialize and restore custom SKUs
-  - Handle conflicts between default and custom SKUs
-
----
-
-## Phase 7: Gap Analysis & Opportunity Detection
-
-Identify missing SKU tiers and opportunities in the progression.
-
-- [ ] **Task 7.1**: Implement gap detection algorithm
-  - Analyze current SKU lineup for gaps
-  - Identify pricing gaps, feature gaps, quota gaps
-  - Location: `src/utils/gapAnalysis.ts`
-
-- [ ] **Task 7.2**: Create gap visualization
-  - Highlight gaps in the roadmap UI
-  - Visual indicators for missing tiers
-  - Location: `src/components/GapIndicator/`
-
-- [ ] **Task 7.3**: Generate opportunity suggestions
-  - Suggest new SKU tiers to fill gaps
-  - Recommend pricing and quota levels
-  - Display as actionable insights
-
-- [ ] **Task 7.4**: Create gap analysis panel
-  - Dedicated UI section for gap insights
-  - List all detected gaps and opportunities
-  - Allow users to explore or dismiss suggestions
+**Deliverables**:
+- URL-based state sharing
+- Import/export functionality
+- Enhanced control options for edge cases
 
 ---
 
-## Phase 8: Scenario Analysis Tools
+### Phase 4: Polish & Documentation
+**Goal**: Refine the user experience and document the tool for internal teams.
 
-Build tools for exploring different scenarios and edge cases.
+**Tasks**:
+- [ ] 4.1 Add loading states and transitions
+- [ ] 4.2 Implement error handling and error boundaries
+- [ ] 4.3 Add tooltips for controls and messages
+- [ ] 4.4 Create help/documentation modal or page
+- [ ] 4.5 Add keyboard shortcuts (e.g., "?" for help, "R" for reset)
+- [ ] 4.6 Implement responsive layout adjustments for smaller screens
+- [ ] 4.7 Add visual feedback for state changes (subtle animations)
+- [ ] 4.8 Create screenshot/copy button for sharing visual examples
+- [ ] 4.9 Performance optimization and code splitting
+- [ ] 4.10 Cross-browser testing (Chrome, Firefox, Safari, Edge)
+- [ ] 4.11 Update README with setup and usage instructions
+- [ ] 4.12 Create internal user guide with common workflows
 
-- [ ] **Task 8.1**: Create scenario presets
-  - Predefined scenarios (high usage, budget-constrained, etc.)
-  - Quick-load different user states
-  - Location: `src/data/scenarios.ts`
+**Acceptance Criteria**:
+- Tool feels polished and professional
+- Clear help documentation for internal users
+- Good performance even with complex states
+- Works correctly in all major browsers
+- README clearly explains setup and usage
 
-- [ ] **Task 8.2**: Implement "What-If" analysis
-  - Compare current state vs. potential SKU change
-  - Show cost differences, quota changes, feature changes
-  - Side-by-side comparison view
-
-- [ ] **Task 8.3**: Create scenario comparison table
-  - Matrix view of different scenarios
-  - Highlight key differences and trade-offs
-  - Location: `src/components/ScenarioComparison/`
-
-- [ ] **Task 8.4**: Add scenario notes/annotations
-  - Allow users to annotate scenarios
-  - Save notes with URL state
-  - Help document reasoning and decisions
-
----
-
-## Phase 9: State-based UI Components
-
-Build UI components that respond to different user states.
-
-- [ ] **Task 9.1**: Create announcement banner component
-  - Display state-specific messages (quota warnings, recommendations)
-  - Different severity levels (info, warning, critical)
-  - Premium request specific scenarios:
-    - Approaching quota (80%, 90% thresholds)
-    - Quota exceeded with overage costs
-    - Budget alerts (50%, 75%, 90%, 100% of overage budget)
-    - Upgrade recommendations based on usage
-    - Additional request purchase suggestions
-  - Dismissible with persistence
-  - Location: `src/components/AnnouncementBanner/`
-
-- [ ] **Task 9.2**: Create upgrade/downgrade buttons
-  - Context-aware CTAs based on current state
-  - Show upgrade benefits (e.g., "Upgrade to Pro+ and get 1200 more premium requests/month")
-  - Show downgrade savings with warnings about lost quota
-  - Display cost comparison: current overage spend vs. upgrade cost
-  - Trigger SKU change in simulation
-  - Show premium request quota changes prominently
-  - Location: `src/components/SkuActionButtons/`
-
-- [ ] **Task 9.3**: Create license management UI panel
-  - Display current license details
-  - Show seat allocation, usage, renewals
-  - Allow adjustments and modifications
-  - Location: `src/components/LicenseManagement/`
-
-- [ ] **Task 9.4**: Implement state-based UI logic
-  - Conditional rendering based on user state
-  - Show/hide components based on SKU tier
-  - Dynamic messaging and recommendations
+**Deliverables**:
+- Production-ready application
+- Comprehensive documentation
+- Optimized build for GitHub Pages deployment
 
 ---
 
-## Phase 10: Polish & Refinements
+### Phase 5: Future Enhancements (Optional)
+**Goal**: Advanced features that could be added based on team feedback.
 
-Final touches, performance, and user experience improvements.
+**Potential Tasks** (not prioritized):
+- [ ] 5.1 Create custom SKU editor for hypothetical pricing scenarios
+- [ ] 5.2 Add message variant editor for testing different wordings
+- [ ] 5.3 Implement message priority and stacking logic
+- [ ] 5.4 Add comparison mode (view multiple states side-by-side)
+- [ ] 5.5 Create saved scenarios library
+- [ ] 5.6 Add analytics/usage tracking for internal metrics
+- [ ] 5.7 Implement dark mode support
+- [ ] 5.8 Add export to presentation format (slides/PDF)
 
-- [ ] **Task 10.1**: Responsive design pass
-  - Ensure all components work on different screen sizes
-  - Mobile-friendly interactions
-  - Test on various devices
-
-- [ ] **Task 10.2**: Accessibility audit
-  - Verify keyboard navigation throughout app
-  - Test with screen readers
-  - Ensure proper ARIA labels and focus management
-
-- [ ] **Task 10.3**: Performance optimization
-  - Optimize re-renders and state updates
-  - Lazy load components if needed
-  - Minimize bundle size
-
-- [ ] **Task 10.4**: Documentation and examples
-  - Add inline code documentation
-  - Create usage examples in README
-  - Document URL state format
-
-- [ ] **Task 10.5**: Error handling and edge cases
-  - Graceful handling of invalid states
-  - User-friendly error messages
-  - Fallback UI for missing data
-
-- [ ] **Task 10.6**: Visual polish
-  - Consistent spacing and typography
-  - Smooth transitions and animations
-  - Loading states and feedback
+**Note**: These features should only be implemented if there's demonstrated need from product/design teams.
 
 ---
 
 ## Notes
 
-- This plan is a living document - update as requirements evolve
-- Feel free to break down tasks further if needed
-- Add new tasks or phases as you discover them
-- Mark blockers or dependencies in task descriptions
-- Use task numbers when asking Copilot for help (e.g., "Help with Task 3.2")
-
-### Recent Changes
-
-- **Enhanced Premium Request Tracking** (Phase 2.5 added):
-  - Added comprehensive logic for tracking, controlling, and managing premium requests
-  - Includes overage calculations, budget management, billing period handling
-  - Upgrade recommendation engine to compare overage costs vs. plan upgrades
-  - Additional request purchase logic and cost comparisons
-  
-- **Enhanced Phase 5** (Interactive Quota & Overage Controls):
-  - Added specific premium request UI components (meters, alerts, analytics)
-  - Budget controls with configurable alert thresholds
-  - Additional request purchase interface
-  - Quota analytics dashboard with projections and recommendations
-  
-- **Enhanced Phase 9** (State-based UI Components):
-  - Added premium request-specific scenarios for announcement banners
-  - Enhanced upgrade/downgrade buttons with quota change information
-  - Cost comparison displays throughout
-
----
-
-**Last Updated**: January 2025 (Premium request tracking enhancements added)
+- Each phase builds on the previous one - complete phases in order
+- Update task status as work progresses: `[ ]` → `[-]` → `[x]`
+- If new requirements emerge, add tasks to the appropriate phase
+- GitHub Pages deployment is already configured - just commit and push to deploy
+- Testing approach: Manual testing by running the app and clicking through features (prototype methodology)
+- No formal feedback collection process - this is an internal exploration tool
