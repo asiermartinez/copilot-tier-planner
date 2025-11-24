@@ -13,10 +13,10 @@ This document outlines the development plan for the SKU Planner project. Move th
 
 Define the foundational data structures for GitHub Copilot SKUs.
 
-- [ ] **Task 1.1**: Define SKU type interfaces
+- [x] **Task 1.1**: Define SKU type interfaces
+  - Check https://docs.github.com/en/copilot/get-started/plans as reference for Copilot SKU tiers
   - Create TypeScript interfaces for SKU tiers (FREE, mid-tiers, Enterprise)
   - Include fields: id, name, tier level, display name, description
-  - Check https://docs.github.com/en/copilot/get-started/plans as reference for all plans
   - Location: `src/types/sku.ts`
 
 - [ ] **Task 1.2**: Define SKU limits and quotas
