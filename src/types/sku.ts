@@ -109,13 +109,6 @@ export interface SkuLimits {
   /** Minimum number of seats required (for org plans) */
   minSeats?: number;
 
-  /** Rate limits for API/service calls (requests per minute/hour) */
-  rateLimits?: {
-    requestsPerMinute?: number;
-    requestsPerHour?: number;
-    requestsPerDay?: number;
-  };
-
   /** Storage limits (for knowledge bases, etc.) */
   storageLimits?: {
     /** Maximum storage in GB */
@@ -142,7 +135,6 @@ export interface SkuFeatures {
   chatInGitHubMobile: boolean;
   chatInGitHub: boolean;
   chatInWindowsTerminal: boolean;
-  increasedGitHubModelsRateLimits: boolean;
   chatSkillsInIdes: boolean;
 
   // Models - Premium models available
