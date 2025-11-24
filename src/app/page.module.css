@@ -1,0 +1,171 @@
+/* Main container for the entire app */
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--bgColor-default);
+}
+
+/* Header section */
+.header {
+  background-color: var(--bgColor-muted);
+  border-bottom: 1px solid var(--borderColor-default);
+  padding: var(--base-size-16) var(--base-size-24);
+}
+
+.headerTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--base-size-16);
+}
+
+.headerTitle {
+  flex: 1;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-title-size-large);
+  font-weight: var(--base-text-weight-semibold);
+  color: var(--fgColor-default);
+  line-height: var(--text-title-lineHeight-large);
+}
+
+.subtitle {
+  margin: var(--base-size-4) 0 0 0;
+  font-size: var(--text-body-size-medium);
+  color: var(--fgColor-muted);
+  line-height: var(--text-body-lineHeight-medium);
+}
+
+.headerActions {
+  display: flex;
+  gap: var(--base-size-8);
+  align-items: center;
+}
+
+.helpButton {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: var(--button-default-bgColor-rest);
+  border: 1px solid var(--button-default-borderColor-rest);
+  color: var(--fgColor-default);
+  font-size: var(--text-body-size-medium);
+  font-weight: var(--base-text-weight-semibold);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.helpButton:hover {
+  background-color: var(--button-default-bgColor-hover);
+}
+
+.helpButton:active {
+  background-color: var(--button-default-bgColor-active);
+}
+
+/* Header controls row */
+.headerControls {
+  display: flex;
+  gap: var(--base-size-24);
+  align-items: center;
+}
+
+.controlGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--base-size-8);
+}
+
+.controlGroup label {
+  font-size: var(--text-body-size-medium);
+  font-weight: var(--base-text-weight-medium);
+  color: var(--fgColor-default);
+}
+
+.select {
+  padding: var(--base-size-4) var(--base-size-8);
+  border: 1px solid var(--borderColor-default);
+  border-radius: var(--borderRadius-medium);
+  background-color: var(--bgColor-default);
+  color: var(--fgColor-default);
+  font-size: var(--text-body-size-medium);
+  cursor: pointer;
+  min-width: 150px;
+}
+
+.select:hover {
+  border-color: var(--borderColor-emphasis);
+}
+
+.select:focus {
+  outline: 2px solid var(--focus-outlineColor);
+  outline-offset: 2px;
+}
+
+/* Main content area */
+.mainContent {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Panel styling */
+.leftPanel {
+  width: 380px;
+  border-right: 1px solid var(--borderColor-default);
+  background-color: var(--bgColor-default);
+  overflow-y: auto;
+}
+
+.rightPanel {
+  flex: 1;
+  background-color: var(--bgColor-default);
+  overflow-y: auto;
+}
+
+.panelContent {
+  padding: var(--base-size-24);
+}
+
+.panelTitle {
+  margin: 0 0 var(--base-size-16) 0;
+  font-size: var(--text-title-size-medium);
+  font-weight: var(--base-text-weight-semibold);
+  color: var(--fgColor-default);
+  line-height: var(--text-title-lineHeight-medium);
+}
+
+.viewContent {
+  margin-top: var(--base-size-16);
+  height: calc(100vh - 280px);
+  overflow: hidden;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .leftPanel {
+    width: 320px;
+  }
+}
+
+@media (max-width: 768px) {
+  .headerControls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--base-size-12);
+  }
+
+  .controlGroup {
+    width: 100%;
+  }
+
+  .select {
+    flex: 1;
+  }
+}

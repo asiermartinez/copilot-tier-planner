@@ -382,6 +382,7 @@ export function deserializeSimpleUserState(json: string): SimpleUserState {
 export function toSimpleUserState(state: UserState): SimpleUserState {
   return {
     skuId: state.subscription.skuId,
+    accountType: state.account.accountType,
     seats: state.account.seats,
     premiumRequestsUsed: state.usage.premiumRequests.current,
     chatMessagesUsed:

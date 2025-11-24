@@ -202,10 +202,21 @@ The playground must visually represent all key UI messaging elements that appear
 **Tasks**:
 
 **Foundation & Layout (2.1-2.4)**:
-- [ ] 2.1 Create main app layout with header and side-by-side panels
-- [ ] 2.2 Implement header with account type selector (Individual/Organization/Enterprise)
-- [ ] 2.3 Implement header base SKU selector (filtered by account type)
-- [ ] 2.4 Set up React Context for global state management (current SKU, usage, budget)
+- [x] 2.1 Create main app layout with header and side-by-side panels
+- [x] 2.2 Implement header with account type selector (Individual/Organization/Enterprise)
+- [x] 2.3 Implement header base SKU selector (filtered by account type)
+- [x] 2.4 Set up React Context for global state management (current SKU, usage, budget)
+  - Implemented PlannerContext with comprehensive state management
+  - Includes URL state synchronization (Base64-encoded SimpleUserState)
+  - Provides methods to update SKU, account type, seats, usage, budget, and billing period
+  - Auto-updates URL on every state change for easy sharing
+  - Supports preset loading (placeholder ready for integration)
+  - Exposes usePlanner hook for consuming components
+  - Integrated into main page - AccountTypeSelector and SkuSelector now use context
+  - PlannerProvider wrapped around app in root layout
+  - Fixed: Added accountType to SimpleUserState for proper URL state recovery
+  - Fixed: Removed duplicate accountType state, now derived from userState.account.accountType
+  - Fixed: ActionMenu components keyed by value to force re-render on change
 
 **Left Panel - Interactive Controls (2.5-2.12)**:
 - [ ] 2.5 Create plan selector component (current plan with expand/collapse for upgrade/downgrade paths)
@@ -218,8 +229,17 @@ The playground must visually represent all key UI messaging elements that appear
 - [ ] 2.12 Add quick preset buttons (Under Quota, At Warning, Over Quota, With Overages, Budget Exhausted)
 
 **Right Panel - Messages & Visualization (2.13-2.22)**:
-- [ ] 2.13 Create tab toggle component (UI Messages / State Payload)
-- [ ] 2.14 Implement State Payload view (formatted JSON display with copy button)
+- [x] 2.13 Create tab toggle component (UI Messages / State Payload)
+  - Implemented ViewToggle component using Primer's SegmentedControl
+  - Switches between "UI Messages" and "State Payload" views
+  - Clean segmented control interface with keyboard navigation support
+- [x] 2.14 Implement State Payload view (formatted JSON display with copy button)
+  - Created StatePayloadView component with formatted JSON display
+  - IconButton copy control positioned in top-right corner
+  - Icon changes to checkmark on successful copy for visual confirmation
+  - Shows complete UserState object with proper syntax highlighting
+  - Full-width scrollable container for large payloads
+  - Removed redundant headings and flash messages for cleaner UI
 - [ ] 2.15 Create alert/banner component system with Primer (info, warning, error, critical)
 - [ ] 2.16 Implement quota warning message component (triggered at 80% threshold)
 - [ ] 2.17 Implement quota exhausted message component (triggered at 100%)

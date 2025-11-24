@@ -194,6 +194,8 @@ export interface UserState {
 export interface SimpleUserState {
   /** Current SKU ID */
   skuId: SkuId;
+  /** Account type */
+  accountType: "individual" | "organization" | "enterprise";
   /** Number of seats (for org plans) */
   seats?: number;
   /** Premium requests used this period */

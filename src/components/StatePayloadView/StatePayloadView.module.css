@@ -1,0 +1,39 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.jsonContainer {
+  position: relative;
+  flex: 1;
+  overflow: auto;
+  background-color: var(--bgColor-muted);
+  border: 1px solid var(--borderColor-default);
+  border-radius: var(--borderRadius-medium);
+  padding: var(--base-size-16);
+  width: 100%;
+}
+
+.copyButton {
+  position: absolute;
+  top: var(--base-size-8);
+  right: var(--base-size-8);
+  z-index: 1;
+}
+
+.jsonPre {
+  margin: 0;
+  font-family: var(--fontStack-monospace);
+  font-size: var(--text-body-size-small);
+  line-height: 1.5;
+  color: var(--fgColor-default);
+}
+
+.jsonCode {
+  display: block;
+  white-space: pre;
+  word-wrap: normal;
+  overflow-wrap: normal;
+}
