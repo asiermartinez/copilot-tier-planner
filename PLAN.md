@@ -7,6 +7,17 @@ This document outlines the development plan for the SKU Planner project. Move th
 - `[-]` = IN PROGRESS (currently working on)
 - `[x]` = DONE (completed)
 
+## Project Overview
+
+The SKU Planner is an internal GitHub playground tool designed to help teams reason about GitHub Copilot SKUs in an intuitive way. This application simulates different Copilot license tiers, their limits, and upgrade/downgrade paths through a visual SKU roadmap combined with scenario analysis capabilities.
+
+**Target Users**: Internal GitHub teams
+
+**Key Features**:
+- Visual SKU progression/roadmap showing the linear path from FREE to Enterprise plans
+- Tools for reasoning about edge cases, scenarios, and missing opportunities
+- Interactive simulation environment for license planning
+
 ---
 
 ## Phase 1: Core SKU Data & Types
@@ -31,8 +42,8 @@ Define the foundational data structures for GitHub Copilot SKUs.
   - Include FREE and Enterprise as bookends
   - Location: `src/data/skus.ts` or similar
 
-- [ ] **Task 1.4**: Create SKU utility functions
-  - Helper functions: getSku by id, compare SKUs, validate SKU transitions based on limits and other useful operations
+- [x] **Task 1.4**: Create SKU utility functions
+  - Helper functions: getSku by id, compare SKUs, validate SKU transitions based on limits and other useful operations. Check the plan to inference needed functions, and implement them.
   - Location: `src/utils/skuHelpers.ts`
 
 ---
