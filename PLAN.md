@@ -25,7 +25,7 @@ Define the foundational data structures for GitHub Copilot SKUs.
   - Include: message limits, overage policies, feature flags
   - Consider extensibility for future limit types
 
-- [ ] **Task 1.3**: Create initial SKU data set
+- [x] **Task 1.3**: Create initial SKU data set
   - Check https://docs.github.com/en/copilot/get-started/plans as reference for all plans
   - Define at least 3-4 SKU tiers with realistic data
   - Include FREE and Enterprise as bookends
@@ -47,11 +47,15 @@ Define how user's current plan state is represented and structured.
   - Location: `src/types/userState.ts`
 
 - [ ] **Task 2.2**: Define usage and quota tracking structure
-  - Current usage, quota limits, overage amounts
+  - Current usage for premium requests, chat messages, code completions
+  - Quota limits per resource type
+  - Overage amounts and overage costs calculation
   - Budget allocation for overages (track budget consumed vs remaining)
   - Detect when overage budget is fully consumed
   - Support decision flows: increase overage budget OR upgrade plan
   - Historical usage patterns (if needed)
+  - Billing period tracking (monthly reset logic)
+  - Usage timestamps and rate limiting
 
 - [ ] **Task 2.3**: Create mock user state data
   - Sample user states for different scenarios
@@ -62,6 +66,56 @@ Define how user's current plan state is represented and structured.
   - Calculate remaining quota, overage costs, upgrade savings
   - State validation and transformation helpers
   - Location: `src/utils/stateHelpers.ts`
+
+---
+
+## Phase 2.5: Premium Request Management & Control Logic
+
+Build comprehensive logic for tracking, controlling, and managing premium requests.
+
+- [ ] **Task 2.5.1**: Create premium request tracking utilities
+  - Track current premium request usage count
+  - Calculate remaining premium requests in billing period
+  - Detect when user is approaching quota limits (warning thresholds)
+  - Calculate percentage of quota used
+  - Location: `src/utils/premiumRequestTracking.ts`
+
+- [ ] **Task 2.5.2**: Implement overage calculation logic
+  - Calculate overage amount when quota is exceeded
+  - Calculate overage costs based on SKU pricing ($0.04/request)
+  - Project future overage costs based on usage trends
+  - Compare overage costs vs. upgrade costs
+  - Location: `src/utils/overageCalculations.ts`
+
+- [ ] **Task 2.5.3**: Create budget management utilities
+  - Track overage budget allocation and consumption
+  - Calculate remaining overage budget
+  - Detect when budget thresholds are reached (50%, 75%, 90%, 100%)
+  - Determine if usage should be blocked when budget is exceeded
+  - Generate budget alerts and warnings
+  - Location: `src/utils/budgetManagement.ts`
+
+- [ ] **Task 2.5.4**: Implement quota reset and billing period logic
+  - Track billing period start/end dates
+  - Calculate days until quota reset
+  - Handle monthly quota resets
+  - Manage pro-rated quotas for mid-cycle plan changes
+  - Location: `src/utils/billingPeriod.ts`
+
+- [ ] **Task 2.5.5**: Create upgrade recommendation engine
+  - Analyze usage patterns to recommend plan upgrades
+  - Compare cost of overages vs. upgrading to next tier
+  - Calculate break-even point for upgrades
+  - Suggest optimal SKU based on usage history
+  - Generate "You could save $X by upgrading" messages
+  - Location: `src/utils/upgradeRecommendations.ts`
+
+- [ ] **Task 2.5.6**: Implement additional premium request purchase logic
+  - Calculate cost to purchase additional premium requests
+  - Compare one-time purchase vs. upgrading vs. increasing budget
+  - Track purchased additional requests separately from base quota
+  - Handle expiration of purchased requests (if applicable)
+  - Location: `src/utils/additionalRequestPurchase.ts`
 
 ---
 
@@ -119,27 +173,63 @@ Build the main SKU progression visualization.
 
 ## Phase 5: Interactive Quota & Overage Controls
 
-Build controls for simulating usage, overages, and budgets.
+Build controls for simulating usage, overages, and budgets with focus on premium requests.
 
-- [ ] **Task 5.1**: Create quota usage slider/input
-  - Interactive control to adjust current usage
-  - Visual indicator of quota limit
-  - Show percentage used
+- [ ] **Task 5.1**: Create premium request usage meter
+  - Visual progress bar showing premium requests used vs. quota
+  - Display exact numbers (e.g., "250 / 300 used")
+  - Color-coded indicators (green < 80%, yellow 80-95%, red > 95%)
+  - Show percentage used prominently
+  - Location: `src/components/PremiumRequestMeter/`
 
-- [ ] **Task 5.2**: Create overage simulation controls
-  - Input for simulating overage amounts
-  - Display overage costs in real-time
+- [ ] **Task 5.2**: Create premium request usage slider/input
+  - Interactive control to simulate different usage amounts
+  - Instant feedback on quota status
+  - Ability to input exact numbers or use slider
+  - Show "what-if" scenarios for usage levels
   - Location: `src/components/QuotaControls/`
 
-- [ ] **Task 5.3**: Create budget controls
-  - Set budget for managing overages
-  - Show when budget is exceeded
-  - Calculate cost implications
+- [ ] **Task 5.3**: Create overage simulation controls
+  - Input for simulating premium request overages
+  - Real-time overage cost calculation and display
+  - Show cost per additional request ($0.04)
+  - Display total overage cost
+  - Compare overage cost vs. upgrade cost
+  - Location: `src/components/OverageSimulator/`
 
-- [ ] **Task 5.4**: Display quota analytics
-  - Visual charts/graphs for usage over time
-  - Projections based on current usage
-  - Recommendations for SKU changes
+- [ ] **Task 5.4**: Create budget controls and alerts
+  - Set overage budget cap (dollar amount)
+  - Visual budget meter (spent vs. allocated)
+  - Alert threshold configuration (50%, 75%, 90%, 100%)
+  - Show when budget is exceeded
+  - Block/allow toggle when budget exceeded
+  - Calculate cost implications and recommendations
+  - Location: `src/components/BudgetControls/`
+
+- [ ] **Task 5.5**: Create premium request alerts/warnings
+  - Warning banners when approaching quota (at 80%, 90%, 100%)
+  - Budget warning banners (at configured thresholds)
+  - Overage notifications with cost information
+  - Upgrade recommendations when cost-effective
+  - Dismissible with smart re-showing logic
+  - Location: `src/components/PremiumRequestAlerts/`
+
+- [ ] **Task 5.6**: Display quota analytics dashboard
+  - Visual charts/graphs for premium request usage over time
+  - Daily/weekly usage trends
+  - Projections based on current usage patterns
+  - Time until quota reset countdown
+  - Cost analysis: current spend vs. projected spend
+  - Recommendations for SKU changes or budget adjustments
+  - Location: `src/components/QuotaAnalytics/`
+
+- [ ] **Task 5.7**: Create additional request purchase UI
+  - Interface to purchase additional premium requests
+  - Calculate cost for desired number of requests
+  - Compare with upgrade cost (show savings/loss)
+  - One-time purchase confirmation flow
+  - Track purchased requests separately in UI
+  - Location: `src/components/AdditionalRequestsPurchase/`
 
 ---
 
@@ -228,13 +318,22 @@ Build UI components that respond to different user states.
 - [ ] **Task 9.1**: Create announcement banner component
   - Display state-specific messages (quota warnings, recommendations)
   - Different severity levels (info, warning, critical)
+  - Premium request specific scenarios:
+    - Approaching quota (80%, 90% thresholds)
+    - Quota exceeded with overage costs
+    - Budget alerts (50%, 75%, 90%, 100% of overage budget)
+    - Upgrade recommendations based on usage
+    - Additional request purchase suggestions
   - Dismissible with persistence
   - Location: `src/components/AnnouncementBanner/`
 
 - [ ] **Task 9.2**: Create upgrade/downgrade buttons
   - Context-aware CTAs based on current state
-  - Show upgrade benefits or downgrade savings
+  - Show upgrade benefits (e.g., "Upgrade to Pro+ and get 1200 more premium requests/month")
+  - Show downgrade savings with warnings about lost quota
+  - Display cost comparison: current overage spend vs. upgrade cost
   - Trigger SKU change in simulation
+  - Show premium request quota changes prominently
   - Location: `src/components/SkuActionButtons/`
 
 - [ ] **Task 9.3**: Create license management UI panel
@@ -294,6 +393,25 @@ Final touches, performance, and user experience improvements.
 - Mark blockers or dependencies in task descriptions
 - Use task numbers when asking Copilot for help (e.g., "Help with Task 3.2")
 
+### Recent Changes
+
+- **Enhanced Premium Request Tracking** (Phase 2.5 added):
+  - Added comprehensive logic for tracking, controlling, and managing premium requests
+  - Includes overage calculations, budget management, billing period handling
+  - Upgrade recommendation engine to compare overage costs vs. plan upgrades
+  - Additional request purchase logic and cost comparisons
+  
+- **Enhanced Phase 5** (Interactive Quota & Overage Controls):
+  - Added specific premium request UI components (meters, alerts, analytics)
+  - Budget controls with configurable alert thresholds
+  - Additional request purchase interface
+  - Quota analytics dashboard with projections and recommendations
+  
+- **Enhanced Phase 9** (State-based UI Components):
+  - Added premium request-specific scenarios for announcement banners
+  - Enhanced upgrade/downgrade buttons with quota change information
+  - Cost comparison displays throughout
+
 ---
 
-**Last Updated**: [Date will be updated as plan evolves]
+**Last Updated**: January 2025 (Premium request tracking enhancements added)
