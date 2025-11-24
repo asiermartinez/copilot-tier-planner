@@ -20,17 +20,6 @@ This project follows a structured development plan outlined in `PLAN.md` at the 
 - Ensure your work aligns with the task requirements and acceptance criteria
 - Mark tasks as in-progress `[-]` when you start, and done `[x]` when complete
 
-## Project Overview
-
-The SKU Planner is an internal GitHub playground tool designed to help teams reason about GitHub Copilot SKUs in an intuitive way. This application simulates different Copilot license tiers, their limits, and upgrade/downgrade paths through a visual SKU roadmap combined with scenario analysis capabilities.
-
-**Target Users**: Internal GitHub teams
-
-**Key Features**:
-- Visual SKU progression/roadmap showing the linear path from FREE to Enterprise plans
-- Tools for reasoning about edge cases, scenarios, and missing opportunities
-- Interactive simulation environment for license planning
-
 ## Technology Stack
 
 - **Framework**: Next.js 15+ with App Router
