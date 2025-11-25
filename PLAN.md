@@ -268,7 +268,24 @@ The playground must visually represent all key UI messaging elements that appear
     - QUOTA_WARNINGS, BUDGET_WARNINGS, INFO_MESSAGES, CTA_MESSAGES, SUCCESS_MESSAGES, ERROR_MESSAGES
     - Helper function getBlockReason() for determining appropriate block reason based on state
     - Type-safe exports with BlockReason, QuotaWarning, BudgetWarning types
-- [ ] 2.11 Create billing period controls (days into period, days remaining)
+- [x] 2.11 Create billing period controls (days into period, days remaining)
+  - Added billing period slider to UsageControls component
+  - Slider allows adjusting "days into period" from 0 to total days in billing period
+  - Number input field for manual entry (synchronized with slider)
+  - Caption displays: days into period, days remaining, and total days
+  - Properly pluralized labels (1 day vs N days)
+  - Example: "15 days into period, 15 days remaining (30 days total)"
+  - Updates via PlannerContext.updateDaysIntoPeriod()
+  - Changes sync to URL state for sharing
+  - Accessible keyboard navigation
+  - Follows same styling patterns as usage sliders
+  - Billing dates calculated dynamically based on slider position:
+    - billingStart = today - daysIntoPeriod
+    - billingEnd = billingStart + 1 month
+    - nextRenewalDate = billingEnd
+  - Slider initializes to current day of month (e.g., if today is the 13th, slider starts at 13)
+  - Enable overage budget toggle properly styled with full width and space-between layout
+  - Toggle sits flush to the right edge for clean alignment
 - [ ] 2.12 Add quick preset buttons (Under Quota, At Warning, Over Quota, With Overages, Budget Exhausted)
 
 **Right Panel - Messages & Visualization (2.13-2.22)**:

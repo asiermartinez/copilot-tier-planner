@@ -76,14 +76,20 @@ const PlannerContext = createContext<PlannerContextValue | undefined>(
 /**
  * Default simple state (FREE individual user, no usage)
  */
-const DEFAULT_SIMPLE_STATE: SimpleUserState = {
-  skuId: "free",
-  accountType: "individual",
-  premiumRequestsUsed: 0,
-  chatMessagesUsed: 0,
-  codeCompletionsUsed: 0,
-  overageBudgetUsd: null,
-  daysIntoPeriod: 15,
+const getDefaultSimpleState = (): SimpleUserState => {
+  const now = new Date();
+  const currentDay = now.getDate();
+
+  return {
+    skuId: "free",
+    accountType: "individual",
+    premiumRequestsUsed: 0,
+    chatMessagesUsed: 0,
+    codeCompletionsUsed: 0,
+    overageBudgetUsd: null,
+    daysIntoPeriod: currentDay,
+    currentTimestamp: now.toISOString(),
+  };
 };
 
 /**
@@ -91,21 +97,36 @@ const DEFAULT_SIMPLE_STATE: SimpleUserState = {
  */
 function generateStateFromSimple(simple: SimpleUserState): UserState {
   const accountType = simple.accountType;
-  const now = new Date();
-  const billingStart = new Date(now);
-  billingStart.setDate(1);
+
+  // Use fixed timestamp if available, otherwise create new one
+  const now = simple.currentTimestamp
+    ? new Date(simple.currentTimestamp)
+    : new Date();
+
+  // Calculate billing dates based on days into period
+  const daysIntoPeriod = simple.daysIntoPeriod ?? now.getDate();
+
+  // Calculate billing start by subtracting days into period from today
+  // Use timestamp arithmetic to avoid month boundary issues
+  const billingStart = new Date(
+    now.getTime() - daysIntoPeriod * 24 * 60 * 60 * 1000
+  );
+  billingStart.setHours(0, 0, 0, 0);
+
+  // Calculate billing end (exactly one month from billing start)
   const billingEnd = new Date(billingStart);
   billingEnd.setMonth(billingEnd.getMonth() + 1);
+  billingEnd.setHours(0, 0, 0, 0);
 
-  const daysIntoPeriod = simple.daysIntoPeriod ?? 15;
-  const totalDays = Math.ceil(
+  // Calculate total days in period
+  const totalDays = Math.round(
     (billingEnd.getTime() - billingStart.getTime()) / (1000 * 60 * 60 * 24)
   );
-  const daysRemaining = totalDays - daysIntoPeriod;
+  const daysRemaining = Math.max(0, totalDays - daysIntoPeriod);
 
   return generateUserState({
     id: `state-${Date.now()}`,
-    timestamp: now.toISOString(),
+    timestamp: new Date().toISOString(), // Always use current time for timestamp
     skuId: simple.skuId,
     account: {
       userId: "user-playground",
@@ -160,6 +181,7 @@ function toSimpleState(state: UserState): SimpleUserState {
     overageBudgetUsd: state.overageBudget?.maxBudgetUsd ?? null,
     daysIntoPeriod:
       state.billingPeriod.daysInPeriod - state.billingPeriod.daysRemaining,
+    currentTimestamp: state.timestamp,
   };
 
   // Only include seats for organization and enterprise accounts
@@ -214,7 +236,7 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
         }
       }
     }
-    return generateStateFromSimple(DEFAULT_SIMPLE_STATE);
+    return generateStateFromSimple(getDefaultSimpleState());
   });
 
   // Debounce URL updates to prevent rate limiting
@@ -371,7 +393,7 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
    * Reset to default state
    */
   const reset = useCallback(() => {
-    setUserState(generateStateFromSimple(DEFAULT_SIMPLE_STATE));
+    setUserState(generateStateFromSimple(getDefaultSimpleState()));
   }, []);
 
   /**

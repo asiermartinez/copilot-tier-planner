@@ -208,6 +208,8 @@ export interface SimpleUserState {
   overageBudgetUsd?: number | null;
   /** Days into the billing period */
   daysIntoPeriod?: number;
+  /** Fixed timestamp for consistent date calculations (ISO 8601) */
+  currentTimestamp?: string;
 }
 
 /**

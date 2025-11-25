@@ -12,6 +12,7 @@ import styles from "./UsageControls.module.css";
  * - Premium requests
  * - Chat messages
  * - Code completions
+ * - Billing period (days into period)
  *
  * Sliders are dynamically configured based on the current SKU's limits.
  * Shows current usage value and percentage of quota used.
@@ -24,6 +25,7 @@ export default function UsageControls() {
     updateChatMessages,
     updateCodeCompletions,
     updateOverageBudget,
+    updateDaysIntoPeriod,
     getSimpleState,
     loadFromSimpleState,
   } = usePlanner();
@@ -34,6 +36,12 @@ export default function UsageControls() {
   const overagesEnabled = overageBudget !== null;
   const supportsOverages =
     currentSku.limits.premiumRequestsOveragePolicy?.allowBudgetCap ?? false;
+
+  // Billing period info
+  const billingPeriod = userState.billingPeriod;
+  const daysIntoPeriod =
+    billingPeriod.daysInPeriod - billingPeriod.daysRemaining;
+  const totalDays = billingPeriod.daysInPeriod;
 
   // Helper to handle number input changes with validation
   const handleNumberInput = (
@@ -220,20 +228,22 @@ export default function UsageControls() {
 
         {/* Overage Budget Configuration */}
         {supportsOverages && (
-          <div className={styles.overageBudgetSection}>
-            <div className={styles.toggleContainer}>
-              <span className={styles.toggleLabel} id="overage-budget-label">
-                Enable overage budget
-              </span>
-              <ToggleSwitch
-                size="small"
-                checked={overagesEnabled}
-                onClick={handleOverageToggle}
-                aria-labelledby="overage-budget-label"
-              />
-            </div>
+          <>
+            <FormControl className={styles.formControl}>
+              <div className={styles.toggleContainer}>
+                <span className={styles.toggleLabel} id="overage-budget-label">
+                  Enable overage budget
+                </span>
+                <ToggleSwitch
+                  size="small"
+                  checked={overagesEnabled}
+                  onClick={handleOverageToggle}
+                  aria-labelledby="overage-budget-label"
+                />
+              </div>
+            </FormControl>
             {overagesEnabled && (
-              <FormControl>
+              <FormControl className={styles.formControl}>
                 <FormControl.Label>Budget in USD</FormControl.Label>
                 <div className={styles.numberInput}>
                   <TextInput
@@ -253,8 +263,48 @@ export default function UsageControls() {
                 </FormControl.Caption>
               </FormControl>
             )}
-          </div>
+          </>
         )}
+
+        {/* Billing Period Controls */}
+        <div className={styles.billingPeriodSection}>
+          <FormControl className={styles.formControl}>
+            <FormControl.Label>Billing period</FormControl.Label>
+            <div className={styles.sliderInputContainer}>
+              <input
+                type="range"
+                min="0"
+                max={totalDays}
+                value={daysIntoPeriod}
+                onChange={e => updateDaysIntoPeriod(Number(e.target.value))}
+                className={styles.slider}
+                aria-label="Days into billing period slider"
+              />
+              <div className={styles.numberInput}>
+                <TextInput
+                  type="number"
+                  min={0}
+                  max={totalDays}
+                  value={daysIntoPeriod}
+                  onChange={e =>
+                    handleNumberInput(
+                      e.target.value,
+                      totalDays,
+                      updateDaysIntoPeriod
+                    )
+                  }
+                  aria-label="Days into billing period value"
+                />
+              </div>
+            </div>
+            <FormControl.Caption>
+              {daysIntoPeriod} {daysIntoPeriod === 1 ? "day" : "days"} into
+              period, {billingPeriod.daysRemaining}{" "}
+              {billingPeriod.daysRemaining === 1 ? "day" : "days"} remaining (
+              {totalDays} {totalDays === 1 ? "day" : "days"} total)
+            </FormControl.Caption>
+          </FormControl>
+        </div>
       </Stack>
     </div>
   );

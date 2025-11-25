@@ -118,21 +118,18 @@
   appearance: textfield;
 }
 
-.overageBudgetSection {
-  padding-top: var(--base-size-16);
-  margin-left: 0;
-  padding-left: 0;
-}
-
 .toggleContainer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: var(--base-size-16);
+  width: 100%;
 }
 
 .toggleLabel {
   font-size: var(--text-body-size-medium);
   font-weight: 600;
   color: var(--fgColor-default);
+}
+
+.billingPeriodSection {
 }
