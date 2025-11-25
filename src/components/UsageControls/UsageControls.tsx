@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  FormControl,
-  Heading,
-  Stack,
-  TextInput,
-  Checkbox,
-} from "@primer/react";
+import { FormControl, Stack, TextInput, Checkbox } from "@primer/react";
 import { usePlanner } from "@/contexts";
 import { SKU_MAP } from "@/data/skus";
 import styles from "./UsageControls.module.css";
@@ -109,13 +103,9 @@ export default function UsageControls() {
   return (
     <div className={styles.container}>
       <Stack direction="vertical" gap="normal">
-        <Heading as="h3" className={styles.heading}>
-          Usage Controls
-        </Heading>
-
         {/* Premium Requests Slider */}
-        <FormControl>
-          <FormControl.Label>Premium Requests</FormControl.Label>
+        <FormControl className={styles.formControl}>
+          <FormControl.Label>Premium requests</FormControl.Label>
           <div className={styles.sliderInputContainer}>
             <input
               type="range"
@@ -151,8 +141,8 @@ export default function UsageControls() {
         </FormControl>
 
         {/* Chat Messages Slider */}
-        <FormControl>
-          <FormControl.Label>Chat Messages</FormControl.Label>
+        <FormControl className={styles.formControl}>
+          <FormControl.Label>Chat messages</FormControl.Label>
           <div className={styles.sliderInputContainer}>
             <input
               type="range"
@@ -190,8 +180,8 @@ export default function UsageControls() {
         </FormControl>
 
         {/* Code Completions Slider */}
-        <FormControl>
-          <FormControl.Label>Code Completions</FormControl.Label>
+        <FormControl className={styles.formControl}>
+          <FormControl.Label>Code completions</FormControl.Label>
           <div className={styles.sliderInputContainer}>
             <input
               type="range"
@@ -241,18 +231,16 @@ export default function UsageControls() {
             {overagesEnabled && (
               <FormControl className={styles.budgetInput}>
                 <FormControl.Label>Overage Budget (USD)</FormControl.Label>
-                <div className={styles.budgetInputContainer}>
-                  <span className={styles.currencySymbol}>$</span>
-                  <div className={styles.budgetNumberInput}>
-                    <TextInput
-                      type="number"
-                      min={1}
-                      step="0.01"
-                      value={overageBudget?.maxBudgetUsd ?? 100}
-                      onChange={e => handleBudgetChange(e.target.value)}
-                      aria-label="Maximum overage budget in USD"
-                    />
-                  </div>
+                <div className={styles.numberInput}>
+                  <TextInput
+                    type="number"
+                    min={1}
+                    step="0.01"
+                    value={overageBudget?.maxBudgetUsd ?? 100}
+                    onChange={e => handleBudgetChange(e.target.value)}
+                    aria-label="Maximum overage budget in USD"
+                    leadingVisual="$"
+                  />
                 </div>
                 <FormControl.Caption>
                   Maximum amount to spend on premium request overages per month

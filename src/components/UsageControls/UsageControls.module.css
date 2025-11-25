@@ -1,29 +1,28 @@
 .container {
-  padding: var(--base-size-16);
 }
 
-.heading {
-  font-size: var(--text-body-size-medium);
-  margin-bottom: var(--base-size-16);
+.formControl {
+  padding-bottom: var(--base-size-16);
+  border-bottom: 1px solid var(--borderColor-muted);
 }
 
-.usageText {
-  margin-left: var(--base-size-8);
-  font-weight: normal;
-  color: var(--fgColor-muted);
+.formControl:last-of-type {
+  border-bottom: none;
 }
 
 .sliderInputContainer {
   display: flex;
   align-items: center;
   gap: var(--base-size-12);
+  width: 100%;
 }
 
 .slider {
   flex: 1;
+  min-width: 0;
   height: 8px;
   border-radius: 4px;
-  background: var(--bgColor-muted);
+  background: var(--borderColor-default);
   outline: none;
   -webkit-appearance: none;
   appearance: none;
@@ -92,12 +91,19 @@
 }
 
 .numberInput {
-  width: 80px;
+  width: 70px;
   flex-shrink: 0;
+}
+
+.numberInput > * {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 100% !important;
 }
 
 .numberInput input {
   text-align: right;
+  width: 100% !important;
 }
 
 /* Hide number input spinner arrows */
@@ -113,45 +119,10 @@
 }
 
 .overageBudgetSection {
-  margin-top: var(--base-size-16);
   padding-top: var(--base-size-16);
-  border-top: 1px solid var(--borderColor-default);
 }
 
 .budgetInput {
   margin-top: var(--base-size-12);
   margin-left: var(--base-size-24);
-}
-
-.budgetInputContainer {
-  display: flex;
-  align-items: center;
-  gap: var(--base-size-8);
-  position: relative;
-}
-
-.currencySymbol {
-  font-size: var(--text-body-size-medium);
-  font-weight: 500;
-  color: var(--fgColor-default);
-}
-
-.budgetNumberInput {
-  width: 120px;
-}
-
-.budgetNumberInput input {
-  text-align: right;
-}
-
-/* Hide number input spinner arrows for budget input */
-.budgetNumberInput input[type="number"]::-webkit-inner-spin-button,
-.budgetNumberInput input[type="number"]::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.budgetNumberInput input[type="number"] {
-  -moz-appearance: textfield;
-  appearance: textfield;
 }
