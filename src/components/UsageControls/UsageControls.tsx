@@ -1,6 +1,6 @@
 "use client";
 
-import { FormControl, Stack, TextInput, Checkbox } from "@primer/react";
+import { FormControl, Stack, TextInput, ToggleSwitch } from "@primer/react";
 import { usePlanner } from "@/contexts";
 import { SKU_MAP } from "@/data/skus";
 import styles from "./UsageControls.module.css";
@@ -74,9 +74,9 @@ export default function UsageControls() {
   const codeCompletionsMax =
     currentSku.limits.codeCompletionsPerMonth ?? 100000;
 
-  // Handle overage checkbox toggle
-  const handleOverageToggle = (checked: boolean) => {
-    if (checked) {
+  // Handle overage toggle
+  const handleOverageToggle = () => {
+    if (!overagesEnabled) {
       // Enable overages with default budget of $100
       updateOverageBudget(100);
     } else {
@@ -221,16 +221,20 @@ export default function UsageControls() {
         {/* Overage Budget Configuration */}
         {supportsOverages && (
           <div className={styles.overageBudgetSection}>
-            <FormControl>
-              <Checkbox
+            <div className={styles.toggleContainer}>
+              <span className={styles.toggleLabel} id="overage-budget-label">
+                Enable overage budget
+              </span>
+              <ToggleSwitch
+                size="small"
                 checked={overagesEnabled}
-                onChange={e => handleOverageToggle(e.target.checked)}
+                onClick={handleOverageToggle}
+                aria-labelledby="overage-budget-label"
               />
-              <FormControl.Label>Enable overage budget</FormControl.Label>
-            </FormControl>
+            </div>
             {overagesEnabled && (
-              <FormControl className={styles.budgetInput}>
-                <FormControl.Label>Overage Budget (USD)</FormControl.Label>
+              <FormControl>
+                <FormControl.Label>Budget in USD</FormControl.Label>
                 <div className={styles.numberInput}>
                   <TextInput
                     type="number"

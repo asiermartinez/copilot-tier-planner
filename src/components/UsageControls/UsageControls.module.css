@@ -120,9 +120,19 @@
 
 .overageBudgetSection {
   padding-top: var(--base-size-16);
+  margin-left: 0;
+  padding-left: 0;
 }
 
-.budgetInput {
-  margin-top: var(--base-size-12);
-  margin-left: var(--base-size-24);
+.toggleContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--base-size-16);
+}
+
+.toggleLabel {
+  font-size: var(--text-body-size-medium);
+  font-weight: 600;
+  color: var(--fgColor-default);
 }
