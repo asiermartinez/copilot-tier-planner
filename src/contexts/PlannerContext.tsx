@@ -151,10 +151,9 @@ function generateStateFromSimple(simple: SimpleUserState): UserState {
  * Convert UserState to SimpleUserState for URL encoding
  */
 function toSimpleState(state: UserState): SimpleUserState {
-  return {
+  const simpleState: SimpleUserState = {
     skuId: state.subscription.skuId,
     accountType: state.account.accountType,
-    seats: state.account.seats,
     premiumRequestsUsed: state.usage.premiumRequests.current,
     chatMessagesUsed: state.usage.chatMessages.current,
     codeCompletionsUsed: state.usage.codeCompletions.current,
@@ -162,6 +161,13 @@ function toSimpleState(state: UserState): SimpleUserState {
     daysIntoPeriod:
       state.billingPeriod.daysInPeriod - state.billingPeriod.daysRemaining,
   };
+
+  // Only include seats for organization and enterprise accounts
+  if (state.account.accountType !== "individual" && state.account.seats) {
+    simpleState.seats = state.account.seats;
+  }
+
+  return simpleState;
 }
 
 /**
