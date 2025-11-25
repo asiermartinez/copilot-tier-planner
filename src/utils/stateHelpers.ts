@@ -13,7 +13,6 @@ import type {
   Subscription,
   BillingPeriod,
   ResourceUsage,
-  PremiumRequestUsage,
   OverageBudget,
   UserAlert,
 } from "@/types/userState";
@@ -138,14 +137,6 @@ export function validateResourceUsage(usage: unknown): usage is ResourceUsage {
   }
   if (typeof u.isOverQuota !== "boolean") return false;
   if (typeof u.isBlocked !== "boolean") return false;
-  if (
-    typeof u.warningThreshold !== "number" ||
-    u.warningThreshold < 0 ||
-    u.warningThreshold > 100
-  ) {
-    return false;
-  }
-  if (typeof u.hasReachedWarning !== "boolean") return false;
 
   // Optional fields
   if (
@@ -155,39 +146,21 @@ export function validateResourceUsage(usage: unknown): usage is ResourceUsage {
   ) {
     return false;
   }
+
+  // alertThresholds must be null if limit is null, otherwise array
+  if (u.limit === null) {
+    if (u.alertThresholds !== null) return false;
+  } else {
+    if (!Array.isArray(u.alertThresholds)) return false;
+  }
+
+  // lastCrossedThreshold validation
   if (
-    u.lastUsedAt !== undefined &&
-    u.lastUsedAt !== null &&
-    !isValidISODate(u.lastUsedAt)
+    u.lastCrossedThreshold !== null &&
+    typeof u.lastCrossedThreshold !== "number"
   ) {
     return false;
   }
-
-  return true;
-}
-
-/**
- * Validates premium request usage (extends ResourceUsage)
- */
-export function validatePremiumRequestUsage(
-  usage: unknown
-): usage is PremiumRequestUsage {
-  if (!validateResourceUsage(usage)) return false;
-
-  const u = usage as Partial<PremiumRequestUsage>;
-
-  if (typeof u.additionalPurchased !== "number" || u.additionalPurchased < 0)
-    return false;
-  if (
-    u.purchasedExpiresAt !== null &&
-    u.purchasedExpiresAt !== undefined &&
-    !isValidISODate(u.purchasedExpiresAt)
-  )
-    return false;
-  if (typeof u.usedFromBaseQuota !== "number" || u.usedFromBaseQuota < 0)
-    return false;
-  if (typeof u.usedFromPurchased !== "number" || u.usedFromPurchased < 0)
-    return false;
 
   return true;
 }
@@ -208,11 +181,13 @@ export function validateOverageBudget(
   if (typeof b.remainingBudgetUsd !== "number") return false;
   if (typeof b.percentageConsumed !== "number" || b.percentageConsumed < 0)
     return false;
-  if (typeof b.blockWhenExceeded !== "boolean") return false;
-  if (typeof b.isBudgetExceeded !== "boolean") return false;
+  if (typeof b.isBudgetConsumed !== "boolean") return false;
   if (!Array.isArray(b.alertThresholds)) return false;
-  if (!Array.isArray(b.crossedThresholds)) return false;
-  if (typeof b.enableAlerts !== "boolean") return false;
+  if (
+    b.lastCrossedThreshold !== null &&
+    typeof b.lastCrossedThreshold !== "number"
+  )
+    return false;
 
   // Validate threshold arrays contain valid numbers
   if (
@@ -221,7 +196,8 @@ export function validateOverageBudget(
     return false;
   }
   if (
-    !b.crossedThresholds.every(t => typeof t === "number" && t >= 0 && t <= 100)
+    b.lastCrossedThreshold !== null &&
+    (b.lastCrossedThreshold < 0 || b.lastCrossedThreshold > 100)
   ) {
     return false;
   }
@@ -249,7 +225,7 @@ export function validateUserState(state: unknown): state is UserState {
 
   // Validate usage
   if (!s.usage || typeof s.usage !== "object") return false;
-  if (!validatePremiumRequestUsage(s.usage.premiumRequests)) return false;
+  if (!validateResourceUsage(s.usage.premiumRequests)) return false;
   if (!validateResourceUsage(s.usage.chatMessages)) return false;
   if (!validateResourceUsage(s.usage.codeCompletions)) return false;
 
@@ -263,7 +239,6 @@ export function validateUserState(state: unknown): state is UserState {
   if (
     typeof c.baseSubscriptionUsd !== "number" ||
     typeof c.overageCostsUsd !== "number" ||
-    typeof c.additionalPurchasesUsd !== "number" ||
     typeof c.totalCostUsd !== "number" ||
     typeof c.projectedTotalUsd !== "number"
   ) {

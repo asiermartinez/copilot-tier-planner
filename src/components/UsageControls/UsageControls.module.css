@@ -131,5 +131,27 @@
   color: var(--fgColor-default);
 }
 
+.thresholdsContainer {
+  display: flex;
+  gap: var(--base-size-8);
+  align-items: center;
+}
+
+.thresholdInput {
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.thresholdInput > * {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 100% !important;
+}
+
+.thresholdInput input {
+  text-align: right;
+  width: 100% !important;
+}
+
 .billingPeriodSection {
 }

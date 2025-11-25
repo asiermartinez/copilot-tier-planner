@@ -13,6 +13,7 @@ import {
 import type { UserState, SimpleUserState } from "@/types/userState";
 import type { SkuId } from "@/types/sku";
 import { generateUserState } from "@/utils/mockStateGenerator";
+import { DEFAULT_ALERT_THRESHOLDS } from "@/data/alertThresholds";
 
 /**
  * Context value interface
@@ -160,9 +161,7 @@ function generateStateFromSimple(simple: SimpleUserState): UserState {
       simple.overageBudgetUsd !== null && simple.overageBudgetUsd !== undefined
         ? {
             maxBudgetUsd: simple.overageBudgetUsd,
-            blockWhenExceeded: false,
-            enableAlerts: true,
-            alertThresholds: [50, 75, 90, 100],
+            alertThresholds: DEFAULT_ALERT_THRESHOLDS,
           }
         : null,
   });

@@ -286,6 +286,28 @@ The playground must visually represent all key UI messaging elements that appear
   - Slider initializes to current day of month (e.g., if today is the 13th, slider starts at 13)
   - Enable overage budget toggle properly styled with full width and space-between layout
   - Toggle sits flush to the right edge for clean alignment
+  - Added centralized alert thresholds system:
+    - Created alertThresholds.ts as single source of truth for threshold configuration
+    - DEFAULT_ALERT_THRESHOLDS: [50, 75, 90, 100] used for both quota and budget alerts
+    - Threshold severity mapping: 50% = info, 75% = warning, 90% = critical, 100% = exceeded
+    - Helper functions: getLastCrossedThreshold(), getSeverityForPercentage(), hasReachedThreshold()
+    - Thresholds are constants, not stored in state (no need for URL sync or metadata)
+    - Both quota and budget tracking use same threshold values but track separately
+    - Simplified field names for consistency (context already clear from nesting):
+      - ResourceUsage: alertThresholds, lastCrossedThreshold (not "quotaAlertThresholds", "lastCrossedQuotaThreshold")
+      - OverageBudget: alertThresholds, lastCrossedThreshold (not "lastCrossedBudgetThreshold")
+    - Changed from array of crossed thresholds to single last crossed value for efficiency
+    - lastCrossedThreshold dynamically updates based on current percentage
+    - Removed redundant fields from state for cleaner payload:
+      - Removed warningThreshold (single value) - replaced by alertThresholds array
+      - Removed hasReachedWarning (boolean) - use lastCrossedThreshold instead
+      - Removed enableAlerts from OverageBudget - alerts are always available
+      - Removed lastUsedAt - not needed for current features
+      - Removed additionalPurchased and purchasedExpiresAt - using budget-based overage model only
+      - Removed usedFromPurchased/usedFromOverage - duplicates the overage field
+      - Removed usedFromBaseQuota - can be inferred from min(current, limit)
+      - Removed PremiumRequestUsage interface - no longer needed, uses ResourceUsage directly
+    - Foundation ready for messaging system to display alerts based on crossed threshold values
 - [ ] 2.12 Add quick preset buttons (Under Quota, At Warning, Over Quota, With Overages, Budget Exhausted)
 
 **Right Panel - Messages & Visualization (2.13-2.22)**:

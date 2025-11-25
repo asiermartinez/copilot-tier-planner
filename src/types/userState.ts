@@ -43,26 +43,10 @@ export interface ResourceUsage {
   isBlocked: boolean;
   /** Reason for blocking (if blocked) */
   blockReason?: string | null;
-  /** Warning threshold percentage (e.g., 80 for 80%) */
-  warningThreshold: number;
-  /** Whether the warning threshold has been reached */
-  hasReachedWarning: boolean;
-  /** Last usage timestamp (ISO 8601) */
-  lastUsedAt?: string | null;
-}
-
-/**
- * Premium request usage with additional purchased requests
- */
-export interface PremiumRequestUsage extends ResourceUsage {
-  /** Number of additional premium requests purchased */
-  additionalPurchased: number;
-  /** Expiration date for purchased requests (ISO 8601, null if no expiration) */
-  purchasedExpiresAt: string | null;
-  /** Usage from base quota */
-  usedFromBaseQuota: number;
-  /** Usage from purchased additional requests */
-  usedFromPurchased: number;
+  /** Alert thresholds (percentages, e.g., [50, 75, 90, 100]), null if unlimited */
+  alertThresholds: number[] | null;
+  /** Last crossed threshold value (null if none crossed or unlimited) */
+  lastCrossedThreshold: number | null;
 }
 
 /**
@@ -77,16 +61,12 @@ export interface OverageBudget {
   remainingBudgetUsd: number;
   /** Percentage of budget consumed (0-100) */
   percentageConsumed: number;
-  /** Whether to block usage when budget is exceeded */
-  blockWhenExceeded: boolean;
-  /** Whether the budget has been exceeded */
-  isBudgetExceeded: boolean;
+  /** Whether the budget has been fully consumed */
+  isBudgetConsumed: boolean;
   /** Alert thresholds (percentages, e.g., [50, 75, 90, 100]) */
   alertThresholds: number[];
-  /** Thresholds that have been crossed */
-  crossedThresholds: number[];
-  /** Whether alerts are enabled */
-  enableAlerts: boolean;
+  /** Last crossed threshold value (null if none crossed) */
+  lastCrossedThreshold: number | null;
 }
 
 /**
@@ -97,8 +77,6 @@ export interface CostBreakdown {
   baseSubscriptionUsd: number;
   /** Cost of overages in USD */
   overageCostsUsd: number;
-  /** Cost of additional purchased requests in USD */
-  additionalPurchasesUsd: number;
   /** Total cost for the period in USD */
   totalCostUsd: number;
   /** Projected cost for the full billing period based on current usage */
@@ -170,8 +148,8 @@ export interface UserState {
 
   /** Usage tracking */
   usage: {
-    /** Premium request usage with purchased additional requests */
-    premiumRequests: PremiumRequestUsage;
+    /** Premium request usage */
+    premiumRequests: ResourceUsage;
     /** Chat message usage */
     chatMessages: ResourceUsage;
     /** Code completion usage */

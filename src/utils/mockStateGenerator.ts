@@ -8,19 +8,20 @@
 import type {
   UserState,
   ResourceUsage,
-  PremiumRequestUsage,
   OverageBudget,
 } from "@/types/userState";
 import type { SkuId } from "@/types/sku";
 import { getSkuById } from "@/data/skus";
 import { BLOCK_REASONS } from "@/data/messages";
+import {
+  DEFAULT_ALERT_THRESHOLDS,
+  getLastCrossedThreshold,
+} from "@/data/alertThresholds";
 
 interface UsageOverrides {
   premiumRequests?: number;
   chatMessages?: number;
   codeCompletions?: number;
-  additionalPurchasedPremiumRequests?: number;
-  purchasedExpiresAt?: string | null;
 }
 
 interface AccountInfo {
@@ -51,8 +52,6 @@ interface BillingPeriodInfo {
 
 interface OverageBudgetConfig {
   maxBudgetUsd?: number;
-  blockWhenExceeded?: boolean;
-  enableAlerts?: boolean;
   alertThresholds?: number[];
 }
 
@@ -65,30 +64,27 @@ interface GenerateUserStateOptions {
   billingPeriod: BillingPeriodInfo;
   usage: UsageOverrides;
   overageBudget?: OverageBudgetConfig | null;
+  metadata?: Record<string, unknown>;
 }
 
 /**
- * Calculate percentage used and whether warning threshold is reached
+ * Calculate percentage used
  */
 function calculateUsageMetrics(
   current: number,
-  limit: number | null,
-  warningThreshold: number
+  limit: number | null
 ): {
   percentageUsed: number;
-  hasReachedWarning: boolean;
 } {
   if (limit === null || limit === 0) {
     return {
       percentageUsed: 0,
-      hasReachedWarning: false,
     };
   }
 
   const percentageUsed = Math.round((current / limit) * 100 * 10) / 10;
-  const hasReachedWarning = percentageUsed >= warningThreshold;
 
-  return { percentageUsed, hasReachedWarning };
+  return { percentageUsed };
 }
 
 /**
@@ -97,7 +93,6 @@ function calculateUsageMetrics(
 function calculateOverage(
   current: number,
   limit: number | null,
-  baseQuotaUsed: number,
   pricePerUnit: number | null
 ): {
   overage: number;
@@ -115,39 +110,36 @@ function calculateOverage(
 }
 
 /**
- * Generate a ResourceUsage or PremiumRequestUsage object from SKU data and current usage
+ * Generate a ResourceUsage object from SKU data and current usage
  */
 function generateResourceUsage(
   resourceType: "premiumRequests" | "chatMessages" | "codeCompletions",
   current: number,
   limit: number | null,
-  warningThreshold: number,
   pricePerUnit: number | null,
   blockOnOverage: boolean,
-  additionalPurchased: number = 0,
-  purchasedExpiresAt: string | null = null,
-  overageBudget: { maxBudgetUsd: number; currentSpentUsd: number } | null = null
-): ResourceUsage | PremiumRequestUsage {
-  const effectiveLimit =
-    limit !== null && additionalPurchased > 0
-      ? limit + additionalPurchased
-      : limit;
+  overageBudget: {
+    maxBudgetUsd: number;
+    currentSpentUsd: number;
+  } | null = null,
+  quotaAlertThresholds: number[] | null = [50, 75, 90, 100]
+): ResourceUsage {
+  const effectiveLimit = limit;
 
-  const usedFromBaseQuota = limit !== null ? Math.min(current, limit) : current;
-  const usedFromPurchased = Math.max(0, current - (limit ?? 0));
-
-  const { percentageUsed, hasReachedWarning } = calculateUsageMetrics(
-    current,
-    effectiveLimit,
-    warningThreshold
-  );
+  const { percentageUsed } = calculateUsageMetrics(current, effectiveLimit);
 
   const { overage, overageCostUsd } = calculateOverage(
     current,
     effectiveLimit,
-    usedFromBaseQuota,
     pricePerUnit
   );
+
+  // Calculate last crossed threshold (null if no limit or no thresholds)
+  const alertThresholds = effectiveLimit === null ? null : quotaAlertThresholds;
+  const lastCrossedThreshold =
+    alertThresholds !== null
+      ? getLastCrossedThreshold(percentageUsed, alertThresholds)
+      : null;
 
   const isOverQuota = effectiveLimit !== null && current > effectiveLimit;
   const isAtLimit = effectiveLimit !== null && current >= effectiveLimit;
@@ -175,27 +167,6 @@ function generateResourceUsage(
     }
   }
 
-  if (resourceType === "premiumRequests") {
-    const premiumUsage: PremiumRequestUsage = {
-      current,
-      limit: effectiveLimit,
-      overage,
-      overageCostUsd,
-      percentageUsed,
-      isOverQuota,
-      isBlocked,
-      blockReason,
-      warningThreshold,
-      hasReachedWarning,
-      additionalPurchased,
-      purchasedExpiresAt,
-      usedFromBaseQuota,
-      usedFromPurchased,
-    };
-
-    return premiumUsage;
-  }
-
   const usage: ResourceUsage = {
     current,
     limit: effectiveLimit,
@@ -205,8 +176,8 @@ function generateResourceUsage(
     isOverQuota,
     isBlocked,
     blockReason,
-    warningThreshold,
-    hasReachedWarning,
+    alertThresholds,
+    lastCrossedThreshold,
   };
 
   return usage;
@@ -223,11 +194,12 @@ function generateOverageBudget(
   const remainingBudgetUsd = Math.max(0, maxBudgetUsd - currentOverageSpent);
   const percentageConsumed =
     Math.round((currentOverageSpent / maxBudgetUsd) * 100 * 10) / 10;
-  const isBudgetExceeded = currentOverageSpent >= maxBudgetUsd;
+  const isBudgetConsumed = currentOverageSpent >= maxBudgetUsd;
 
-  const alertThresholds = config.alertThresholds ?? [50, 75, 90, 100];
-  const crossedThresholds = alertThresholds.filter(
-    threshold => percentageConsumed >= threshold
+  const alertThresholds = config.alertThresholds ?? DEFAULT_ALERT_THRESHOLDS;
+  const lastCrossedThreshold = getLastCrossedThreshold(
+    percentageConsumed,
+    alertThresholds
   );
 
   return {
@@ -235,11 +207,9 @@ function generateOverageBudget(
     currentSpentUsd: currentOverageSpent,
     remainingBudgetUsd,
     percentageConsumed,
-    blockWhenExceeded: config.blockWhenExceeded ?? true,
-    isBudgetExceeded,
+    isBudgetConsumed,
     alertThresholds,
-    crossedThresholds,
-    enableAlerts: config.enableAlerts ?? true,
+    lastCrossedThreshold,
   };
 }
 
@@ -254,44 +224,36 @@ export function generateUserState(
   const premiumRequestsCurrent = options.usage.premiumRequests ?? 0;
   const chatMessagesCurrent = options.usage.chatMessages ?? 0;
   const codeCompletionsCurrent = options.usage.codeCompletions ?? 0;
-  const additionalPurchased =
-    options.usage.additionalPurchasedPremiumRequests ?? 0;
 
   // First, calculate overage costs to determine budget state
   const tempPremiumRequestsUsage = generateResourceUsage(
     "premiumRequests",
     premiumRequestsCurrent,
     sku.limits.premiumRequestsPerMonth,
-    sku.limits.premiumRequestsOveragePolicy?.warningThreshold ?? 80,
     sku.limits.premiumRequestsOveragePolicy?.pricePerUnit ?? null,
     sku.limits.premiumRequestsOveragePolicy?.behavior === "block",
-    additionalPurchased,
-    options.usage.purchasedExpiresAt ?? null,
-    null
-  ) as PremiumRequestUsage;
+    null,
+    DEFAULT_ALERT_THRESHOLDS
+  );
 
   const tempChatMessagesUsage = generateResourceUsage(
     "chatMessages",
     chatMessagesCurrent,
     sku.limits.chatMessagesPerMonth,
-    sku.limits.chatMessagesOveragePolicy?.warningThreshold ?? 80,
     sku.limits.chatMessagesOveragePolicy?.pricePerUnit ?? null,
     sku.limits.chatMessagesOveragePolicy?.behavior === "block",
-    0,
     null,
-    null
+    DEFAULT_ALERT_THRESHOLDS
   );
 
   const tempCodeCompletionsUsage = generateResourceUsage(
     "codeCompletions",
     codeCompletionsCurrent,
     sku.limits.codeCompletionsPerMonth,
-    sku.limits.codeCompletionsOveragePolicy?.warningThreshold ?? 80,
     sku.limits.codeCompletionsOveragePolicy?.pricePerUnit ?? null,
     sku.limits.codeCompletionsOveragePolicy?.behavior === "block",
-    0,
     null,
-    null
+    DEFAULT_ALERT_THRESHOLDS
   );
 
   const totalOverageCost =
@@ -316,36 +278,30 @@ export function generateUserState(
     "premiumRequests",
     premiumRequestsCurrent,
     sku.limits.premiumRequestsPerMonth,
-    sku.limits.premiumRequestsOveragePolicy?.warningThreshold ?? 80,
     sku.limits.premiumRequestsOveragePolicy?.pricePerUnit ?? null,
     sku.limits.premiumRequestsOveragePolicy?.behavior === "block",
-    additionalPurchased,
-    options.usage.purchasedExpiresAt ?? null,
-    budgetInfo
-  ) as PremiumRequestUsage;
+    budgetInfo,
+    DEFAULT_ALERT_THRESHOLDS
+  );
 
   const chatMessagesUsage = generateResourceUsage(
     "chatMessages",
     chatMessagesCurrent,
     sku.limits.chatMessagesPerMonth,
-    sku.limits.chatMessagesOveragePolicy?.warningThreshold ?? 80,
     sku.limits.chatMessagesOveragePolicy?.pricePerUnit ?? null,
     sku.limits.chatMessagesOveragePolicy?.behavior === "block",
-    0,
     null,
-    budgetInfo
+    DEFAULT_ALERT_THRESHOLDS
   );
 
   const codeCompletionsUsage = generateResourceUsage(
     "codeCompletions",
     codeCompletionsCurrent,
     sku.limits.codeCompletionsPerMonth,
-    sku.limits.codeCompletionsOveragePolicy?.warningThreshold ?? 80,
     sku.limits.codeCompletionsOveragePolicy?.pricePerUnit ?? null,
     sku.limits.codeCompletionsOveragePolicy?.behavior === "block",
-    0,
     null,
-    budgetInfo
+    DEFAULT_ALERT_THRESHOLDS
   );
 
   const baseSubscriptionUsd = sku.pricing.perSeat
@@ -353,15 +309,6 @@ export function generateUserState(
     : options.billing.billingFrequency === "annual"
       ? (sku.pricing.annualUsd ?? sku.pricing.monthlyUsd * 12)
       : sku.pricing.monthlyUsd;
-
-  const additionalPurchasesUsd =
-    additionalPurchased > 0
-      ? Math.round(
-          additionalPurchased *
-            (sku.pricing.additionalPremiumRequestPrice ?? 0) *
-            100
-        ) / 100
-      : 0;
 
   const daysInPeriod = Math.round(
     (new Date(options.billingPeriod.endDate).getTime() -
@@ -374,11 +321,10 @@ export function generateUserState(
     daysElapsed > 0
       ? Math.round(
           (baseSubscriptionUsd +
-            additionalPurchasesUsd +
             (totalOverageCost / daysElapsed) * daysInPeriod) *
             100
         ) / 100
-      : baseSubscriptionUsd + additionalPurchasesUsd;
+      : baseSubscriptionUsd;
 
   const userState: UserState = {
     id: options.id,
@@ -411,11 +357,10 @@ export function generateUserState(
     costs: {
       baseSubscriptionUsd,
       overageCostsUsd: totalOverageCost,
-      additionalPurchasesUsd,
-      totalCostUsd:
-        baseSubscriptionUsd + totalOverageCost + additionalPurchasesUsd,
+      totalCostUsd: baseSubscriptionUsd + totalOverageCost,
       projectedTotalUsd,
     },
+    metadata: options.metadata,
   };
 
   return userState;
@@ -542,8 +487,6 @@ export function generateProUserWithOverages(): UserState {
     },
     overageBudget: {
       maxBudgetUsd: 50,
-      blockWhenExceeded: true,
-      enableAlerts: true,
       alertThresholds: [50, 75, 90, 100],
     },
   });
@@ -586,8 +529,6 @@ export function generateProUserBudgetWarning(): UserState {
     },
     overageBudget: {
       maxBudgetUsd: 10,
-      blockWhenExceeded: true,
-      enableAlerts: true,
       alertThresholds: [50, 75, 90, 100],
     },
   });
@@ -670,15 +611,13 @@ export function generateBusinessUserMultiSeat(): UserState {
     },
     overageBudget: {
       maxBudgetUsd: 200,
-      blockWhenExceeded: false,
-      enableAlerts: true,
       alertThresholds: [50, 75, 90, 100],
     },
   });
 }
 
 /**
- * Generate an Enterprise user with purchased additional requests
+ * Generate an Enterprise user with overage usage
  */
 export function generateEnterpriseUserWithPurchases(): UserState {
   const now = new Date();
@@ -687,11 +626,9 @@ export function generateEnterpriseUserWithPurchases(): UserState {
   const periodEnd = new Date(periodStart);
   periodEnd.setMonth(periodEnd.getMonth() + 1);
   periodEnd.setDate(0);
-  const expiresAt = new Date(periodEnd);
-  expiresAt.setMonth(expiresAt.getMonth() + 1);
 
   return generateUserState({
-    id: "enterprise-purchased",
+    id: "enterprise-overage",
     timestamp: now.toISOString(),
     skuId: "enterprise",
     account: {
@@ -714,14 +651,10 @@ export function generateEnterpriseUserWithPurchases(): UserState {
       daysRemaining: 20,
     },
     usage: {
-      premiumRequests: 1200, // 1000 base + 200 from purchased
-      additionalPurchasedPremiumRequests: 500,
-      purchasedExpiresAt: expiresAt.toISOString(),
+      premiumRequests: 1200, // 1000 base + 200 overage
     },
     overageBudget: {
       maxBudgetUsd: 1000,
-      blockWhenExceeded: false,
-      enableAlerts: true,
       alertThresholds: [50, 75, 90, 100],
     },
   });

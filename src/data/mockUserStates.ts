@@ -142,8 +142,6 @@ export const PRO_UNDER_QUOTA: UserState = generateUserState({
   },
   overageBudget: {
     maxBudgetUsd: 50,
-    blockWhenExceeded: true,
-    enableAlerts: true,
     alertThresholds: [50, 75, 90, 100],
   },
 });
@@ -181,8 +179,6 @@ export const PRO_WITH_OVERAGE: UserState = generateUserState({
   },
   overageBudget: {
     maxBudgetUsd: 25,
-    blockWhenExceeded: true,
-    enableAlerts: true,
     alertThresholds: [50, 75, 90, 100],
   },
 });
@@ -220,8 +216,6 @@ export const PRO_BUDGET_EXHAUSTED: UserState = generateUserState({
   },
   overageBudget: {
     maxBudgetUsd: 100,
-    blockWhenExceeded: true,
-    enableAlerts: true,
     alertThresholds: [50, 75, 90, 100],
   },
 });
@@ -256,13 +250,9 @@ export const PRO_WITH_PURCHASED: UserState = generateUserState({
     premiumRequests: 480,
     chatMessages: 800,
     codeCompletions: 12000,
-    additionalPurchasedPremiumRequests: 200,
-    purchasedExpiresAt: "2025-02-01T00:00:00Z",
   },
   overageBudget: {
     maxBudgetUsd: 40,
-    blockWhenExceeded: true,
-    enableAlerts: true,
     alertThresholds: [50, 75, 90, 100],
   },
 });
@@ -300,8 +290,6 @@ export const PRO_PLUS_HEAVY_USAGE: UserState = generateUserState({
   },
   overageBudget: {
     maxBudgetUsd: 200,
-    blockWhenExceeded: true,
-    enableAlerts: true,
     alertThresholds: [50, 75, 90, 100],
   },
 });
@@ -340,8 +328,6 @@ export const BUSINESS_ORG: UserState = generateUserState({
   },
   overageBudget: {
     maxBudgetUsd: 500,
-    blockWhenExceeded: false,
-    enableAlerts: true,
     alertThresholds: [50, 75, 90, 100],
   },
 });
@@ -380,8 +366,6 @@ export const ENTERPRISE_LARGE: UserState = generateUserState({
   },
   overageBudget: {
     maxBudgetUsd: 5000,
-    blockWhenExceeded: false,
-    enableAlerts: true,
     alertThresholds: [50, 75, 90, 100],
   },
 });
@@ -420,8 +404,6 @@ export const PRO_MID_CYCLE_UPGRADE: UserState = generateUserState({
   },
   overageBudget: {
     maxBudgetUsd: 30,
-    blockWhenExceeded: true,
-    enableAlerts: true,
     alertThresholds: [50, 75, 90, 100],
   },
 });
