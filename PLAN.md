@@ -249,12 +249,25 @@ The playground must visually represent all key UI messaging elements that appear
   - Budget input field appears when overages are enabled (default: $100)
   - Currency symbol ($) displayed before budget input using Primer TextInput
   - Budget input validation ensures minimum of $1
-  - Premium requests slider max increases to 3x plan limit when overages enabled
+  - Budget input caption shows calculated additional requests (e.g., "up to 2,500 additional requests")
+  - Premium requests slider max = plan quota + additional requests from budget (dynamic calculation)
   - Premium requests slider caption shows "(overages enabled)" when active
-  - Disabling overages caps premium requests at plan limit if exceeded
+  - Disabling overages caps premium requests at plan limit if exceeded (single state update, no double-click bug)
   - Budget changes sync to PlannerContext and update URL state
   - Overage section visually separated with border and proper spacing
   - Checkbox uses proper Primer pattern with FormControl and FormControl.Label
+  - Fixed isBlocked calculation in mockStateGenerator to properly reflect blocking behavior:
+    - Uses isAtLimit (current >= limit) for blocking logic, not just isOverQuota (current > limit)
+    - FREE SKU: isBlocked = true when quota limit reached (no overages allowed)
+    - Pro/Business/Enterprise without overage budget: isBlocked = true when quota limit reached
+    - Pro/Business/Enterprise with overage budget enabled: isBlocked = false until budget exhausted
+    - isBlocked = true when overage budget is exhausted (currentSpentUsd >= maxBudgetUsd)
+  - Created centralized messages dictionary (src/data/messages/blockReasons.ts):
+    - All user-facing messages now centralized for consistency and easy updates
+    - BLOCK_REASONS: "Quota exceeded. No overage allowed on this plan.", "Limit reached", "Budget cap exceeded..."
+    - QUOTA_WARNINGS, BUDGET_WARNINGS, INFO_MESSAGES, CTA_MESSAGES, SUCCESS_MESSAGES, ERROR_MESSAGES
+    - Helper function getBlockReason() for determining appropriate block reason based on state
+    - Type-safe exports with BlockReason, QuotaWarning, BudgetWarning types
 - [ ] 2.11 Create billing period controls (days into period, days remaining)
 - [ ] 2.12 Add quick preset buttons (Under Quota, At Warning, Over Quota, With Overages, Budget Exhausted)
 

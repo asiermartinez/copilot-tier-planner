@@ -13,6 +13,7 @@ import type {
 } from "@/types/userState";
 import type { SkuId } from "@/types/sku";
 import { getSkuById } from "@/data/skus";
+import { BLOCK_REASONS } from "@/data/messages";
 
 interface UsageOverrides {
   premiumRequests?: number;
@@ -124,7 +125,8 @@ function generateResourceUsage(
   pricePerUnit: number | null,
   blockOnOverage: boolean,
   additionalPurchased: number = 0,
-  purchasedExpiresAt: string | null = null
+  purchasedExpiresAt: string | null = null,
+  overageBudget: { maxBudgetUsd: number; currentSpentUsd: number } | null = null
 ): ResourceUsage | PremiumRequestUsage {
   const effectiveLimit =
     limit !== null && additionalPurchased > 0
@@ -148,7 +150,30 @@ function generateResourceUsage(
   );
 
   const isOverQuota = effectiveLimit !== null && current > effectiveLimit;
-  const isBlocked = isOverQuota && blockOnOverage;
+  const isAtLimit = effectiveLimit !== null && current >= effectiveLimit;
+
+  // Determine if usage should be blocked
+  let isBlocked = false;
+  let blockReason: string | null = null;
+
+  if (isAtLimit) {
+    if (blockOnOverage) {
+      // SKU doesn't allow overages at all (e.g., FREE plan)
+      isBlocked = true;
+      blockReason = BLOCK_REASONS.QUOTA_EXCEEDED_NO_OVERAGES;
+    } else if (overageBudget === null) {
+      // SKU allows overages but user hasn't enabled overage budget - block at limit
+      isBlocked = true;
+      blockReason = BLOCK_REASONS.LIMIT_REACHED;
+    } else {
+      // SKU allows overages and user has enabled overage budget
+      if (overageBudget.currentSpentUsd >= overageBudget.maxBudgetUsd) {
+        isBlocked = true;
+        blockReason = BLOCK_REASONS.BUDGET_EXHAUSTED;
+      }
+      // Otherwise, billing continues (not blocked)
+    }
+  }
 
   if (resourceType === "premiumRequests") {
     const premiumUsage: PremiumRequestUsage = {
@@ -159,6 +184,7 @@ function generateResourceUsage(
       percentageUsed,
       isOverQuota,
       isBlocked,
+      blockReason,
       warningThreshold,
       hasReachedWarning,
       additionalPurchased,
@@ -166,12 +192,6 @@ function generateResourceUsage(
       usedFromBaseQuota,
       usedFromPurchased,
     };
-
-    if (isBlocked) {
-      premiumUsage.blockReason = blockOnOverage
-        ? "Quota exceeded. No overage allowed on this plan."
-        : "Budget cap exceeded. Upgrade plan or increase budget to continue.";
-    }
 
     return premiumUsage;
   }
@@ -184,15 +204,10 @@ function generateResourceUsage(
     percentageUsed,
     isOverQuota,
     isBlocked,
+    blockReason,
     warningThreshold,
     hasReachedWarning,
   };
-
-  if (isBlocked) {
-    usage.blockReason = blockOnOverage
-      ? "Quota exceeded. No overage allowed on this plan."
-      : "Budget cap exceeded. Upgrade plan or increase budget to continue.";
-  }
 
   return usage;
 }
@@ -242,6 +257,61 @@ export function generateUserState(
   const additionalPurchased =
     options.usage.additionalPurchasedPremiumRequests ?? 0;
 
+  // First, calculate overage costs to determine budget state
+  const tempPremiumRequestsUsage = generateResourceUsage(
+    "premiumRequests",
+    premiumRequestsCurrent,
+    sku.limits.premiumRequestsPerMonth,
+    sku.limits.premiumRequestsOveragePolicy?.warningThreshold ?? 80,
+    sku.limits.premiumRequestsOveragePolicy?.pricePerUnit ?? null,
+    sku.limits.premiumRequestsOveragePolicy?.behavior === "block",
+    additionalPurchased,
+    options.usage.purchasedExpiresAt ?? null,
+    null
+  ) as PremiumRequestUsage;
+
+  const tempChatMessagesUsage = generateResourceUsage(
+    "chatMessages",
+    chatMessagesCurrent,
+    sku.limits.chatMessagesPerMonth,
+    sku.limits.chatMessagesOveragePolicy?.warningThreshold ?? 80,
+    sku.limits.chatMessagesOveragePolicy?.pricePerUnit ?? null,
+    sku.limits.chatMessagesOveragePolicy?.behavior === "block",
+    0,
+    null,
+    null
+  );
+
+  const tempCodeCompletionsUsage = generateResourceUsage(
+    "codeCompletions",
+    codeCompletionsCurrent,
+    sku.limits.codeCompletionsPerMonth,
+    sku.limits.codeCompletionsOveragePolicy?.warningThreshold ?? 80,
+    sku.limits.codeCompletionsOveragePolicy?.pricePerUnit ?? null,
+    sku.limits.codeCompletionsOveragePolicy?.behavior === "block",
+    0,
+    null,
+    null
+  );
+
+  const totalOverageCost =
+    tempPremiumRequestsUsage.overageCostUsd +
+    tempChatMessagesUsage.overageCostUsd +
+    tempCodeCompletionsUsage.overageCostUsd;
+
+  const overageBudget =
+    options.overageBudget !== null && options.overageBudget !== undefined
+      ? generateOverageBudget(options.overageBudget, totalOverageCost)
+      : null;
+
+  // Now generate the final usage objects with budget information
+  const budgetInfo = overageBudget
+    ? {
+        maxBudgetUsd: overageBudget.maxBudgetUsd,
+        currentSpentUsd: overageBudget.currentSpentUsd,
+      }
+    : null;
+
   const premiumRequestsUsage = generateResourceUsage(
     "premiumRequests",
     premiumRequestsCurrent,
@@ -250,7 +320,8 @@ export function generateUserState(
     sku.limits.premiumRequestsOveragePolicy?.pricePerUnit ?? null,
     sku.limits.premiumRequestsOveragePolicy?.behavior === "block",
     additionalPurchased,
-    options.usage.purchasedExpiresAt ?? null
+    options.usage.purchasedExpiresAt ?? null,
+    budgetInfo
   ) as PremiumRequestUsage;
 
   const chatMessagesUsage = generateResourceUsage(
@@ -259,7 +330,10 @@ export function generateUserState(
     sku.limits.chatMessagesPerMonth,
     sku.limits.chatMessagesOveragePolicy?.warningThreshold ?? 80,
     sku.limits.chatMessagesOveragePolicy?.pricePerUnit ?? null,
-    sku.limits.chatMessagesOveragePolicy?.behavior === "block"
+    sku.limits.chatMessagesOveragePolicy?.behavior === "block",
+    0,
+    null,
+    budgetInfo
   );
 
   const codeCompletionsUsage = generateResourceUsage(
@@ -268,18 +342,11 @@ export function generateUserState(
     sku.limits.codeCompletionsPerMonth,
     sku.limits.codeCompletionsOveragePolicy?.warningThreshold ?? 80,
     sku.limits.codeCompletionsOveragePolicy?.pricePerUnit ?? null,
-    sku.limits.codeCompletionsOveragePolicy?.behavior === "block"
+    sku.limits.codeCompletionsOveragePolicy?.behavior === "block",
+    0,
+    null,
+    budgetInfo
   );
-
-  const totalOverageCost =
-    premiumRequestsUsage.overageCostUsd +
-    chatMessagesUsage.overageCostUsd +
-    codeCompletionsUsage.overageCostUsd;
-
-  const overageBudget =
-    options.overageBudget !== null && options.overageBudget !== undefined
-      ? generateOverageBudget(options.overageBudget, totalOverageCost)
-      : null;
 
   const baseSubscriptionUsd = sku.pricing.perSeat
     ? sku.pricing.monthlyUsd * (options.account.seats ?? 1)
