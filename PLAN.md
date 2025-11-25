@@ -241,7 +241,20 @@ The playground must visually represent all key UI messaging elements that appear
   - Changes reflect immediately in State Payload view
   - Styled with CSS modules, accessible keyboard navigation
 - [ ] 2.9 Display real-time usage percentages and quota limits
-- [ ] 2.10 Create budget configuration controls (max budget, block when exceeded)
+- [x] 2.10 Create budget configuration controls (max budget, block when exceeded)
+  - Added checkbox to enable/disable overage budget in UsageControls component
+  - Overage controls only visible for SKUs that support overage billing (allowBudgetCap = true)
+  - FREE SKU does not show overage controls (overages not supported)
+  - Pro, Pro+, Business, and Enterprise SKUs show overage controls
+  - Budget input field appears when overages are enabled (default: $100)
+  - Currency symbol ($) displayed before budget input using Primer TextInput
+  - Budget input validation ensures minimum of $1
+  - Premium requests slider max increases to 3x plan limit when overages enabled
+  - Premium requests slider caption shows "(overages enabled)" when active
+  - Disabling overages caps premium requests at plan limit if exceeded
+  - Budget changes sync to PlannerContext and update URL state
+  - Overage section visually separated with border and proper spacing
+  - Checkbox uses proper Primer pattern with FormControl and FormControl.Label
 - [ ] 2.11 Create billing period controls (days into period, days remaining)
 - [ ] 2.12 Add quick preset buttons (Under Quota, At Warning, Over Quota, With Overages, Budget Exhausted)
 

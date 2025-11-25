@@ -1,6 +1,12 @@
 "use client";
 
-import { FormControl, Heading, Stack, TextInput } from "@primer/react";
+import {
+  FormControl,
+  Heading,
+  Stack,
+  TextInput,
+  Checkbox,
+} from "@primer/react";
 import { usePlanner } from "@/contexts";
 import { SKU_MAP } from "@/data/skus";
 import styles from "./UsageControls.module.css";
@@ -23,10 +29,17 @@ export default function UsageControls() {
     updatePremiumRequests,
     updateChatMessages,
     updateCodeCompletions,
+    updateOverageBudget,
+    getSimpleState,
+    loadFromSimpleState,
   } = usePlanner();
 
   const currentSku = SKU_MAP[userState.subscription.skuId];
   const usage = userState.usage;
+  const overageBudget = userState.overageBudget;
+  const overagesEnabled = overageBudget !== null;
+  const supportsOverages =
+    currentSku.limits.premiumRequestsOveragePolicy?.allowBudgetCap ?? false;
 
   // Helper to handle number input changes with validation
   const handleNumberInput = (
@@ -42,15 +55,56 @@ export default function UsageControls() {
     }
   };
 
-  // Determine max slider values from plan limits
-  // (Overage blocking will be controlled by budget toggle in the future)
+  // Calculate additional premium requests based on budget
+  const calculateAdditionalRequests = (budgetUsd: number): number => {
+    const pricePerRequest =
+      currentSku.limits.premiumRequestsOveragePolicy?.pricePerUnit ?? 0;
+    if (pricePerRequest === 0) return 0;
+    return Math.floor(budgetUsd / pricePerRequest);
+  };
 
-  const premiumRequestsMax = currentSku.limits.premiumRequestsPerMonth ?? 1000;
+  const additionalRequests = overageBudget
+    ? calculateAdditionalRequests(overageBudget.maxBudgetUsd)
+    : 0;
+
+  // Determine max slider values from plan limits
+  // When overages are enabled, allow going beyond the plan limit
+  const planPremiumRequestsLimit =
+    currentSku.limits.premiumRequestsPerMonth ?? 1000;
+  const premiumRequestsMax = overagesEnabled
+    ? planPremiumRequestsLimit + additionalRequests // Plan quota + additional requests from budget
+    : planPremiumRequestsLimit;
 
   const chatMessagesMax = currentSku.limits.chatMessagesPerMonth ?? 10000;
 
   const codeCompletionsMax =
     currentSku.limits.codeCompletionsPerMonth ?? 100000;
+
+  // Handle overage checkbox toggle
+  const handleOverageToggle = (checked: boolean) => {
+    if (checked) {
+      // Enable overages with default budget of $100
+      updateOverageBudget(100);
+    } else {
+      // Disable overages and cap premium requests if needed (in one state update)
+      const simpleState = getSimpleState();
+      simpleState.overageBudgetUsd = null;
+      if (simpleState.premiumRequestsUsed > planPremiumRequestsLimit) {
+        simpleState.premiumRequestsUsed = planPremiumRequestsLimit;
+      }
+      loadFromSimpleState(simpleState);
+    }
+  };
+
+  // Handle budget input change
+  const handleBudgetChange = (value: string) => {
+    const numValue = parseFloat(value);
+    if (isNaN(numValue) || numValue <= 0) {
+      updateOverageBudget(1); // Minimum budget of $1
+    } else {
+      updateOverageBudget(Math.max(1, numValue));
+    }
+  };
 
   return (
     <div className={styles.container}>
@@ -72,25 +126,26 @@ export default function UsageControls() {
               className={styles.slider}
               aria-label="Premium requests usage slider"
             />
-            <TextInput
-              type="number"
-              min={0}
-              max={premiumRequestsMax}
-              value={usage.premiumRequests.current}
-              onChange={e =>
-                handleNumberInput(
-                  e.target.value,
-                  premiumRequestsMax,
-                  updatePremiumRequests
-                )
-              }
-              className={styles.numberInput}
-              aria-label="Premium requests usage value"
-            />
+            <div className={styles.numberInput}>
+              <TextInput
+                type="number"
+                min={0}
+                max={premiumRequestsMax}
+                value={usage.premiumRequests.current}
+                onChange={e =>
+                  handleNumberInput(
+                    e.target.value,
+                    premiumRequestsMax,
+                    updatePremiumRequests
+                  )
+                }
+                aria-label="Premium requests usage value"
+              />
+            </div>
           </div>
           <FormControl.Caption>
             {currentSku.limits.premiumRequestsPerMonth
-              ? `Quota: ${currentSku.limits.premiumRequestsPerMonth.toLocaleString()} per month`
+              ? `Plan quota: ${currentSku.limits.premiumRequestsPerMonth.toLocaleString()} per month${overagesEnabled ? " (overages enabled)" : ""}`
               : "Unlimited quota"}
           </FormControl.Caption>
         </FormControl>
@@ -109,22 +164,23 @@ export default function UsageControls() {
               disabled={currentSku.limits.chatMessagesPerMonth === null}
               aria-label="Chat messages usage slider"
             />
-            <TextInput
-              type="number"
-              min={0}
-              max={chatMessagesMax}
-              value={usage.chatMessages.current}
-              onChange={e =>
-                handleNumberInput(
-                  e.target.value,
-                  chatMessagesMax,
-                  updateChatMessages
-                )
-              }
-              className={styles.numberInput}
-              disabled={currentSku.limits.chatMessagesPerMonth === null}
-              aria-label="Chat messages usage value"
-            />
+            <div className={styles.numberInput}>
+              <TextInput
+                type="number"
+                min={0}
+                max={chatMessagesMax}
+                value={usage.chatMessages.current}
+                onChange={e =>
+                  handleNumberInput(
+                    e.target.value,
+                    chatMessagesMax,
+                    updateChatMessages
+                  )
+                }
+                disabled={currentSku.limits.chatMessagesPerMonth === null}
+                aria-label="Chat messages usage value"
+              />
+            </div>
           </div>
           <FormControl.Caption>
             {currentSku.limits.chatMessagesPerMonth
@@ -147,22 +203,23 @@ export default function UsageControls() {
               disabled={currentSku.limits.codeCompletionsPerMonth === null}
               aria-label="Code completions usage slider"
             />
-            <TextInput
-              type="number"
-              min={0}
-              max={codeCompletionsMax}
-              value={usage.codeCompletions.current}
-              onChange={e =>
-                handleNumberInput(
-                  e.target.value,
-                  codeCompletionsMax,
-                  updateCodeCompletions
-                )
-              }
-              className={styles.numberInput}
-              disabled={currentSku.limits.codeCompletionsPerMonth === null}
-              aria-label="Code completions usage value"
-            />
+            <div className={styles.numberInput}>
+              <TextInput
+                type="number"
+                min={0}
+                max={codeCompletionsMax}
+                value={usage.codeCompletions.current}
+                onChange={e =>
+                  handleNumberInput(
+                    e.target.value,
+                    codeCompletionsMax,
+                    updateCodeCompletions
+                  )
+                }
+                disabled={currentSku.limits.codeCompletionsPerMonth === null}
+                aria-label="Code completions usage value"
+              />
+            </div>
           </div>
           <FormControl.Caption>
             {currentSku.limits.codeCompletionsPerMonth
@@ -170,6 +227,42 @@ export default function UsageControls() {
               : "Unlimited quota"}
           </FormControl.Caption>
         </FormControl>
+
+        {/* Overage Budget Configuration */}
+        {supportsOverages && (
+          <div className={styles.overageBudgetSection}>
+            <FormControl>
+              <Checkbox
+                checked={overagesEnabled}
+                onChange={e => handleOverageToggle(e.target.checked)}
+              />
+              <FormControl.Label>Enable overage budget</FormControl.Label>
+            </FormControl>
+            {overagesEnabled && (
+              <FormControl className={styles.budgetInput}>
+                <FormControl.Label>Overage Budget (USD)</FormControl.Label>
+                <div className={styles.budgetInputContainer}>
+                  <span className={styles.currencySymbol}>$</span>
+                  <div className={styles.budgetNumberInput}>
+                    <TextInput
+                      type="number"
+                      min={1}
+                      step="0.01"
+                      value={overageBudget?.maxBudgetUsd ?? 100}
+                      onChange={e => handleBudgetChange(e.target.value)}
+                      aria-label="Maximum overage budget in USD"
+                    />
+                  </div>
+                </div>
+                <FormControl.Caption>
+                  Maximum amount to spend on premium request overages per month
+                  {additionalRequests > 0 &&
+                    ` (up to ${additionalRequests.toLocaleString()} additional requests)`}
+                </FormControl.Caption>
+              </FormControl>
+            )}
+          </div>
+        )}
       </Stack>
     </div>
   );

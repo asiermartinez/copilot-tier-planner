@@ -111,3 +111,47 @@
   -moz-appearance: textfield;
   appearance: textfield;
 }
+
+.overageBudgetSection {
+  margin-top: var(--base-size-16);
+  padding-top: var(--base-size-16);
+  border-top: 1px solid var(--borderColor-default);
+}
+
+.budgetInput {
+  margin-top: var(--base-size-12);
+  margin-left: var(--base-size-24);
+}
+
+.budgetInputContainer {
+  display: flex;
+  align-items: center;
+  gap: var(--base-size-8);
+  position: relative;
+}
+
+.currencySymbol {
+  font-size: var(--text-body-size-medium);
+  font-weight: 500;
+  color: var(--fgColor-default);
+}
+
+.budgetNumberInput {
+  width: 120px;
+}
+
+.budgetNumberInput input {
+  text-align: right;
+}
+
+/* Hide number input spinner arrows for budget input */
+.budgetNumberInput input[type="number"]::-webkit-inner-spin-button,
+.budgetNumberInput input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.budgetNumberInput input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
