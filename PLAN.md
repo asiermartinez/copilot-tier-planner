@@ -109,19 +109,19 @@ The playground must visually represent all key UI messaging elements that appear
 ## Current State Assessment
 
 **Existing Work**:
-- ✅ Project setup with Next.js 15, Primer React v38, TypeScript (strict mode)
-- ✅ Basic layout with Primer ThemeProvider and BaseStyles
-- ✅ Complete type definitions for SKUs, user states, and usage tracking
-- ✅ All five SKU tier data definitions (Free, Pro, Pro+, Business, Enterprise)
-- ✅ Utility functions for SKU queries, state calculations, and usage tracking
-- ✅ Mock user state generator and sample data
-- ✅ Component directories created (SkuCard, SkuRoadmap) but empty
+- Project setup with Next.js 15, Primer React v38, TypeScript (strict mode)
+- Basic layout with Primer ThemeProvider and BaseStyles
+- Complete type definitions for SKUs, user states, and usage tracking
+- All five SKU tier data definitions (Free, Pro, Pro+, Business, Enterprise)
+- Utility functions for SKU queries, state calculations, and usage tracking
+- Mock user state generator and sample data
+- Component directories created (SkuCard, SkuRoadmap) but empty
 
 **What's Missing**:
-- ❌ No UI components built yet (page.tsx is a placeholder)
-- ❌ No state management implementation
-- ❌ No simulation engine
-- ❌ No UI messaging components
+- No UI components built yet (page.tsx is a placeholder)
+- No state management implementation
+- No simulation engine
+- No UI messaging components
 
 **Development Approach**:
 - Start fresh with implementation but leverage existing data layer and types
@@ -210,6 +210,7 @@ The playground must visually represent all key UI messaging elements that appear
   - Includes URL state synchronization (Base64-encoded SimpleUserState)
   - Provides methods to update SKU, account type, seats, usage, budget, and billing period
   - Auto-updates URL on every state change for easy sharing
+  - URL updates debounced (500ms) to prevent browser history API rate limiting
   - Supports preset loading (placeholder ready for integration)
   - Exposes usePlanner hook for consuming components
   - Integrated into main page - AccountTypeSelector and SkuSelector now use context
@@ -217,12 +218,28 @@ The playground must visually represent all key UI messaging elements that appear
   - Fixed: Added accountType to SimpleUserState for proper URL state recovery
   - Fixed: Removed duplicate accountType state, now derived from userState.account.accountType
   - Fixed: ActionMenu components keyed by value to force re-render on change
+  - Fixed: Debounced URL updates to prevent "history.replaceState() more than 100 times per 10 seconds" error
 
 **Left Panel - Interactive Controls (2.5-2.12)**:
 - [ ] 2.5 Create plan selector component (current plan with expand/collapse for upgrade/downgrade paths)
 - [ ] 2.6 Implement visual upgrade/downgrade path display (respects audience boundaries)
 - [ ] 2.7 Add quick SKU switch buttons in expanded plan selector
-- [ ] 2.8 Create usage control sliders (premium requests, chat messages, code completions)
+- [x] 2.8 Create usage control sliders (premium requests, chat messages, code completions)
+  - Implemented UsageControls component with three sliders
+  - Premium requests, chat messages, and code completions
+  - Sliders dynamically configured based on SKU limits:
+    - All plans: max = exact quota limit from plan
+    - Unlimited quotas: reasonable defaults (1K, 10K, 100K)
+    - Note: Overage scenarios will be controlled by budget toggle (task 2.10)
+  - Sliders disabled for unlimited quotas (chat/completions on Pro+ plans)
+  - Number inputs added next to each slider for manual value entry
+  - Input validation ensures values stay within valid range (0 to max)
+  - Number input text aligned right, spinner arrows hidden
+  - Slider thumb has no border for cleaner appearance
+  - Both slider and input stay synchronized
+  - Updates state via PlannerContext hooks
+  - Changes reflect immediately in State Payload view
+  - Styled with CSS modules, accessible keyboard navigation
 - [ ] 2.9 Display real-time usage percentages and quota limits
 - [ ] 2.10 Create budget configuration controls (max budget, block when exceeded)
 - [ ] 2.11 Create billing period controls (days into period, days remaining)

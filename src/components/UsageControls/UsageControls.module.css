@@ -1,0 +1,113 @@
+.container {
+  padding: var(--base-size-16);
+}
+
+.heading {
+  font-size: var(--text-body-size-medium);
+  margin-bottom: var(--base-size-16);
+}
+
+.usageText {
+  margin-left: var(--base-size-8);
+  font-weight: normal;
+  color: var(--fgColor-muted);
+}
+
+.sliderInputContainer {
+  display: flex;
+  align-items: center;
+  gap: var(--base-size-12);
+}
+
+.slider {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bgColor-muted);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  margin: var(--base-size-8) 0;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--fgColor-accent);
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+}
+
+.slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--fgColor-accent);
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+}
+
+.slider:hover::-webkit-slider-thumb {
+  background: var(--bgColor-accent-emphasis);
+  transform: scale(1.1);
+}
+
+.slider:hover::-moz-range-thumb {
+  background: var(--bgColor-accent-emphasis);
+  transform: scale(1.1);
+}
+
+.slider:focus {
+  outline: 2px solid var(--focus-outlineColor);
+  outline-offset: 2px;
+}
+
+.slider:focus::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px var(--bgColor-accent-muted);
+}
+
+.slider:focus::-moz-range-thumb {
+  box-shadow: 0 0 0 3px var(--bgColor-accent-muted);
+}
+
+.slider:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.slider:disabled::-webkit-slider-thumb {
+  cursor: not-allowed;
+  background: var(--bgColor-muted);
+}
+
+.slider:disabled::-moz-range-thumb {
+  cursor: not-allowed;
+  background: var(--bgColor-muted);
+}
+
+.numberInput {
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.numberInput input {
+  text-align: right;
+}
+
+/* Hide number input spinner arrows */
+.numberInput input[type="number"]::-webkit-inner-spin-button,
+.numberInput input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.numberInput input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

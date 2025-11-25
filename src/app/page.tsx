@@ -6,6 +6,7 @@ import SkuSelector from "@/components/SkuSelector";
 import ViewToggle, { type ViewMode } from "@/components/ViewToggle";
 import StatePayloadView from "@/components/StatePayloadView";
 import UIMessagesView from "@/components/UIMessagesView";
+import UsageControls from "@/components/UsageControls";
 import { usePlanner } from "@/contexts";
 import styles from "./page.module.css";
 
@@ -64,8 +65,7 @@ export default function RootPage() {
         {/* Left Panel - Controls */}
         <div className={styles.leftPanel}>
           <div className={styles.panelContent}>
-            <h2 className={styles.panelTitle}>Controls</h2>
-            <p>Interactive controls will go here</p>
+            <UsageControls />
           </div>
         </div>
 

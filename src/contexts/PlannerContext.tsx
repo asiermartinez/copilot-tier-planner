@@ -7,6 +7,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   ReactNode,
 } from "react";
 import type { UserState, SimpleUserState } from "@/types/userState";
@@ -210,17 +211,34 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
     return generateStateFromSimple(DEFAULT_SIMPLE_STATE);
   });
 
-  // Update URL whenever state changes
+  // Debounce URL updates to prevent rate limiting
+  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const simpleState = toSimpleState(userState);
-    const encoded = encodeStateToUrl(simpleState);
-    const params = new URLSearchParams(window.location.search);
-    params.set("state", encoded);
+    // Clear any existing timeout
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
+    }
 
-    const newUrl = `${window.location.pathname}?${params.toString()}`;
-    window.history.replaceState({}, "", newUrl);
+    // Set a new timeout to update URL after 500ms of inactivity
+    updateTimeoutRef.current = setTimeout(() => {
+      const simpleState = toSimpleState(userState);
+      const encoded = encodeStateToUrl(simpleState);
+      const params = new URLSearchParams(window.location.search);
+      params.set("state", encoded);
+
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      window.history.replaceState({}, "", newUrl);
+    }, 500);
+
+    // Cleanup on unmount
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
   }, [userState]);
 
   /**
