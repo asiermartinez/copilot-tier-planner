@@ -9,16 +9,16 @@
  * Block reasons for when usage is restricted
  */
 export const BLOCK_REASONS = {
-  /** User has exceeded quota on a plan that doesn't allow overages (e.g., FREE) */
+  /** User has reached quota on a plan that doesn't allow overages (e.g., FREE) */
   QUOTA_EXCEEDED_NO_OVERAGES:
-    "Quota exceeded. No overage allowed on this plan.",
+    "Quota limit reached. Overages are not allowed on your current plan.",
 
   /** User has reached their quota limit but hasn't enabled overage budget */
   LIMIT_REACHED: "Limit reached. Set up an overage budget to continue.",
 
   /** User has exhausted their overage budget */
   BUDGET_EXHAUSTED:
-    "Budget cap exceeded. Upgrade plan or increase budget to continue.",
+    "Budget limit reached. Upgrade plan or increase budget to continue.",
 } as const;
 
 /**
@@ -27,15 +27,15 @@ export const BLOCK_REASONS = {
 export const QUOTA_WARNINGS = {
   /** Warning threshold reached (e.g., 80% of quota) */
   THRESHOLD_REACHED: (percentage: number) =>
-    `You've used ${percentage}% of your quota`,
+    `You have used ${percentage}% of your quota`,
 
   /** Approaching quota limit */
   APPROACHING_LIMIT: (current: number, limit: number) =>
-    `You're approaching your limit (${current.toLocaleString()} of ${limit.toLocaleString()})`,
+    `Approaching your quota limit (${current.toLocaleString()} of ${limit.toLocaleString()})`,
 
-  /** Quota exceeded with overages enabled */
-  OVER_QUOTA_WITH_BUDGET: (overage: number) =>
-    `You've exceeded your quota by ${overage.toLocaleString()} requests`,
+  /** Using overage budget (beyond quota) */
+  USING_OVERAGE_BUDGET: (overage: number) =>
+    `Using ${overage.toLocaleString()} overage requests from your budget`,
 } as const;
 
 /**
@@ -44,14 +44,14 @@ export const QUOTA_WARNINGS = {
 export const BUDGET_WARNINGS = {
   /** Budget threshold reached */
   THRESHOLD_REACHED: (percentage: number) =>
-    `You've used ${percentage}% of your overage budget`,
+    `You have used ${percentage}% of your overage budget`,
 
   /** Budget nearly exhausted */
   NEARLY_EXHAUSTED: (remaining: number) =>
     `Only $${remaining.toFixed(2)} remaining in overage budget`,
 
   /** Budget fully exhausted */
-  EXHAUSTED: "Your overage budget has been exhausted",
+  EXHAUSTED: "Overage budget limit reached",
 } as const;
 
 /**
@@ -60,7 +60,7 @@ export const BUDGET_WARNINGS = {
 export const INFO_MESSAGES = {
   /** Overage budget not configured */
   NO_OVERAGE_BUDGET:
-    "Enable overage budget to continue using premium requests beyond your quota",
+    "Set up an overage budget to use premium requests beyond your quota limit",
 
   /** Overage budget configured */
   OVERAGE_BUDGET_ENABLED: (budget: number, requests: number) =>
