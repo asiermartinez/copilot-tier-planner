@@ -63,6 +63,8 @@ export interface OverageBudget {
   percentageConsumed: number;
   /** Whether the budget has been fully consumed */
   isBudgetConsumed: boolean;
+  /** Number of overage requests remaining based on budget */
+  overageRequestsRemaining: number;
   /** Alert thresholds (percentages, e.g., [50, 75, 90, 100]) */
   alertThresholds: number[];
   /** Last crossed threshold value (null if none crossed) */

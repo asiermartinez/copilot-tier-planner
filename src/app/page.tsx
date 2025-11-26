@@ -8,7 +8,7 @@ import ViewToggle from "@/components/ViewToggle";
 import StatePayloadView from "@/components/StatePayloadView";
 import UIMessagesView from "@/components/UIMessagesView";
 import UsageControls from "@/components/UsageControls";
-import MessageEditor from "@/components/MessageEditor";
+import ThresholdConfigurator from "@/components/ThresholdConfigurator";
 import { usePlanner } from "@/contexts";
 import styles from "./page.module.css";
 
@@ -17,8 +17,12 @@ type ViewToggleMode = "messages" | "payload";
 type AccountType = "individual" | "organization" | "enterprise";
 
 export default function RootPage() {
-  const { userState, updateAccountTypeAndSku, updateCustomMessages } =
-    usePlanner();
+  const {
+    userState,
+    updateAccountTypeAndSku,
+    thresholdsConfig,
+    updateThresholdsConfig,
+  } = usePlanner();
   const [viewMode, setViewMode] = useState<ViewToggleMode>("messages");
 
   const accountType = userState.account.accountType;
@@ -80,10 +84,13 @@ export default function RootPage() {
           </div>
         </div>
 
-        {/* Right Panel - Message Editor */}
+        {/* Right Panel - Threshold Configurator */}
         <div className={styles.rightPanel}>
           <div className={styles.rightPanelContent}>
-            <MessageEditor onMessagesChange={updateCustomMessages} />
+            <ThresholdConfigurator
+              config={thresholdsConfig}
+              onChange={updateThresholdsConfig}
+            />
           </div>
         </div>
       </main>

@@ -5,7 +5,7 @@ import MessageField from "@/components/MessageField";
 import type { CustomMessages } from "@/types/messages/customMessages";
 import { getDefaultMessages } from "@/utils/messages/defaultMessages";
 import { usePlanner } from "@/contexts";
-import { getMessageFieldForAlert } from "@/utils/alertFieldMapping";
+import { getThresholdIdForAlert } from "@/utils/alertFieldMapping";
 import styles from "./MessageEditor.module.css";
 
 interface MessageEditorProps {
@@ -28,22 +28,11 @@ export default function MessageEditor({
   // Refs for all message fields
   const fieldRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // Focus and scroll to the field corresponding to the active alert
+  // Focus and scroll to the threshold field corresponding to the active alert
   useEffect(() => {
-    const fieldId = getMessageFieldForAlert(activeAlertId);
-    if (fieldId && fieldRefs.current[fieldId]) {
-      const element = fieldRefs.current[fieldId];
-      element?.scrollIntoView({ behavior: "smooth", block: "center" });
-
-      // Find the textarea within the field and focus it
-      const textarea = element?.querySelector("textarea");
-      if (textarea) {
-        setTimeout(() => {
-          textarea.focus();
-          textarea.select();
-        }, 150); // Small delay to allow scroll to complete
-      }
-    }
+    // TODO: Implement threshold field focusing once threshold configuration UI is built
+    // For now, this is a placeholder for the threshold-based system
+    // const thresholdId = getThresholdIdForAlert(activeAlertId);
   }, [activeAlertId]);
 
   // Notify parent of changes

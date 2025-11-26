@@ -20,11 +20,18 @@
 @import "@primer/primitives/dist/css/functional/themes/dark-high-contrast.css";
 @import "@primer/primitives/dist/css/functional/themes/dark-tritanopia.css";
 
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
 .root {
   background-color: var(--bgColor-default);
   height: 100dvh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .height-full {

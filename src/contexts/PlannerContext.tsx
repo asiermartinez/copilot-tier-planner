@@ -18,6 +18,13 @@ import type {
   CustomMessages,
   CustomThresholds,
 } from "@/types/messages/customMessages";
+import type { ThresholdsConfig } from "@/types/thresholds";
+import { DEFAULT_THRESHOLDS } from "@/types/thresholds";
+
+/**
+ * Set of dismissed alert IDs
+ */
+export type DismissedAlerts = Set<string>;
 
 /**
  * Context value interface
@@ -32,11 +39,26 @@ interface PlannerContextValue {
   /** Custom alert thresholds */
   customThresholds: CustomThresholds | undefined;
 
+  /** Configurable thresholds for alerts */
+  thresholdsConfig: ThresholdsConfig;
+
+  /** Update thresholds configuration */
+  updateThresholdsConfig: (config: ThresholdsConfig) => void;
+
   /** Active alert ID for focusing corresponding message field */
   activeAlertId: string | null;
 
   /** Set active alert ID */
   setActiveAlertId: (alertId: string | null) => void;
+
+  /** Set of dismissed alert IDs */
+  dismissedAlerts: DismissedAlerts;
+
+  /** Dismiss an alert */
+  dismissAlert: (alertId: string) => void;
+
+  /** Clear all dismissed alerts */
+  clearDismissedAlerts: () => void;
 
   /** Update the SKU (generates new state) */
   updateSku: (skuId: SkuId) => void;
@@ -253,8 +275,26 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
     CustomThresholds | undefined
   >();
 
+  // Configurable thresholds
+  const [thresholdsConfig, setThresholdsConfig] = useState<ThresholdsConfig>({
+    thresholds: DEFAULT_THRESHOLDS,
+  });
+
   // Active alert tracking
   const [activeAlertId, setActiveAlertId] = useState<string | null>(null);
+
+  // Dismissed alerts tracking
+  const [dismissedAlerts, setDismissedAlerts] = useState<DismissedAlerts>(
+    new Set()
+  );
+
+  const dismissAlert = useCallback((alertId: string) => {
+    setDismissedAlerts(prev => new Set([...prev, alertId]));
+  }, []);
+
+  const clearDismissedAlerts = useCallback(() => {
+    setDismissedAlerts(new Set());
+  }, []);
 
   // Initialize state from URL or default
   const [userState, setUserState] = useState<UserState>(() => {
@@ -447,8 +487,13 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
       userState,
       customMessages,
       customThresholds,
+      thresholdsConfig,
+      updateThresholdsConfig: setThresholdsConfig,
       activeAlertId,
       setActiveAlertId,
+      dismissedAlerts,
+      dismissAlert,
+      clearDismissedAlerts,
       updateSku,
       updateAccountType,
       updateAccountTypeAndSku,
@@ -469,7 +514,11 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
       userState,
       customMessages,
       customThresholds,
+      thresholdsConfig,
       activeAlertId,
+      dismissedAlerts,
+      dismissAlert,
+      clearDismissedAlerts,
       updateSku,
       updateAccountType,
       updateAccountTypeAndSku,

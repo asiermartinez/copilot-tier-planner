@@ -12,6 +12,7 @@ import type {
 } from "@/types/userState";
 import type { SkuId } from "@/types/sku";
 import { getSkuById } from "@/data/skus";
+import { getOveragePricePerRequest } from "@/utils/skuHelpers";
 import { BLOCK_REASONS } from "@/data/messages";
 import {
   DEFAULT_ALERT_THRESHOLDS,
@@ -188,13 +189,21 @@ function generateResourceUsage(
  */
 function generateOverageBudget(
   config: OverageBudgetConfig,
-  currentOverageSpent: number
+  currentOverageSpent: number,
+  skuId: SkuId
 ): OverageBudget {
   const maxBudgetUsd = config.maxBudgetUsd ?? 100;
   const remainingBudgetUsd = Math.max(0, maxBudgetUsd - currentOverageSpent);
   const percentageConsumed =
     Math.round((currentOverageSpent / maxBudgetUsd) * 100 * 10) / 10;
   const isBudgetConsumed = currentOverageSpent >= maxBudgetUsd;
+
+  // Calculate overage requests remaining based on pricing
+  const pricePerOverageRequest = getOveragePricePerRequest(skuId);
+  const overageRequestsRemaining =
+    pricePerOverageRequest && remainingBudgetUsd > 0
+      ? Math.floor(remainingBudgetUsd / pricePerOverageRequest)
+      : 0;
 
   const alertThresholds = config.alertThresholds ?? DEFAULT_ALERT_THRESHOLDS;
   const lastCrossedThreshold = getLastCrossedThreshold(
@@ -208,6 +217,7 @@ function generateOverageBudget(
     remainingBudgetUsd,
     percentageConsumed,
     isBudgetConsumed,
+    overageRequestsRemaining,
     alertThresholds,
     lastCrossedThreshold,
   };
@@ -263,7 +273,11 @@ export function generateUserState(
 
   const overageBudget =
     options.overageBudget !== null && options.overageBudget !== undefined
-      ? generateOverageBudget(options.overageBudget, totalOverageCost)
+      ? generateOverageBudget(
+          options.overageBudget,
+          totalOverageCost,
+          options.skuId
+        )
       : null;
 
   // Now generate the final usage objects with budget information

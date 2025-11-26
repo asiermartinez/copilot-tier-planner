@@ -1,16 +1,15 @@
 "use client";
 
 import { Banner } from "@primer/react";
-import { AlertSeverityLevel } from "@/data/alertThresholds";
 import styles from "./AlertBanner.module.css";
 
 type BannerVariant = "critical" | "info" | "success" | "upsell" | "warning";
 
 export interface AlertBannerProps {
   /**
-   * Alert severity level
+   * Alert severity level (Primer Banner variant)
    */
-  severity: AlertSeverityLevel;
+  severity: BannerVariant;
   /**
    * Alert message
    */
@@ -34,24 +33,6 @@ export interface AlertBannerProps {
 }
 
 /**
- * Map alert severity levels to Primer Banner variants
- */
-function severityToVariant(severity: AlertSeverityLevel): BannerVariant {
-  switch (severity) {
-    case AlertSeverityLevel.INFO:
-      return "info";
-    case AlertSeverityLevel.WARNING:
-      return "warning";
-    case AlertSeverityLevel.CRITICAL:
-      return "warning"; // Primer doesn't have "critical", use warning
-    case AlertSeverityLevel.EXCEEDED:
-      return "critical";
-    default:
-      return "info";
-  }
-}
-
-/**
  * AlertBanner Component
  *
  * Wraps Primer's Banner component with our alert severity levels
@@ -65,11 +46,9 @@ export default function AlertBanner({
   onDismiss,
   className,
 }: AlertBannerProps) {
-  const variant = severityToVariant(severity);
-
   return (
     <Banner
-      variant={variant}
+      variant={severity}
       title={message}
       description={message}
       hideTitle

@@ -1,0 +1,240 @@
+/**
+ * ThresholdConfigurator Component Styles
+ */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--base-size-16);
+}
+
+.header {
+  display: flex;
+  gap: var(--base-size-16);
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--base-size-8);
+}
+
+.headerActions {
+  display: flex;
+  gap: var(--base-size-8);
+}
+
+.thresholdsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--base-size-12);
+}
+
+.thresholdCard {
+  border: 1px solid var(--borderColor-default);
+  border-radius: var(--borderRadius-medium);
+  background-color: var(--bgColor-default);
+  overflow: hidden;
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.activeCard {
+  border-color: var(--borderColor-accent-emphasis);
+  box-shadow: 0 0 0 2px var(--borderColor-accent-emphasis);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--base-size-8) var(--base-size-12);
+  background-color: var(--bgColor-muted);
+  border-bottom: 1px solid var(--borderColor-muted);
+}
+
+.cardTitle {
+  font-weight: var(--base-text-weight-semibold);
+  font-size: var(--text-body-size-medium);
+  color: var(--fgColor-default);
+}
+
+.cardActions {
+  display: flex;
+  align-items: center;
+  gap: var(--base-size-12);
+}
+
+.enabledToggle {
+  display: flex;
+  align-items: center;
+  gap: var(--base-size-6);
+  cursor: pointer;
+  font-size: var(--text-body-size-small);
+  color: var(--fgColor-muted);
+}
+
+.enabledToggle input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.cardContent {
+  padding: var(--base-size-16);
+  display: flex;
+  flex-direction: column;
+  gap: var(--base-size-12);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--base-size-12);
+}
+
+.formControl {
+  margin: 0;
+}
+
+.messageControl {
+  margin: 0;
+}
+
+.checkboxRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--base-size-12);
+}
+
+.checkboxRow > * {
+  width: 100%;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--base-size-6);
+  cursor: pointer;
+  font-size: var(--text-body-size-small);
+  color: var(--fgColor-default);
+}
+
+.checkbox input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.ctaSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--base-size-8);
+}
+
+.ctaInput {
+  margin: 0;
+  margin-left: var(--base-size-24);
+}
+
+.sliderInputContainer {
+  display: flex;
+  align-items: center;
+  gap: var(--base-size-12);
+  width: 100%;
+}
+
+.slider {
+  flex: 1;
+  min-width: 0;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--borderColor-default);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  margin: var(--base-size-8) 0;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--fgColor-accent);
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+}
+
+.slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--fgColor-accent);
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+}
+
+.slider:hover::-webkit-slider-thumb {
+  background: var(--bgColor-accent-emphasis);
+  transform: scale(1.1);
+}
+
+.slider:hover::-moz-range-thumb {
+  background: var(--bgColor-accent-emphasis);
+  transform: scale(1.1);
+}
+
+.slider:focus {
+  outline: 2px solid var(--focus-outlineColor);
+  outline-offset: 2px;
+}
+
+.slider:focus::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px var(--bgColor-accent-muted);
+}
+
+.slider:focus::-moz-range-thumb {
+  box-shadow: 0 0 0 3px var(--bgColor-accent-muted);
+}
+
+.numberInput {
+  width: 70px;
+  flex-shrink: 0;
+}
+
+.numberInput > * {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 100% !important;
+}
+
+.numberInput input {
+  text-align: right;
+  width: 100% !important;
+}
+
+/* Hide number input spinner arrows */
+.numberInput input[type="number"]::-webkit-inner-spin-button,
+.numberInput input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.numberInput input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+@media (max-width: 768px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+
+  .header {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .variablesGrid {
+    grid-template-columns: 1fr;
+  }
+}
