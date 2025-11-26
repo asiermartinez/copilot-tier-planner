@@ -5,7 +5,8 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: var(--base-size-16);
+  height: 100%;
+  overflow: hidden;
 }
 
 .header {
@@ -13,7 +14,9 @@
   gap: var(--base-size-16);
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--base-size-8);
+  padding: var(--base-size-16) var(--base-size-24);
+  background-color: var(--bgColor-default);
+  flex-shrink: 0;
 }
 
 .headerActions {
@@ -25,6 +28,45 @@
   display: flex;
   flex-direction: column;
   gap: var(--base-size-12);
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--base-size-16) var(--base-size-24);
+  min-height: 0;
+  /* Overlay scrollbar */
+  scrollbar-gutter: stable;
+}
+
+/* Webkit browsers (Chrome, Safari, Edge) - overlay scrollbar */
+.thresholdsList::-webkit-scrollbar {
+  width: 12px;
+}
+
+.thresholdsList::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.thresholdsList::-webkit-scrollbar-thumb {
+  background-color: var(--borderColor-default);
+  border-radius: 6px;
+  border: 3px solid var(--bgColor-default);
+}
+
+.thresholdsList::-webkit-scrollbar-thumb:hover {
+  background-color: var(--borderColor-emphasis);
+}
+
+/* Firefox */
+.thresholdsList {
+  scrollbar-width: thin;
+  scrollbar-color: var(--borderColor-default) transparent;
+}
+
+.addButtonContainer {
+  padding: var(--base-size-16) var(--base-size-24);
+  background-color: var(--bgColor-default);
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .thresholdCard {
@@ -35,6 +77,7 @@
   transition:
     box-shadow 0.2s ease,
     border-color 0.2s ease;
+  flex-shrink: 0;
 }
 
 .activeCard {

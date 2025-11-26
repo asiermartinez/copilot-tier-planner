@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Button,
   FormControl,
@@ -382,7 +382,7 @@ export default function ThresholdConfigurator({
       )}
 
       <div className={styles.thresholdsList}>
-        {filteredThresholds.map((threshold, index) => (
+        {filteredThresholds.map(threshold => (
           <div
             key={threshold.id}
             ref={el => {
@@ -650,14 +650,15 @@ export default function ThresholdConfigurator({
         ))}
       </div>
 
-      <Button
-        variant="primary"
-        leadingVisual={PlusIcon}
-        onClick={handleAddThreshold}
-        block
-      >
-        Add Threshold
-      </Button>
+      <div className={styles.addButtonContainer}>
+        <Button
+          variant="primary"
+          leadingVisual={PlusIcon}
+          onClick={handleAddThreshold}
+        >
+          Add threshold
+        </Button>
+      </div>
     </div>
   );
 }
