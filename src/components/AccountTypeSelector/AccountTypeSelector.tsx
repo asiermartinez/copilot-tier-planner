@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ActionMenu, ActionList, Button, FormControl } from "@primer/react";
+import { ActionMenu, ActionList, Button } from "@primer/react";
 import { TriangleDownIcon } from "@primer/octicons-react";
 
 type AccountType = "individual" | "organization" | "enterprise";
@@ -32,26 +32,33 @@ export default function AccountTypeSelector({
   };
 
   return (
-    <FormControl>
-      <FormControl.Label>Account type</FormControl.Label>
-      <ActionMenu open={open} onOpenChange={setOpen}>
-        <ActionMenu.Anchor>
-          <Button trailingVisual={TriangleDownIcon}>{currentLabel}</Button>
-        </ActionMenu.Anchor>
-        <ActionMenu.Overlay>
-          <ActionList selectionVariant="single">
-            {ACCOUNT_TYPES.map(type => (
-              <ActionList.Item
-                key={type.value}
-                selected={value === type.value}
-                onSelect={() => handleSelect(type.value)}
-              >
-                {type.label}
-              </ActionList.Item>
-            ))}
-          </ActionList>
-        </ActionMenu.Overlay>
-      </ActionMenu>
-    </FormControl>
+    <ActionMenu open={open} onOpenChange={setOpen}>
+      <ActionMenu.Anchor>
+        <Button trailingAction={TriangleDownIcon}>
+          <span
+            style={{
+              color: "var(--fgColor-muted)",
+              display: "inline-block",
+            }}
+          >
+            Account type:
+          </span>{" "}
+          {currentLabel}
+        </Button>
+      </ActionMenu.Anchor>
+      <ActionMenu.Overlay>
+        <ActionList selectionVariant="single">
+          {ACCOUNT_TYPES.map(type => (
+            <ActionList.Item
+              key={type.value}
+              selected={value === type.value}
+              onSelect={() => handleSelect(type.value)}
+            >
+              {type.label}
+            </ActionList.Item>
+          ))}
+        </ActionList>
+      </ActionMenu.Overlay>
+    </ActionMenu>
   );
 }

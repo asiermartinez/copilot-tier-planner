@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { MarkGithubIcon } from "@primer/octicons-react";
 
 import AccountTypeSelector from "@/components/AccountTypeSelector";
 import SkuSelector from "@/components/SkuSelector";
@@ -39,18 +40,10 @@ export default function RootPage() {
     <div className={styles.container}>
       {/* Header */}
       <header className={styles.header}>
-        <div className={styles.headerTop}>
-          <div className={styles.headerTitle}>
-            <h1 className={styles.title}>SKU Planner</h1>
-            <p className={styles.subtitle}>
-              GitHub Copilot tier simulation and UI messaging playground
-            </p>
-          </div>
-          <div className={styles.headerActions}>
-            {/* Help button placeholder */}
-            <button className={styles.helpButton}>?</button>
-          </div>
-        </div>
+        <h1 className={styles.title}>
+          <MarkGithubIcon size={24} className={styles.titleIcon} />
+          Copilot Tier Planner
+        </h1>
         <div className={styles.headerControls}>
           <AccountTypeSelector
             value={accountType}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ActionMenu, ActionList, Button, FormControl } from "@primer/react";
+import { ActionMenu, ActionList, Button } from "@primer/react";
 import { TriangleDownIcon } from "@primer/octicons-react";
 import type { SkuId } from "@/types/sku";
 import { SKU_MAP } from "@/data/skus";
@@ -53,26 +53,33 @@ export default function SkuSelector({
   };
 
   return (
-    <FormControl>
-      <FormControl.Label>Base SKU</FormControl.Label>
-      <ActionMenu open={open} onOpenChange={setOpen}>
-        <ActionMenu.Anchor>
-          <Button trailingVisual={TriangleDownIcon}>{currentLabel}</Button>
-        </ActionMenu.Anchor>
-        <ActionMenu.Overlay>
-          <ActionList selectionVariant="single">
-            {availableSkuIds.map(skuId => (
-              <ActionList.Item
-                key={skuId}
-                selected={value === skuId}
-                onSelect={() => handleSelect(skuId)}
-              >
-                {SKU_MAP[skuId].name}
-              </ActionList.Item>
-            ))}
-          </ActionList>
-        </ActionMenu.Overlay>
-      </ActionMenu>
-    </FormControl>
+    <ActionMenu open={open} onOpenChange={setOpen}>
+      <ActionMenu.Anchor>
+        <Button trailingAction={TriangleDownIcon}>
+          <span
+            style={{
+              color: "var(--fgColor-muted)",
+              display: "inline-block",
+            }}
+          >
+            Base tier:
+          </span>{" "}
+          {currentLabel}
+        </Button>
+      </ActionMenu.Anchor>
+      <ActionMenu.Overlay>
+        <ActionList selectionVariant="single">
+          {availableSkuIds.map(skuId => (
+            <ActionList.Item
+              key={skuId}
+              selected={value === skuId}
+              onSelect={() => handleSelect(skuId)}
+            >
+              {SKU_MAP[skuId].name}
+            </ActionList.Item>
+          ))}
+        </ActionList>
+      </ActionMenu.Overlay>
+    </ActionMenu>
   );
 }
