@@ -1,0 +1,11 @@
+/**
+ * AlertBanner Component Styles
+ */
+
+.banner {
+  margin-bottom: var(--base-size-16);
+}
+
+.banner:last-child {
+  margin-bottom: 0;
+}

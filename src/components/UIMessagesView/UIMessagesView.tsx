@@ -1,6 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import type { UserState } from "@/types/userState";
+import AlertBanner from "@/components/AlertBanner";
+import { generateAlerts } from "@/utils/alerts/generateAlerts";
+import { usePlanner } from "@/contexts";
 import styles from "./UIMessagesView.module.css";
 
 interface UIMessagesViewProps {
@@ -8,20 +12,27 @@ interface UIMessagesViewProps {
 }
 
 export default function UIMessagesView({ userState }: UIMessagesViewProps) {
+  const { customMessages, customThresholds, setActiveAlertId } = usePlanner();
+  const alerts = generateAlerts(userState, customMessages, customThresholds);
+  const alert = alerts[0]; // Only show the highest priority alert
+
+  // Update active alert ID whenever the displayed alert changes
+  useEffect(() => {
+    setActiveAlertId(alert?.id ?? null);
+  }, [alert?.id, setActiveAlertId]);
+
   return (
     <div className={styles.container}>
-      <p className={styles.placeholder}>
-        Dynamic UI messages will appear here based on your current state (quota
-        warnings, upgrade CTAs, budget alerts, etc.)
-      </p>
-      <div className={styles.info}>
-        <p>
-          <strong>Current SKU:</strong> {userState.subscription.skuId}
-        </p>
-        <p>
-          <strong>Account Type:</strong> {userState.account.accountType}
-        </p>
-      </div>
+      {!alert ? (
+        <div className={styles.emptyState}>
+          <p className={styles.emptyStateText}>
+            No alerts or messages at this time. Your usage is within normal
+            limits.
+          </p>
+        </div>
+      ) : (
+        <AlertBanner severity={alert.severity} message={alert.message} />
+      )}
     </div>
   );
 }

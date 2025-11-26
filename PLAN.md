@@ -322,7 +322,38 @@ The playground must visually represent all key UI messaging elements that appear
   - Shows complete UserState object with proper syntax highlighting
   - Full-width scrollable container for large payloads
   - Removed redundant headings and flash messages for cleaner UI
-- [ ] 2.15 Create alert/banner component system with Primer (info, warning, error, critical)
+- [x] 2.15 Create alert/banner component system with Primer (info, warning, error, critical)
+  - Created AlertBanner component wrapping Primer's Banner component
+  - Maps AlertSeverityLevel (INFO, WARNING, CRITICAL, EXCEEDED) to Primer Banner variants
+  - Supports title, description, primary/secondary actions, and dismissal
+  - Created generateAlerts utility that analyzes UserState and returns highest priority alert
+  - **Shows only ONE banner at a time** - the most important/urgent message
+  - **All messages sourced from blockReasons.ts dictionary** - single source of truth
+  - **Added message customization feature** - users can modify messages and thresholds in playground:
+    - Created MessageEditor component with Primer text areas for editing all banner messages
+    - Created ControlPanel component with segmented controller to switch between "State" and "Messages" views
+    - Left panel now has two modes: State (usage controls) and Messages (message editor)
+    - Text areas use templates with placeholders (e.g., {percentage}, {current}, {limit}, {overage})
+    - Alert thresholds editable (default: 50, 75, 90, 100)
+    - All messages default to dictionary values, fully customizable for testing
+    - Reset buttons to restore default messages and thresholds
+    - Custom messages/thresholds passed to generateAlerts for dynamic banner rendering
+    - Supports testing different messaging strategies and threshold configurations
+  - Alert priority order (highest to lowest):
+    1. Blocking alerts (usage blocked due to quota/budget limits)
+    2. Budget critical/exceeded (90%+ or 100%)
+    3. Quota critical (90%+ of quota)
+    4. Budget warning (75%+)
+    5. Quota warning (75%+)
+    6. Trial expiring (≤7 days)
+    7. Using overage budget (informational)
+    8. Suggest overage budget setup (informational)
+  - UIMessagesView displays single alert or empty state
+  - Banner variants: info, warning, critical (EXCEEDED maps to critical)
+  - Fully integrated with existing UserState structure and alert thresholds
+  - Messages dictionary includes: BLOCK_REASONS, QUOTA_WARNINGS, BUDGET_WARNINGS, INFO_MESSAGES, CTA_MESSAGES
+  - Components created: AlertBanner, MessageEditor, ControlPanel
+  - generateAlerts uses template replacement for dynamic message generation
 - [ ] 2.16 Implement quota warning message component (triggered at 80% threshold)
 - [ ] 2.17 Implement quota exhausted message component (triggered at 100%)
 - [ ] 2.18 Implement block/restriction notice component (when usage is blocked)

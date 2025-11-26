@@ -14,6 +14,10 @@ import type { UserState, SimpleUserState } from "@/types/userState";
 import type { SkuId } from "@/types/sku";
 import { generateUserState } from "@/utils/mockStateGenerator";
 import { DEFAULT_ALERT_THRESHOLDS } from "@/data/alertThresholds";
+import type {
+  CustomMessages,
+  CustomThresholds,
+} from "@/types/messages/customMessages";
 
 /**
  * Context value interface
@@ -21,6 +25,18 @@ import { DEFAULT_ALERT_THRESHOLDS } from "@/data/alertThresholds";
 interface PlannerContextValue {
   /** Current user state (full state object) */
   userState: UserState;
+
+  /** Custom messages for banner system */
+  customMessages: CustomMessages | undefined;
+
+  /** Custom alert thresholds */
+  customThresholds: CustomThresholds | undefined;
+
+  /** Active alert ID for focusing corresponding message field */
+  activeAlertId: string | null;
+
+  /** Set active alert ID */
+  setActiveAlertId: (alertId: string | null) => void;
 
   /** Update the SKU (generates new state) */
   updateSku: (skuId: SkuId) => void;
@@ -53,6 +69,12 @@ interface PlannerContextValue {
 
   /** Update days into billing period */
   updateDaysIntoPeriod: (days: number) => void;
+
+  /** Update custom messages */
+  updateCustomMessages: (messages: CustomMessages | undefined) => void;
+
+  /** Update custom thresholds */
+  updateCustomThresholds: (thresholds: CustomThresholds | undefined) => void;
 
   /** Load a preset state by ID */
   loadPreset: (presetId: string) => void;
@@ -223,6 +245,17 @@ interface PlannerProviderProps {
  * Provider component that manages SKU planner state
  */
 export function PlannerProvider({ children }: PlannerProviderProps) {
+  // Custom messages and thresholds state
+  const [customMessages, setCustomMessages] = useState<
+    CustomMessages | undefined
+  >();
+  const [customThresholds, setCustomThresholds] = useState<
+    CustomThresholds | undefined
+  >();
+
+  // Active alert tracking
+  const [activeAlertId, setActiveAlertId] = useState<string | null>(null);
+
   // Initialize state from URL or default
   const [userState, setUserState] = useState<UserState>(() => {
     if (typeof window !== "undefined") {
@@ -412,6 +445,10 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
   const value = useMemo<PlannerContextValue>(
     () => ({
       userState,
+      customMessages,
+      customThresholds,
+      activeAlertId,
+      setActiveAlertId,
       updateSku,
       updateAccountType,
       updateAccountTypeAndSku,
@@ -421,6 +458,8 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
       updateCodeCompletions,
       updateOverageBudget,
       updateDaysIntoPeriod,
+      updateCustomMessages: setCustomMessages,
+      updateCustomThresholds: setCustomThresholds,
       loadPreset,
       reset,
       getSimpleState,
@@ -428,6 +467,9 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
     }),
     [
       userState,
+      customMessages,
+      customThresholds,
+      activeAlertId,
       updateSku,
       updateAccountType,
       updateAccountTypeAndSku,

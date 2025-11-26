@@ -230,6 +230,9 @@ export default function UsageControls() {
         {supportsOverages && (
           <>
             <FormControl className={styles.formControl}>
+              <FormControl.Label visuallyHidden>
+                Enable overage budget
+              </FormControl.Label>
               <div className={styles.toggleContainer}>
                 <span className={styles.toggleLabel} id="overage-budget-label">
                   Enable overage budget
