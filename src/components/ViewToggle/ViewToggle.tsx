@@ -23,7 +23,7 @@ export default function ViewToggle({ value, onChange }: ViewToggleProps) {
       size="small"
     >
       <SegmentedControl.Button selected={value === "messages"}>
-        UI playground
+        UI
       </SegmentedControl.Button>
       <SegmentedControl.Button selected={value === "payload"}>
         State
