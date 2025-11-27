@@ -528,6 +528,10 @@ export default function ThresholdConfigurator({
                     <code>{"{daysInPeriod}"}</code>
                     <span>Total days in period</span>
                   </div>
+                  <div>
+                    <code>{"{resetDate}"}</code>
+                    <span>Plan reset date (e.g., Mar 7, 2025)</span>
+                  </div>
                 </div>
               </div>
             </div>

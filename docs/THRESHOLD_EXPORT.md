@@ -129,6 +129,7 @@ Threshold messages support the following placeholders:
 - `{nextPlan}` - Next higher plan name
 - `{daysRemaining}` - Days remaining in period
 - `{daysInPeriod}` - Total days in billing period
+- `{resetDate}` - Plan reset date (e.g., Mar 7, 2025)
 
 ## Tips
 

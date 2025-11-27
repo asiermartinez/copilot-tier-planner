@@ -115,6 +115,15 @@ function buildTemplateContext(userState: UserState): ThresholdTemplateContext {
   const daysRemaining = userState.billingPeriod.daysRemaining;
   const daysInPeriod = userState.billingPeriod.daysInPeriod;
 
+  // Format reset date (billing period end date) as "MMM D, YYYY"
+  const resetDate = new Date(
+    userState.billingPeriod.endDate
+  ).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
   return {
     current,
     limit: limit ?? 0,
@@ -130,6 +139,7 @@ function buildTemplateContext(userState: UserState): ThresholdTemplateContext {
     nextPlan: nextPlan ?? "",
     daysRemaining,
     daysInPeriod,
+    resetDate,
   };
 }
 

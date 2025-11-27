@@ -194,4 +194,5 @@ export interface ThresholdTemplateContext {
   // Time-related
   daysRemaining: number;
   daysInPeriod: number;
+  resetDate: string;
 }

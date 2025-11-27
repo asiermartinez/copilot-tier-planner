@@ -71,22 +71,8 @@ export default function RootPage() {
     }, 1000);
   };
 
-  // Check if user is blocked (quota + overage budget exhausted)
-  const premiumUsage = userState.usage.premiumRequests;
-  const overageBudget = userState.overageBudget;
-
-  let isBlocked = false;
-
-  // Check if quota exceeded
-  if (
-    premiumUsage.limit !== null &&
-    premiumUsage.current >= premiumUsage.limit
-  ) {
-    // Check if overage budget is exhausted or not available
-    if (!overageBudget || overageBudget.isBudgetConsumed) {
-      isBlocked = true;
-    }
-  }
+  // Use the isBlocked flag from userState (already calculated with proper logic)
+  const isBlocked = userState.usage.premiumRequests.isBlocked;
 
   return (
     <div className={styles.container}>
