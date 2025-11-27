@@ -84,7 +84,6 @@ type CombinedMetricFilter =
   | "quota-free"
   | "quota-paid"
   | "overage-paid"
-  | "both-all"
   | "both-paid";
 
 const COMBINED_OPTIONS: { value: CombinedMetricFilter; label: string }[] = [
@@ -92,7 +91,6 @@ const COMBINED_OPTIONS: { value: CombinedMetricFilter; label: string }[] = [
   { value: "quota-free", label: "Quota (free only)" },
   { value: "quota-paid", label: "Quota (paid only)" },
   { value: "overage-paid", label: "Overage (paid only)" },
-  { value: "both-all", label: "Both (all plans)" },
   { value: "both-paid", label: "Both (paid only)" },
 ];
 
@@ -121,8 +119,7 @@ function getCombinedValue(
   }
 
   if (appliesTo === "both") {
-    if (filter === "paid-only") return "both-paid";
-    return "both-all";
+    return "both-paid"; // Both only works on paid plans (free doesn't have overage)
   }
 
   return "quota-all";
@@ -141,8 +138,6 @@ function splitCombinedValue(combined: CombinedMetricFilter): {
       return { appliesTo: "quota", planFilter: "paid-only" };
     case "overage-paid":
       return { appliesTo: "overage", planFilter: "paid-only" };
-    case "both-all":
-      return { appliesTo: "both", planFilter: "all" };
     case "both-paid":
       return { appliesTo: "both", planFilter: "paid-only" };
   }

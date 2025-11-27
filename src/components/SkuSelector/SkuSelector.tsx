@@ -67,7 +67,7 @@ export default function SkuSelector({
           {currentLabel}
         </Button>
       </ActionMenu.Anchor>
-      <ActionMenu.Overlay>
+      <ActionMenu.Overlay align="end">
         <ActionList selectionVariant="single">
           {availableSkuIds.map(skuId => (
             <ActionList.Item

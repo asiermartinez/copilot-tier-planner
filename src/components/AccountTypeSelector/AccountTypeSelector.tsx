@@ -46,7 +46,7 @@ export default function AccountTypeSelector({
           {currentLabel}
         </Button>
       </ActionMenu.Anchor>
-      <ActionMenu.Overlay>
+      <ActionMenu.Overlay align="end">
         <ActionList selectionVariant="single">
           {ACCOUNT_TYPES.map(type => (
             <ActionList.Item

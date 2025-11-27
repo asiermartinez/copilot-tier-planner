@@ -20,6 +20,7 @@ import type {
 } from "@/types/messages/customMessages";
 import type { ThresholdsConfig } from "@/types/thresholds";
 import { DEFAULT_THRESHOLDS } from "@/types/thresholds";
+import { getHighestPriorityAlert } from "@/utils/alerts/generateThresholdAlerts";
 
 /**
  * Set of dismissed alert IDs
@@ -340,6 +341,119 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
       }
     };
   }, [userState]);
+
+  /**
+   * Update userState with threshold-related data whenever thresholds config or plan changes
+   */
+  useEffect(() => {
+    const alert = getHighestPriorityAlert(userState, thresholdsConfig);
+    const lastCrossedThresholdMessage = alert?.message ?? undefined;
+
+    const currentSkuId = userState.subscription.skuId;
+    const currentAccountType = userState.account.accountType;
+
+    // Helper to check if threshold applies to current plan
+    const appliesToCurrentPlan = (t: any) => {
+      if (!t.planFilter || t.planFilter === "all") {
+        return true;
+      }
+      if (t.planFilter === "free-only") {
+        return currentSkuId === "free";
+      }
+      if (t.planFilter === "paid-only") {
+        return currentSkuId !== "free";
+      }
+      return true;
+    };
+
+    // Extract quota thresholds for premium requests (filtered by plan)
+    const quotaThresholds = Array.from(
+      new Set(
+        thresholdsConfig.thresholds
+          .filter(
+            t =>
+              t.enabled &&
+              (t.appliesTo === "quota" || t.appliesTo === "both") &&
+              appliesToCurrentPlan(t)
+          )
+          .map(t => t.percentage)
+      )
+    ).sort((a, b) => a - b);
+
+    // Extract overage budget thresholds (filtered by plan)
+    const overageThresholds = Array.from(
+      new Set(
+        thresholdsConfig.thresholds
+          .filter(
+            t =>
+              t.enabled &&
+              (t.appliesTo === "overage" || t.appliesTo === "both") &&
+              appliesToCurrentPlan(t)
+          )
+          .map(t => t.percentage)
+      )
+    ).sort((a, b) => a - b);
+
+    // Calculate last crossed threshold for premium requests
+    const premiumPercentage =
+      userState.usage.premiumRequests.percentageUsed ?? 0;
+    const premiumLastCrossed =
+      quotaThresholds.length > 0
+        ? (quotaThresholds.filter(t => premiumPercentage >= t).pop() ?? null)
+        : null;
+
+    // Calculate last crossed threshold for overage budget
+    const overagePercentage = userState.overageBudget?.percentageConsumed ?? 0;
+    const overageLastCrossed =
+      overageThresholds.length > 0
+        ? (overageThresholds.filter(t => overagePercentage >= t).pop() ?? null)
+        : null;
+
+    // Check if any threshold data needs updating
+    const needsUpdate =
+      userState.usage.premiumRequests.lastCrossedThresholdMessage !==
+        lastCrossedThresholdMessage ||
+      JSON.stringify(userState.usage.premiumRequests.alertThresholds) !==
+        JSON.stringify(quotaThresholds.length > 0 ? quotaThresholds : null) ||
+      userState.usage.premiumRequests.lastCrossedThreshold !==
+        premiumLastCrossed ||
+      (userState.overageBudget &&
+        (JSON.stringify(userState.overageBudget.alertThresholds) !==
+          JSON.stringify(
+            overageThresholds.length > 0 ? overageThresholds : []
+          ) ||
+          userState.overageBudget.lastCrossedThreshold !== overageLastCrossed));
+
+    if (needsUpdate) {
+      setUserState(prev => ({
+        ...prev,
+        usage: {
+          ...prev.usage,
+          premiumRequests: {
+            ...prev.usage.premiumRequests,
+            alertThresholds:
+              quotaThresholds.length > 0 ? quotaThresholds : null,
+            lastCrossedThreshold: premiumLastCrossed,
+            lastCrossedThresholdMessage,
+          },
+        },
+        overageBudget: prev.overageBudget
+          ? {
+              ...prev.overageBudget,
+              alertThresholds:
+                overageThresholds.length > 0 ? overageThresholds : [],
+              lastCrossedThreshold: overageLastCrossed,
+            }
+          : null,
+      }));
+    }
+  }, [
+    thresholdsConfig,
+    userState.subscription.skuId,
+    userState.account.accountType,
+    userState.usage.premiumRequests.percentageUsed,
+    userState.overageBudget?.percentageConsumed,
+  ]);
 
   /**
    * Update SKU and regenerate state

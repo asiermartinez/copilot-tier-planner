@@ -47,6 +47,8 @@ export interface ResourceUsage {
   alertThresholds: number[] | null;
   /** Last crossed threshold value (null if none crossed or unlimited) */
   lastCrossedThreshold: number | null;
+  /** Last crossed threshold message (from highest priority triggered threshold) */
+  lastCrossedThresholdMessage?: string;
 }
 
 /**

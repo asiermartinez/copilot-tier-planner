@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { MarkGithubIcon } from "@primer/octicons-react";
+import { Stack } from "@primer/react";
 
 import AccountTypeSelector from "@/components/AccountTypeSelector";
 import SkuSelector from "@/components/SkuSelector";
@@ -95,17 +96,6 @@ export default function RootPage() {
           <MarkGithubIcon size={24} className={styles.titleIcon} />
           Copilot Tier Planner
         </h1>
-        <div className={styles.headerControls}>
-          <AccountTypeSelector
-            value={accountType}
-            onChange={handleAccountTypeChange}
-          />
-          <SkuSelector
-            value={skuId}
-            accountType={accountType}
-            onChange={newSku => updateAccountTypeAndSku(accountType, newSku)}
-          />
-        </div>
       </header>
 
       {/* Main Content - Three Column Layout */}
@@ -113,6 +103,23 @@ export default function RootPage() {
         {/* Left Panel - State Controls */}
         <div className={styles.leftPanel}>
           <div className={styles.panelContent}>
+            <Stack
+              direction="vertical"
+              gap="normal"
+              style={{ marginBottom: "var(--base-size-24)" }}
+            >
+              <AccountTypeSelector
+                value={accountType}
+                onChange={handleAccountTypeChange}
+              />
+              <SkuSelector
+                value={skuId}
+                accountType={accountType}
+                onChange={newSku =>
+                  updateAccountTypeAndSku(accountType, newSku)
+                }
+              />
+            </Stack>
             <UsageControls />
           </div>
         </div>
