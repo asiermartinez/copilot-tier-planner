@@ -22,6 +22,9 @@ import {
   SyncIcon,
   InfoIcon,
   TriangleDownIcon,
+  DownloadIcon,
+  CopyIcon,
+  CheckIcon,
 } from "@primer/octicons-react";
 import type {
   ThresholdConfig,
@@ -151,6 +154,11 @@ export default function ThresholdConfigurator({
 }: ThresholdConfiguratorProps) {
   const { clearDismissedAlerts, userState, activeAlertId } = usePlanner();
   const [isVariablesDialogOpen, setIsVariablesDialogOpen] = useState(false);
+  const [showThresholdDialog, setShowThresholdDialog] = useState(false);
+  const [dialogMode, setDialogMode] = useState<"export" | "import">("export");
+  const [exportedJson, setExportedJson] = useState("");
+  const [importJson, setImportJson] = useState("");
+  const [copied, setCopied] = useState(false);
   const [filterMode, setFilterMode] = useState<"all" | "current">("all");
 
   // Refs for each threshold card to enable highlighting
@@ -233,6 +241,43 @@ export default function ThresholdConfigurator({
     onChange({ thresholds: [...DEFAULT_THRESHOLDS] });
   };
 
+  // Export thresholds configuration
+  const handleExport = () => {
+    const exportData = {
+      thresholds: config.thresholds,
+      exportedAt: new Date().toISOString(),
+      version: "1.0",
+    };
+    setExportedJson(JSON.stringify(exportData, null, 2));
+    setDialogMode("export");
+    setShowThresholdDialog(true);
+  };
+
+  const handleImportConfirm = () => {
+    try {
+      const parsed = JSON.parse(importJson);
+      if (parsed.thresholds && Array.isArray(parsed.thresholds)) {
+        onChange({ thresholds: parsed.thresholds });
+        setShowThresholdDialog(false);
+        setImportJson("");
+      } else {
+        alert("Invalid threshold configuration format");
+      }
+    } catch {
+      alert("Invalid JSON format");
+    }
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(exportedJson);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
+
   // Filter thresholds based on mode
   const filteredThresholds =
     filterMode === "current"
@@ -266,6 +311,13 @@ export default function ThresholdConfigurator({
         </SegmentedControl>
         <div className={styles.headerActions}>
           <IconButton
+            aria-label="Export thresholds"
+            icon={DownloadIcon}
+            size="small"
+            onClick={handleExport}
+            variant="invisible"
+          />
+          <IconButton
             aria-label="Clear dismissed alerts"
             icon={XIcon}
             size="small"
@@ -288,6 +340,120 @@ export default function ThresholdConfigurator({
           />
         </div>
       </div>
+
+      {showThresholdDialog && (
+        <Dialog
+          title="Threshold Configuration"
+          onClose={() => setShowThresholdDialog(false)}
+        >
+          <div style={{ padding: "16px" }}>
+            <div style={{ marginBottom: "16px" }}>
+              <SegmentedControl
+                aria-label="Threshold mode"
+                onChange={index =>
+                  setDialogMode(index === 0 ? "export" : "import")
+                }
+              >
+                <SegmentedControl.Button selected={dialogMode === "export"}>
+                  Export
+                </SegmentedControl.Button>
+                <SegmentedControl.Button selected={dialogMode === "import"}>
+                  Import
+                </SegmentedControl.Button>
+              </SegmentedControl>
+            </div>
+            <div>
+              {dialogMode === "export" ? (
+                <>
+                  <p
+                    style={{
+                      marginBottom: "12px",
+                      color: "var(--fgColor-muted)",
+                    }}
+                  >
+                    Copy this JSON configuration to save your thresholds:
+                  </p>
+                  <div style={{ position: "relative" }}>
+                    <IconButton
+                      aria-label={copied ? "Copied" : "Copy JSON"}
+                      icon={copied ? CheckIcon : CopyIcon}
+                      onClick={handleCopy}
+                      variant="invisible"
+                      style={{
+                        position: "absolute",
+                        top: "8px",
+                        right: "8px",
+                        zIndex: 1,
+                      }}
+                    />
+                    <textarea
+                      readOnly
+                      value={exportedJson}
+                      style={{
+                        width: "100%",
+                        height: "300px",
+                        fontFamily: "var(--fontStack-monospace)",
+                        fontSize: "12px",
+                        padding: "12px",
+                        border: "1px solid var(--borderColor-default)",
+                        borderRadius: "6px",
+                        backgroundColor: "var(--bgColor-muted)",
+                        resize: "none",
+                      }}
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p
+                    style={{
+                      marginBottom: "12px",
+                      color: "var(--fgColor-muted)",
+                    }}
+                  >
+                    Paste your JSON configuration below:
+                  </p>
+                  <textarea
+                    value={importJson}
+                    onChange={e => setImportJson(e.target.value)}
+                    placeholder="Paste JSON here..."
+                    style={{
+                      width: "100%",
+                      height: "300px",
+                      fontFamily: "var(--fontStack-monospace)",
+                      fontSize: "12px",
+                      padding: "12px",
+                      border: "1px solid var(--borderColor-default)",
+                      borderRadius: "6px",
+                      backgroundColor: "var(--bgColor-default)",
+                      resize: "none",
+                    }}
+                  />
+                  <div
+                    style={{
+                      marginTop: "12px",
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      gap: "8px",
+                    }}
+                  >
+                    <Button onClick={() => setShowThresholdDialog(false)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="primary"
+                      onClick={handleImportConfirm}
+                      disabled={!importJson.trim()}
+                    >
+                      Import
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </Dialog>
+      )}
 
       {isVariablesDialogOpen && (
         <Dialog
