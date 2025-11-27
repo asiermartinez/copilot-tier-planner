@@ -36,9 +36,6 @@ export default function MessageInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const getPlaceholderText = () => {
-    if (disabled) {
-      return "You have reached your request limit";
-    }
     return "Ask anything";
   };
 
@@ -106,11 +103,32 @@ export default function MessageInput({
         />
       </div>
       <div className={styles.actionsContainer}>
-        <AttachActionMenu />
+        <div
+          style={{
+            pointerEvents: disabled ? "none" : "auto",
+            opacity: disabled ? 0.6 : 1,
+          }}
+        >
+          <AttachActionMenu />
+        </div>
         <div className={styles.actionsWrapper}>
-          <ModelActionMenu />
+          <div
+            style={{
+              pointerEvents: disabled ? "none" : "auto",
+              opacity: disabled ? 0.6 : 1,
+            }}
+          >
+            <ModelActionMenu />
+          </div>
           <div className={styles.toolsContainer}>
-            <ToolsSelectPanel />
+            <div
+              style={{
+                pointerEvents: disabled ? "none" : "auto",
+                opacity: disabled ? 0.6 : 1,
+              }}
+            >
+              <ToolsSelectPanel />
+            </div>
             <IconButton
               variant="invisible"
               icon={PaperAirplaneIcon}

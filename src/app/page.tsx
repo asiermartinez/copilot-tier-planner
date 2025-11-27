@@ -23,6 +23,7 @@ export default function RootPage() {
     updateAccountTypeAndSku,
     thresholdsConfig,
     updateThresholdsConfig,
+    updatePremiumRequests,
   } = usePlanner();
   const [viewMode, setViewMode] = useState<ViewToggleMode>("messages");
   const [messageValue, setMessageValue] = useState("");
@@ -46,11 +47,15 @@ export default function RootPage() {
   };
 
   const handleSendMessage = () => {
-    if (!messageValue.trim() || isLoading) return;
+    if (!messageValue.trim() || isLoading || isBlocked) return;
 
     // Add to history
     setMessageHistory(prev => [messageValue, ...prev]);
     setCurrentHistoryIndex(-1);
+
+    // Increment premium requests usage
+    const currentUsage = userState.usage.premiumRequests.current;
+    updatePremiumRequests(currentUsage + 1);
 
     // Simulate sending
     setIsLoading(true);
@@ -65,10 +70,22 @@ export default function RootPage() {
     }, 1000);
   };
 
-  // Check if user is blocked (quota exceeded)
-  const isBlocked =
-    userState.subscription.skuId === "free" &&
-    userState.usage.premiumRequests.current >= 2000;
+  // Check if user is blocked (quota + overage budget exhausted)
+  const premiumUsage = userState.usage.premiumRequests;
+  const overageBudget = userState.overageBudget;
+
+  let isBlocked = false;
+
+  // Check if quota exceeded
+  if (
+    premiumUsage.limit !== null &&
+    premiumUsage.current >= premiumUsage.limit
+  ) {
+    // Check if overage budget is exhausted or not available
+    if (!overageBudget || overageBudget.isBudgetConsumed) {
+      isBlocked = true;
+    }
+  }
 
   return (
     <div className={styles.container}>
