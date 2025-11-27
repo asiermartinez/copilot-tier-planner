@@ -18,7 +18,7 @@ import type {
   CustomMessages,
   CustomThresholds,
 } from "@/types/messages/customMessages";
-import type { ThresholdsConfig } from "@/types/thresholds";
+import type { ThresholdsConfig, ThresholdConfig } from "@/types/thresholds";
 import { DEFAULT_THRESHOLDS } from "@/types/thresholds";
 import { getHighestPriorityAlert } from "@/utils/alerts/generateThresholdAlerts";
 
@@ -350,10 +350,10 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
     const lastCrossedThresholdMessage = alert?.message ?? undefined;
 
     const currentSkuId = userState.subscription.skuId;
-    const currentAccountType = userState.account.accountType;
+    // const currentAccountType = userState.account.accountType;
 
     // Helper to check if threshold applies to current plan
-    const appliesToCurrentPlan = (t: any) => {
+    const appliesToCurrentPlan = (t: ThresholdConfig) => {
       if (!t.planFilter || t.planFilter === "all") {
         return true;
       }
@@ -447,6 +447,7 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
           : null,
       }));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     thresholdsConfig,
     userState.subscription.skuId,
