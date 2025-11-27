@@ -171,6 +171,14 @@ function isOverageThresholdTriggered(
   }
 
   const percentageConsumed = overageBudget.percentageConsumed;
+
+  // Special case: 0% overage threshold triggers when user enters overage mode
+  // (i.e., when quota is exceeded and overage budget exists)
+  if (threshold.percentage === 0) {
+    const quotaPercentage = userState.usage.premiumRequests.percentageUsed ?? 0;
+    return quotaPercentage >= 100;
+  }
+
   return percentageConsumed >= threshold.percentage;
 }
 
@@ -235,18 +243,16 @@ function isThresholdTriggered(
     return false;
   }
 
-  // Special case: Don't show quota thresholds when user has exceeded quota and has overage budget
-  // They should only see overage budget thresholds at that point
+  // Special case: Don't show 100% quota thresholds when user has overage budget
+  // This allows 0% overage thresholds to take priority when entering overage mode
   if (
     threshold.appliesTo === "quota" &&
+    threshold.percentage === 100 &&
     userState.overageBudget !== null &&
     userState.usage.premiumRequests.percentageUsed !== null &&
-    userState.usage.premiumRequests.percentageUsed > 100
+    userState.usage.premiumRequests.percentageUsed >= 100
   ) {
-    // Allow the "quota-reached-with-budget" info message to show at exactly 100%
-    if (threshold.id !== "quota-reached-with-budget") {
-      return false;
-    }
+    return false;
   }
 
   switch (threshold.appliesTo) {
