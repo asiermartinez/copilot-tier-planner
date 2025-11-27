@@ -17,12 +17,16 @@ export default function ViewToggle({ value, onChange }: ViewToggleProps) {
   };
 
   return (
-    <SegmentedControl aria-label="View mode" onChange={handleChange}>
+    <SegmentedControl
+      aria-label="View mode"
+      onChange={handleChange}
+      size="small"
+    >
       <SegmentedControl.Button selected={value === "messages"}>
-        UI Messages
+        UI playground
       </SegmentedControl.Button>
       <SegmentedControl.Button selected={value === "payload"}>
-        State Payload
+        State
       </SegmentedControl.Button>
     </SegmentedControl>
   );

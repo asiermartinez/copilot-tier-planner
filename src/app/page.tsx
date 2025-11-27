@@ -9,6 +9,7 @@ import StatePayloadView from "@/components/StatePayloadView";
 import UIMessagesView from "@/components/UIMessagesView";
 import UsageControls from "@/components/UsageControls";
 import ThresholdConfigurator from "@/components/ThresholdConfigurator";
+import MessageInput from "@/components/MessageInput";
 import { usePlanner } from "@/contexts";
 import styles from "./page.module.css";
 
@@ -24,6 +25,10 @@ export default function RootPage() {
     updateThresholdsConfig,
   } = usePlanner();
   const [viewMode, setViewMode] = useState<ViewToggleMode>("messages");
+  const [messageValue, setMessageValue] = useState("");
+  const [messageHistory, setMessageHistory] = useState<string[]>([]);
+  const [currentHistoryIndex, setCurrentHistoryIndex] = useState(-1);
+  const [isLoading, setIsLoading] = useState(false);
 
   const accountType = userState.account.accountType;
   const skuId = userState.subscription.skuId;
@@ -39,6 +44,31 @@ export default function RootPage() {
       updateAccountTypeAndSku(newAccountType, "business");
     }
   };
+
+  const handleSendMessage = () => {
+    if (!messageValue.trim() || isLoading) return;
+
+    // Add to history
+    setMessageHistory(prev => [messageValue, ...prev]);
+    setCurrentHistoryIndex(-1);
+
+    // Simulate sending
+    setIsLoading(true);
+    console.log("Message sent:", messageValue);
+
+    // Clear input
+    setMessageValue("");
+
+    // Simulate response delay
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+  };
+
+  // Check if user is blocked (quota exceeded)
+  const isBlocked =
+    userState.subscription.skuId === "free" &&
+    userState.usage.premiumRequests.current >= 2000;
 
   return (
     <div className={styles.container}>
@@ -70,13 +100,38 @@ export default function RootPage() {
           </div>
         </div>
 
-        {/* Center Panel - UI Messages & State Payload */}
+        {/* Center Panel - UI Messages, Input & State Payload */}
         <div className={styles.centerPanel}>
           <div className={styles.panelContent}>
             <ViewToggle value={viewMode} onChange={setViewMode} />
             <div className={styles.viewContent}>
               {viewMode === "messages" ? (
-                <UIMessagesView userState={userState} />
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "var(--base-size-8)",
+                  }}
+                >
+                  {/* Banner Space - Shows alerts when present */}
+                  <div style={{ minHeight: "60px" }}>
+                    <UIMessagesView userState={userState} />
+                  </div>
+
+                  {/* Message Input - Always visible below banner */}
+                  <div style={{ flexShrink: 0 }}>
+                    <MessageInput
+                      value={messageValue}
+                      onValueChange={setMessageValue}
+                      onSendMessage={handleSendMessage}
+                      loading={isLoading}
+                      disabled={isBlocked}
+                      history={messageHistory}
+                      currentHistoryIndex={currentHistoryIndex}
+                      onHistoryIndexChange={setCurrentHistoryIndex}
+                    />
+                  </div>
+                </div>
               ) : (
                 <StatePayloadView userState={userState} />
               )}

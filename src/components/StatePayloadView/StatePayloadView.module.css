@@ -14,6 +14,7 @@
   border-radius: var(--borderRadius-medium);
   padding: var(--base-size-16);
   width: 100%;
+  height: 100%;
 }
 
 .copyButton {

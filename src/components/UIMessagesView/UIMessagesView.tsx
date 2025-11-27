@@ -38,14 +38,7 @@ export default function UIMessagesView({ userState }: UIMessagesViewProps) {
 
   return (
     <div className={styles.container}>
-      {!visibleAlert ? (
-        <div className={styles.emptyState}>
-          <p className={styles.emptyStateText}>
-            No alerts or messages at this time. Your usage is within normal
-            limits.
-          </p>
-        </div>
-      ) : (
+      {visibleAlert && (
         <AlertBanner
           severity={visibleAlert.severity}
           message={visibleAlert.message}
