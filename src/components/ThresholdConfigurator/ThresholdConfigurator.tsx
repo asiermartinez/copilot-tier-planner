@@ -343,11 +343,34 @@ export default function ThresholdConfigurator({
 
       {showThresholdDialog && (
         <Dialog
-          title="Threshold Configuration"
+          title="Threshold export/import"
           onClose={() => setShowThresholdDialog(false)}
+          footerButtons={
+            dialogMode === "import"
+              ? [
+                  {
+                    buttonType: "default",
+                    content: "Cancel",
+                    onClick: () => setShowThresholdDialog(false),
+                  },
+                  {
+                    buttonType: "primary",
+                    content: "Import",
+                    onClick: handleImportConfirm,
+                    disabled: !importJson.trim(),
+                  },
+                ]
+              : [
+                  {
+                    buttonType: "default",
+                    content: "Close",
+                    onClick: () => setShowThresholdDialog(false),
+                  },
+                ]
+          }
         >
-          <div style={{ padding: "16px" }}>
-            <div style={{ marginBottom: "16px" }}>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <div style={{ marginBottom: "var(--base-size-16)" }}>
               <SegmentedControl
                 aria-label="Threshold mode"
                 onChange={index =>
@@ -365,89 +388,59 @@ export default function ThresholdConfigurator({
             <div>
               {dialogMode === "export" ? (
                 <>
-                  <p
-                    style={{
-                      marginBottom: "12px",
-                      color: "var(--fgColor-muted)",
-                    }}
-                  >
-                    Copy this JSON configuration to save your thresholds:
-                  </p>
-                  <div style={{ position: "relative" }}>
-                    <IconButton
-                      aria-label={copied ? "Copied" : "Copy JSON"}
-                      icon={copied ? CheckIcon : CopyIcon}
-                      onClick={handleCopy}
-                      variant="invisible"
-                      style={{
-                        position: "absolute",
-                        top: "8px",
-                        right: "8px",
-                        zIndex: 1,
-                      }}
-                    />
-                    <textarea
-                      readOnly
-                      value={exportedJson}
-                      style={{
-                        width: "100%",
-                        height: "300px",
-                        fontFamily: "var(--fontStack-monospace)",
-                        fontSize: "12px",
-                        padding: "12px",
-                        border: "1px solid var(--borderColor-default)",
-                        borderRadius: "6px",
-                        backgroundColor: "var(--bgColor-muted)",
-                        resize: "none",
-                      }}
-                    />
-                  </div>
+                  <FormControl style={{ display: "block", width: "100%" }}>
+                    <FormControl.Label>Export configuration</FormControl.Label>
+                    <div style={{ position: "relative", width: "100%" }}>
+                      <IconButton
+                        aria-label={copied ? "Copied" : "Copy JSON"}
+                        icon={copied ? CheckIcon : CopyIcon}
+                        onClick={handleCopy}
+                        variant="invisible"
+                        style={{
+                          position: "absolute",
+                          top: "8px",
+                          right: "8px",
+                          zIndex: 1,
+                        }}
+                      />
+                      <textarea
+                        readOnly
+                        value={exportedJson}
+                        style={{
+                          width: "100%",
+                          height: "300px",
+                          fontFamily: "var(--fontStack-monospace)",
+                          fontSize: "12px",
+                          padding: "12px",
+                          border: "1px solid var(--borderColor-default)",
+                          borderRadius: "6px",
+                          backgroundColor: "var(--bgColor-muted)",
+                          resize: "none",
+                          boxSizing: "border-box",
+                          display: "block",
+                        }}
+                      />
+                    </div>
+                  </FormControl>
                 </>
               ) : (
                 <>
-                  <p
-                    style={{
-                      marginBottom: "12px",
-                      color: "var(--fgColor-muted)",
-                    }}
-                  >
-                    Paste your JSON configuration below:
-                  </p>
-                  <textarea
-                    value={importJson}
-                    onChange={e => setImportJson(e.target.value)}
-                    placeholder="Paste JSON here..."
-                    style={{
-                      width: "100%",
-                      height: "300px",
-                      fontFamily: "var(--fontStack-monospace)",
-                      fontSize: "12px",
-                      padding: "12px",
-                      border: "1px solid var(--borderColor-default)",
-                      borderRadius: "6px",
-                      backgroundColor: "var(--bgColor-default)",
-                      resize: "none",
-                    }}
-                  />
-                  <div
-                    style={{
-                      marginTop: "12px",
-                      display: "flex",
-                      justifyContent: "flex-end",
-                      gap: "8px",
-                    }}
-                  >
-                    <Button onClick={() => setShowThresholdDialog(false)}>
-                      Cancel
-                    </Button>
-                    <Button
-                      variant="primary"
-                      onClick={handleImportConfirm}
-                      disabled={!importJson.trim()}
-                    >
-                      Import
-                    </Button>
-                  </div>
+                  <FormControl style={{ display: "block", width: "100%" }}>
+                    <FormControl.Label>Import configuration</FormControl.Label>
+                    <Textarea
+                      value={importJson}
+                      onChange={e => setImportJson(e.target.value)}
+                      placeholder="Paste JSON here..."
+                      block
+                      resize="none"
+                      style={{
+                        fontFamily: "var(--fontStack-monospace)",
+                        fontSize: "12px",
+                        height: "300px",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </FormControl>
                 </>
               )}
             </div>
