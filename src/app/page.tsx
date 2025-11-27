@@ -106,13 +106,7 @@ export default function RootPage() {
             <ViewToggle value={viewMode} onChange={setViewMode} />
             <div className={styles.viewContent}>
               {viewMode === "messages" ? (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "var(--base-size-8)",
-                  }}
-                >
+                <div className={styles.messagesContainer}>
                   {/* Banner Space - Shows alerts when present */}
                   <div style={{ minHeight: "60px" }}>
                     <UIMessagesView userState={userState} />
