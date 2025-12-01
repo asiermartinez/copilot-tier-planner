@@ -166,16 +166,21 @@ export default function ThresholdConfigurator({
   // Store billing period days when checkbox is disabled to restore them when re-enabled
   const billingPeriodDaysRef = useRef<Map<string, number>>(new Map());
 
+  // Track if user is currently interacting with any threshold card
+  const userInteractingWithCard = useRef<string | null>(null);
+
   // Highlight the threshold card when active alert changes
   useEffect(() => {
     if (activeAlertId) {
       const cardElement = thresholdRefs.current.get(activeAlertId);
       if (cardElement) {
-        // Scroll into view if not visible
-        cardElement.scrollIntoView({
-          behavior: "smooth",
-          block: "nearest",
-        });
+        // Only scroll if user is not currently interacting with a card
+        if (!userInteractingWithCard.current) {
+          cardElement.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+          });
+        }
       }
     }
   }, [activeAlertId]);
@@ -578,8 +583,27 @@ export default function ThresholdConfigurator({
               }
             }}
             className={`${styles.thresholdCard} ${
-              activeAlertId === threshold.id ? styles.activeCard : ""
+              threshold.id === activeAlertId ? styles.activeCard : ""
             }`}
+            onFocus={() => {
+              userInteractingWithCard.current = threshold.id;
+            }}
+            onBlur={() => {
+              if (userInteractingWithCard.current === threshold.id) {
+                userInteractingWithCard.current = null;
+              }
+            }}
+            onMouseDown={() => {
+              userInteractingWithCard.current = threshold.id;
+            }}
+            onMouseUp={() => {
+              // Delay clearing to allow click events to complete
+              setTimeout(() => {
+                if (userInteractingWithCard.current === threshold.id) {
+                  userInteractingWithCard.current = null;
+                }
+              }, 100);
+            }}
           >
             <div className={styles.cardHeader}>
               <div className={styles.cardActions}>
@@ -795,7 +819,7 @@ export default function ThresholdConfigurator({
                   />
                   <FormControl.Label>
                     <span style={{ fontWeight: 600 }}>
-                      Days into billing period constraint
+                      Days into billing period (constraint)
                     </span>
                   </FormControl.Label>
                 </FormControl>
@@ -851,7 +875,7 @@ export default function ThresholdConfigurator({
                       </div>
                     </div>
                     <FormControl.Caption>
-                      Applies within first{" "}
+                      Threshold applies within first{" "}
                       {threshold.billingPeriod.maxDaysIntoPeriod}{" "}
                       {threshold.billingPeriod.maxDaysIntoPeriod === 1
                         ? "day"
