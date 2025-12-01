@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { MarkGithubIcon } from "@primer/octicons-react";
-import { Stack } from "@primer/react";
+import { Stack, Button } from "@primer/react";
 
 import AccountTypeSelector from "@/components/AccountTypeSelector";
 import SkuSelector from "@/components/SkuSelector";
@@ -25,6 +25,8 @@ export default function RootPage() {
     thresholdsConfig,
     updateThresholdsConfig,
     updatePremiumRequests,
+    dismissedAlerts,
+    clearDismissedAlerts,
   } = usePlanner();
   const [viewMode, setViewMode] = useState<ViewToggleMode>("messages");
   const [messageValue, setMessageValue] = useState("");
@@ -113,7 +115,24 @@ export default function RootPage() {
         {/* Center Panel - UI Messages, Input & State Payload */}
         <div className={styles.centerPanel}>
           <div className={styles.panelContent}>
-            <ViewToggle value={viewMode} onChange={setViewMode} />
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <ViewToggle value={viewMode} onChange={setViewMode} />
+              {dismissedAlerts.size > 0 && (
+                <Button
+                  variant="invisible"
+                  onClick={clearDismissedAlerts}
+                  size="small"
+                >
+                  Restore banner
+                </Button>
+              )}
+            </div>
             <div className={styles.viewContent}>
               {viewMode === "messages" ? (
                 <div className={styles.messagesContainer}>

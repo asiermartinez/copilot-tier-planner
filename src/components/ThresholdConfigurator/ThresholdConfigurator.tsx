@@ -14,11 +14,11 @@ import {
   CheckboxGroup,
   Checkbox,
   SegmentedControl,
+  ToggleSwitch,
 } from "@primer/react";
 import {
   TrashIcon,
   PlusIcon,
-  XIcon,
   SyncIcon,
   InfoIcon,
   TriangleDownIcon,
@@ -147,7 +147,7 @@ export default function ThresholdConfigurator({
   config,
   onChange,
 }: ThresholdConfiguratorProps) {
-  const { clearDismissedAlerts, userState, activeAlertId } = usePlanner();
+  const { userState, activeAlertId } = usePlanner();
   const [isVariablesDialogOpen, setIsVariablesDialogOpen] = useState(false);
   const [showThresholdDialog, setShowThresholdDialog] = useState(false);
   const [dialogMode, setDialogMode] = useState<"export" | "import">("export");
@@ -158,6 +158,9 @@ export default function ThresholdConfigurator({
 
   // Refs for each threshold card to enable highlighting
   const thresholdRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  // Store CTA labels when checkbox is disabled to restore them when re-enabled
+  const ctaLabelsRef = useRef<Map<string, string>>(new Map());
 
   // Highlight the threshold card when active alert changes
   useEffect(() => {
@@ -185,6 +188,23 @@ export default function ThresholdConfigurator({
 
   const handleRemoveThreshold = (id: string) => {
     const newThresholds = config.thresholds.filter(t => t.id !== id);
+    onChange({ thresholds: newThresholds });
+  };
+
+  const handleDuplicateThreshold = (id: string) => {
+    const threshold = config.thresholds.find(t => t.id === id);
+    if (!threshold) return;
+
+    // Create a copy with a new ID
+    const duplicatedThreshold: ThresholdConfig = {
+      ...threshold,
+      id: `threshold-${Date.now()}`,
+    };
+
+    // Add the duplicated threshold right after the original
+    const originalIndex = config.thresholds.findIndex(t => t.id === id);
+    const newThresholds = [...config.thresholds];
+    newThresholds.splice(originalIndex + 1, 0, duplicatedThreshold);
     onChange({ thresholds: newThresholds });
   };
 
@@ -312,13 +332,7 @@ export default function ThresholdConfigurator({
             onClick={handleExport}
             variant="invisible"
           />
-          <IconButton
-            aria-label="Clear dismissed alerts"
-            icon={XIcon}
-            size="small"
-            onClick={clearDismissedAlerts}
-            variant="invisible"
-          />
+
           <IconButton
             aria-label="Reset to defaults"
             icon={SyncIcon}
@@ -555,31 +569,45 @@ export default function ThresholdConfigurator({
             }`}
           >
             <div className={styles.cardHeader}>
-              <Text className={styles.cardTitle}>
-                {threshold.percentage}%{" "}
-                {
-                  COMBINED_OPTIONS.find(
-                    opt =>
-                      opt.value ===
-                      getCombinedValue(
-                        threshold.appliesTo,
-                        threshold.planFilter
-                      )
-                  )?.label
-                }
-              </Text>
               <div className={styles.cardActions}>
-                <FormControl>
-                  <Checkbox
-                    checked={threshold.enabled}
-                    onChange={e =>
-                      handleUpdateThreshold(threshold.id, {
-                        enabled: e.target.checked,
-                      })
-                    }
-                  />
-                  <FormControl.Label>Enabled</FormControl.Label>
-                </FormControl>
+                <ToggleSwitch
+                  size="small"
+                  checked={threshold.enabled}
+                  onClick={() =>
+                    handleUpdateThreshold(threshold.id, {
+                      enabled: !threshold.enabled,
+                    })
+                  }
+                  aria-labelledby={`threshold-title-${threshold.id}`}
+                  statusLabelPosition="end"
+                  buttonLabelOff=""
+                  buttonLabelOn=""
+                  className={styles.toggleSwitch}
+                />
+                <Text
+                  className={styles.cardTitle}
+                  id={`threshold-title-${threshold.id}`}
+                >
+                  {threshold.percentage}%{" "}
+                  {
+                    COMBINED_OPTIONS.find(
+                      opt =>
+                        opt.value ===
+                        getCombinedValue(
+                          threshold.appliesTo,
+                          threshold.planFilter
+                        )
+                    )?.label
+                  }
+                </Text>
+              </div>
+              <div style={{ display: "flex", gap: "var(--base-size-4)" }}>
+                <IconButton
+                  aria-label="Duplicate threshold"
+                  icon={CopyIcon}
+                  size="small"
+                  onClick={() => handleDuplicateThreshold(threshold.id)}
+                />
                 <IconButton
                   aria-label="Remove threshold"
                   icon={TrashIcon}
@@ -765,13 +793,28 @@ export default function ThresholdConfigurator({
                 <FormControl>
                   <Checkbox
                     checked={!!threshold.cta}
-                    onChange={e =>
-                      handleUpdateThreshold(threshold.id, {
-                        cta: e.target.checked
-                          ? { label: "Take action" }
-                          : undefined,
-                      })
-                    }
+                    onChange={e => {
+                      if (e.target.checked) {
+                        // Re-enabling: use stored label or default
+                        const storedLabel = ctaLabelsRef.current.get(
+                          threshold.id
+                        );
+                        handleUpdateThreshold(threshold.id, {
+                          cta: { label: storedLabel || "Take action" },
+                        });
+                      } else {
+                        // Disabling: store current label before removing
+                        if (threshold.cta?.label) {
+                          ctaLabelsRef.current.set(
+                            threshold.id,
+                            threshold.cta.label
+                          );
+                        }
+                        handleUpdateThreshold(threshold.id, {
+                          cta: undefined,
+                        });
+                      }
+                    }}
                   />
                   <FormControl.Label>
                     Add call-to-action button
