@@ -12,6 +12,7 @@ import {
 } from "react";
 import type { UserState, SimpleUserState } from "@/types/userState";
 import type { SkuId } from "@/types/sku";
+import { getSkuById } from "@/data/skus";
 import { generateUserState } from "@/utils/mockStateGenerator";
 import { DEFAULT_ALERT_THRESHOLDS } from "@/data/alertThresholds";
 import type {
@@ -147,6 +148,11 @@ const getDefaultSimpleState = (): SimpleUserState => {
 function generateStateFromSimple(simple: SimpleUserState): UserState {
   const accountType = simple.accountType;
 
+  // Check if the SKU allows overage budgets
+  const sku = getSkuById(simple.skuId);
+  const allowsOverageBudget =
+    sku.limits.premiumRequestsOveragePolicy?.allowBudgetCap ?? false;
+
   // Use fixed timestamp if available, otherwise create new one
   const now = simple.currentTimestamp
     ? new Date(simple.currentTimestamp)
@@ -206,7 +212,9 @@ function generateStateFromSimple(simple: SimpleUserState): UserState {
       codeCompletions: simple.codeCompletionsUsed ?? 0,
     },
     overageBudget:
-      simple.overageBudgetUsd !== null && simple.overageBudgetUsd !== undefined
+      allowsOverageBudget &&
+      simple.overageBudgetUsd !== null &&
+      simple.overageBudgetUsd !== undefined
         ? {
             maxBudgetUsd: simple.overageBudgetUsd,
             alertThresholds: DEFAULT_ALERT_THRESHOLDS,
@@ -467,6 +475,16 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
     (skuId: SkuId) => {
       const simpleState = toSimpleState(userState);
       simpleState.skuId = skuId;
+
+      // Clear overage budget when switching to a SKU that doesn't allow budget caps
+      const sku = getSkuById(skuId);
+      const allowsOverageBudget =
+        sku.limits.premiumRequestsOveragePolicy?.allowBudgetCap ?? false;
+
+      if (!allowsOverageBudget) {
+        simpleState.overageBudgetUsd = null;
+      }
+
       setUserState(generateStateFromSimple(simpleState));
     },
     [userState]

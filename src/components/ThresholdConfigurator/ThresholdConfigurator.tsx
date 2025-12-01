@@ -34,6 +34,7 @@ import type {
   ThresholdPlanFilter,
 } from "@/types/thresholds";
 import { DEFAULT_THRESHOLDS } from "@/types/thresholds";
+import { SKU_MAP } from "@/data/skus";
 import { usePlanner } from "@/contexts";
 import { clearStaticBannerStates } from "@/utils/alerts/generateThresholdAlerts";
 import styles from "./ThresholdConfigurator.module.css";
@@ -56,8 +57,8 @@ function suggestMetric(
     return "quota";
   }
 
-  // If using overages (quota exceeded), suggest overage metric
-  if (quotaPercentage >= 100) {
+  // If actively using overages (overage percentage > 0 or quota at/over 100%), suggest overage metric
+  if (overagePercentage > 0 || quotaPercentage >= 100) {
     return "overage";
   }
 
@@ -223,11 +224,16 @@ export default function ThresholdConfigurator({
     const overagePercentage = userState.overageBudget?.percentageConsumed ?? 0;
     const hasOverageBudget = userState.overageBudget !== null;
 
+    // Check if current SKU allows overage budgets
+    const currentSku = SKU_MAP[userState.subscription.skuId];
+    const skuAllowsOverageBudget =
+      currentSku.limits.premiumRequestsOveragePolicy?.allowBudgetCap ?? false;
+
     // Determine which metric is active
     const activeMetric = suggestMetric(
       quotaPercentage,
       overagePercentage,
-      hasOverageBudget
+      hasOverageBudget && skuAllowsOverageBudget
     );
 
     // Use the current percentage, rounded to nearest 5

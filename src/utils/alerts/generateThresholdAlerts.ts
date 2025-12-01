@@ -57,27 +57,42 @@ export function clearStaticBannerStates(): void {
 /**
  * Calculate priority based on metric type and percentage
  * Severity is just a visual choice and doesn't affect priority
+ *
+ * Priority order:
+ * 1. Metric type (overage > both > quota) - most important, overage is spending real money
+ * 2. Consumption percentage - higher percentage wins within same metric type
+ * 3. Has billing period constraint - more specific
+ * 4. Lower days into period - even more specific within constrained thresholds
  */
 function calculatePriority(
   metricType: ThresholdMetric,
   percentage: number,
   maxDaysIntoPeriod: number | null
 ): number {
-  // Overage is more urgent than quota (you're spending real money)
-  const basePriority = {
-    overage: 1000, // Most urgent - spending money beyond quota
-    both: 500, // Medium priority - could be either
+  // Priority structure using powers of 10 to ensure proper ordering:
+  // - Metric type: multiply by 100,000,000 (most important - overage is spending money)
+  // - Percentage: multiply by 1,000,000 (second most important)
+  // - Has billing constraint: add 100,000 if present (third priority)
+  // - Days specificity: subtract days if constraint present (final tiebreaker)
+
+  // 1. Metric type is the primary factor (overage is most urgent - spending real money)
+  const metricTypePriority = {
+    overage: 100000000, // Most urgent - spending money beyond quota
+    both: 50000000, // Medium priority - could be either quota or overage
     quota: 0, // Base priority - just usage limits
   }[metricType];
 
-  // Billing period constraints make thresholds more specific
-  // Lower maxDaysIntoPeriod = more specific (narrower time window) = higher priority
-  // Subtract days to invert priority (fewer days = higher priority)
-  const billingPeriodBonus =
-    maxDaysIntoPeriod !== null ? 10000 - maxDaysIntoPeriod : 0;
+  // 2. Consumption percentage is the second factor (higher percentage = more urgent)
+  const percentagePriority = percentage * 1000000;
 
-  // Add percentage - higher percentage = higher priority
-  return billingPeriodBonus + basePriority + percentage;
+  // 3. Having a billing period constraint makes threshold more specific
+  // 4. Lower maxDaysIntoPeriod = narrower time window = higher priority
+  const billingPeriodPriority =
+    maxDaysIntoPeriod !== null
+      ? 100000 - maxDaysIntoPeriod // Add bonus, subtract days for specificity
+      : 0;
+
+  return metricTypePriority + percentagePriority + billingPeriodPriority;
 }
 
 /**
