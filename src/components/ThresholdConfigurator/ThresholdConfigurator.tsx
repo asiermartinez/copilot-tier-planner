@@ -631,7 +631,7 @@ export default function ThresholdConfigurator({
                           display: "inline-block",
                         }}
                       >
-                        Plans:
+                        Applies to:
                       </span>{" "}
                       {
                         COMBINED_OPTIONS.find(
@@ -681,7 +681,7 @@ export default function ThresholdConfigurator({
                           display: "inline-block",
                         }}
                       >
-                        Severity:
+                        Banner:
                       </span>{" "}
                       {
                         SEVERITY_OPTIONS.find(
@@ -711,7 +711,7 @@ export default function ThresholdConfigurator({
               </div>
 
               <FormControl className={styles.formControl}>
-                <FormControl.Label>Percentage</FormControl.Label>
+                <FormControl.Label>Consumption</FormControl.Label>
                 <div className={styles.sliderInputContainer}>
                   <input
                     type="range"

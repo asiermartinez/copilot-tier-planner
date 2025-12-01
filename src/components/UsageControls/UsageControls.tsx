@@ -85,8 +85,8 @@ export default function UsageControls() {
   // Handle overage toggle
   const handleOverageToggle = () => {
     if (!overagesEnabled) {
-      // Enable overages with default budget of $100
-      updateOverageBudget(100);
+      // Enable overages with default budget of $10
+      updateOverageBudget(10);
     } else {
       // Disable overages and cap premium requests if needed (in one state update)
       const simpleState = getSimpleState();
@@ -147,6 +147,49 @@ export default function UsageControls() {
               : "Unlimited quota"}
           </FormControl.Caption>
         </FormControl>
+
+        {/* Overage Budget Configuration */}
+        {supportsOverages && (
+          <>
+            <FormControl className={styles.formControl}>
+              <FormControl.Label visuallyHidden>
+                Enable overage budget
+              </FormControl.Label>
+              <div className={styles.toggleContainer}>
+                <span className={styles.toggleLabel} id="overage-budget-label">
+                  Enable overage budget
+                </span>
+                <ToggleSwitch
+                  size="small"
+                  checked={overagesEnabled}
+                  onClick={handleOverageToggle}
+                  aria-labelledby="overage-budget-label"
+                />
+              </div>
+            </FormControl>
+            {overagesEnabled && (
+              <FormControl className={styles.formControl}>
+                <FormControl.Label>Budget in USD</FormControl.Label>
+                <div className={styles.numberInput}>
+                  <TextInput
+                    type="number"
+                    min={1}
+                    step="0.01"
+                    value={overageBudget?.maxBudgetUsd ?? 10}
+                    onChange={e => handleBudgetChange(e.target.value)}
+                    aria-label="Maximum overage budget in USD"
+                    leadingVisual="$"
+                  />
+                </div>
+                <FormControl.Caption>
+                  Maximum amount to spend on premium request overages per month
+                  {additionalRequests > 0 &&
+                    ` (up to ${additionalRequests.toLocaleString()} additional requests)`}
+                </FormControl.Caption>
+              </FormControl>
+            )}
+          </>
+        )}
 
         {/* Chat Messages Slider */}
         <FormControl className={styles.formControl}>
@@ -225,49 +268,6 @@ export default function UsageControls() {
               : "Unlimited quota"}
           </FormControl.Caption>
         </FormControl>
-
-        {/* Overage Budget Configuration */}
-        {supportsOverages && (
-          <>
-            <FormControl className={styles.formControl}>
-              <FormControl.Label visuallyHidden>
-                Enable overage budget
-              </FormControl.Label>
-              <div className={styles.toggleContainer}>
-                <span className={styles.toggleLabel} id="overage-budget-label">
-                  Enable overage budget
-                </span>
-                <ToggleSwitch
-                  size="small"
-                  checked={overagesEnabled}
-                  onClick={handleOverageToggle}
-                  aria-labelledby="overage-budget-label"
-                />
-              </div>
-            </FormControl>
-            {overagesEnabled && (
-              <FormControl className={styles.formControl}>
-                <FormControl.Label>Budget in USD</FormControl.Label>
-                <div className={styles.numberInput}>
-                  <TextInput
-                    type="number"
-                    min={1}
-                    step="0.01"
-                    value={overageBudget?.maxBudgetUsd ?? 100}
-                    onChange={e => handleBudgetChange(e.target.value)}
-                    aria-label="Maximum overage budget in USD"
-                    leadingVisual="$"
-                  />
-                </div>
-                <FormControl.Caption>
-                  Maximum amount to spend on premium request overages per month
-                  {additionalRequests > 0 &&
-                    ` (up to ${additionalRequests.toLocaleString()} additional requests)`}
-                </FormControl.Caption>
-              </FormControl>
-            )}
-          </>
-        )}
 
         {/* Billing Period Controls */}
         <div className={styles.billingPeriodSection}>
