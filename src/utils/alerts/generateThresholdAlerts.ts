@@ -295,7 +295,20 @@ export function generateThresholdAlerts(
     if (isTriggered) {
       // For static banners, freeze the context when first triggered
       // OR when static is newly enabled (no frozen state exists yet)
-      if (threshold.static && !staticBannerStates.has(threshold.id)) {
+      // OR when the threshold percentage has changed
+      const existingFrozenState = staticBannerStates.get(threshold.id);
+      const shouldUpdateFrozenState =
+        threshold.static &&
+        (!existingFrozenState ||
+          (threshold.appliesTo === "quota" &&
+            existingFrozenState.percentage !== threshold.percentage) ||
+          (threshold.appliesTo === "overage" &&
+            existingFrozenState.budgetPercentage !== threshold.percentage) ||
+          (threshold.appliesTo === "both" &&
+            (existingFrozenState.percentage !== threshold.percentage ||
+              existingFrozenState.budgetPercentage !== threshold.percentage)));
+
+      if (shouldUpdateFrozenState) {
         // Create a frozen context at the threshold crossing point
         const frozenContext = { ...context };
 
