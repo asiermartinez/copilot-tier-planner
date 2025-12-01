@@ -22,7 +22,6 @@ export default function UsageControls() {
   const {
     userState,
     updatePremiumRequests,
-    updateChatMessages,
     updateCodeCompletions,
     updateOverageBudget,
     updateDaysIntoPeriod,
@@ -76,8 +75,6 @@ export default function UsageControls() {
   const premiumRequestsMax = overagesEnabled
     ? planPremiumRequestsLimit + additionalRequests // Plan quota + additional requests from budget
     : planPremiumRequestsLimit;
-
-  const chatMessagesMax = currentSku.limits.chatMessagesPerMonth ?? 10000;
 
   const codeCompletionsMax =
     currentSku.limits.codeCompletionsPerMonth ?? 100000;
@@ -143,7 +140,7 @@ export default function UsageControls() {
           </div>
           <FormControl.Caption>
             {currentSku.limits.premiumRequestsPerMonth
-              ? `Plan quota: ${currentSku.limits.premiumRequestsPerMonth.toLocaleString()} per month${overagesEnabled ? " (overages enabled)" : ""}`
+              ? `Quota: ${currentSku.limits.premiumRequestsPerMonth.toLocaleString()} per month${overagesEnabled ? " (overages enabled)" : ""}`
               : "Unlimited quota"}
           </FormControl.Caption>
         </FormControl>
@@ -192,7 +189,7 @@ export default function UsageControls() {
         )}
 
         {/* Chat Messages Slider */}
-        <FormControl className={styles.formControl}>
+        {/* <FormControl className={styles.formControl}>
           <FormControl.Label>Chat messages</FormControl.Label>
           <div className={styles.sliderInputContainer}>
             <input
@@ -228,7 +225,7 @@ export default function UsageControls() {
               ? `Quota: ${currentSku.limits.chatMessagesPerMonth.toLocaleString()} per month`
               : "Unlimited quota"}
           </FormControl.Caption>
-        </FormControl>
+        </FormControl> */}
 
         {/* Code Completions Slider */}
         <FormControl className={styles.formControl}>

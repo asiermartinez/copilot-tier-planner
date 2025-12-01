@@ -13,8 +13,19 @@ interface StatePayloadViewProps {
 export default function StatePayloadView({ userState }: StatePayloadViewProps) {
   const [copied, setCopied] = useState(false);
 
+  // Filter out chatMessages from the displayed state
+  const filteredState = {
+    ...userState,
+    usage: {
+      ...userState.usage,
+      // Exclude chatMessages from display
+      premiumRequests: userState.usage.premiumRequests,
+      codeCompletions: userState.usage.codeCompletions,
+    },
+  };
+
   const handleCopy = async () => {
-    const json = JSON.stringify(userState, null, 2);
+    const json = JSON.stringify(filteredState, null, 2);
     try {
       await navigator.clipboard.writeText(json);
       setCopied(true);
@@ -24,7 +35,7 @@ export default function StatePayloadView({ userState }: StatePayloadViewProps) {
     }
   };
 
-  const formattedJson = JSON.stringify(userState, null, 2);
+  const formattedJson = JSON.stringify(filteredState, null, 2);
 
   return (
     <div className={styles.container}>
