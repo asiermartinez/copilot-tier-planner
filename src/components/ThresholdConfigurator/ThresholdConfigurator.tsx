@@ -163,6 +163,9 @@ export default function ThresholdConfigurator({
   // Store CTA labels when checkbox is disabled to restore them when re-enabled
   const ctaLabelsRef = useRef<Map<string, string>>(new Map());
 
+  // Store billing period days when checkbox is disabled to restore them when re-enabled
+  const billingPeriodDaysRef = useRef<Map<string, number>>(new Map());
+
   // Highlight the threshold card when active alert changes
   useEffect(() => {
     if (activeAlertId) {
@@ -240,6 +243,14 @@ export default function ThresholdConfigurator({
         : "You've used {percentage}% of your quota";
 
     const newId = `threshold-${Date.now()}`;
+
+    // Store current billing period days for this new threshold
+    // so it's available as default when enabling billing period constraint
+    const daysIntoPeriod =
+      userState.billingPeriod.daysInPeriod -
+      userState.billingPeriod.daysRemaining;
+    billingPeriodDaysRef.current.set(newId, daysIntoPeriod);
+
     const newThreshold: ThresholdConfig = {
       id: newId,
       percentage: suggestedPercentage,
@@ -608,13 +619,14 @@ export default function ThresholdConfigurator({
                   aria-label="Duplicate threshold"
                   icon={CopyIcon}
                   size="small"
+                  variant="invisible"
                   onClick={() => handleDuplicateThreshold(threshold.id)}
                 />
                 <IconButton
                   aria-label="Delete threshold"
                   icon={TrashIcon}
                   size="small"
-                  variant="danger"
+                  variant="invisible"
                   onClick={() => handleRemoveThreshold(threshold.id)}
                 />
               </div>
@@ -746,6 +758,109 @@ export default function ThresholdConfigurator({
                 </div>
               </FormControl>
 
+              <CheckboxGroup>
+                <CheckboxGroup.Label visuallyHidden>
+                  Billing period constraint
+                </CheckboxGroup.Label>
+                <FormControl>
+                  <Checkbox
+                    checked={!!threshold.billingPeriod}
+                    onChange={e => {
+                      if (e.target.checked) {
+                        // Re-enabling: use stored days or default to 0
+                        const storedDays = billingPeriodDaysRef.current.get(
+                          threshold.id
+                        );
+                        handleUpdateThreshold(threshold.id, {
+                          billingPeriod: {
+                            maxDaysIntoPeriod: storedDays ?? 0,
+                          },
+                        });
+                      } else {
+                        // Disabling: store current days before removing
+                        if (
+                          threshold.billingPeriod?.maxDaysIntoPeriod !==
+                          undefined
+                        ) {
+                          billingPeriodDaysRef.current.set(
+                            threshold.id,
+                            threshold.billingPeriod.maxDaysIntoPeriod
+                          );
+                        }
+                        handleUpdateThreshold(threshold.id, {
+                          billingPeriod: undefined,
+                        });
+                      }
+                    }}
+                  />
+                  <FormControl.Label>
+                    <span style={{ fontWeight: 600 }}>
+                      Days into billing period constraint
+                    </span>
+                  </FormControl.Label>
+                </FormControl>
+              </CheckboxGroup>
+
+              <div className={styles.ctaSection}>
+                {threshold.billingPeriod && (
+                  <FormControl className={styles.formControl}>
+                    <FormControl.Label visuallyHidden>
+                      Days into billing period
+                    </FormControl.Label>
+                    <div className={styles.sliderInputContainer}>
+                      <input
+                        type="range"
+                        min="0"
+                        max={userState.billingPeriod.daysInPeriod}
+                        value={threshold.billingPeriod.maxDaysIntoPeriod}
+                        onChange={e =>
+                          handleUpdateThreshold(threshold.id, {
+                            billingPeriod: {
+                              maxDaysIntoPeriod: Number(e.target.value),
+                            },
+                          })
+                        }
+                        className={styles.slider}
+                        aria-label="Days into billing period slider"
+                      />
+                      <div className={styles.numberInput}>
+                        <TextInput
+                          type="number"
+                          min={0}
+                          max={userState.billingPeriod.daysInPeriod}
+                          value={threshold.billingPeriod.maxDaysIntoPeriod}
+                          onChange={e => {
+                            const value = Number(e.target.value);
+                            if (!isNaN(value)) {
+                              handleUpdateThreshold(threshold.id, {
+                                billingPeriod: {
+                                  maxDaysIntoPeriod: Math.max(
+                                    0,
+                                    Math.min(
+                                      userState.billingPeriod.daysInPeriod,
+                                      value
+                                    )
+                                  ),
+                                },
+                              });
+                            }
+                          }}
+                          aria-label="Days into billing period value"
+                          size="small"
+                        />
+                      </div>
+                    </div>
+                    <FormControl.Caption>
+                      Applies within first{" "}
+                      {threshold.billingPeriod.maxDaysIntoPeriod}{" "}
+                      {threshold.billingPeriod.maxDaysIntoPeriod === 1
+                        ? "day"
+                        : "days"}
+                    </FormControl.Caption>
+                  </FormControl>
+                )}
+              </div>
+
               <FormControl className={styles.messageControl}>
                 <FormControl.Label>Message</FormControl.Label>
                 <Textarea
@@ -755,7 +870,7 @@ export default function ThresholdConfigurator({
                       message: e.target.value,
                     })
                   }
-                  rows={3}
+                  rows={4}
                   block
                   placeholder="Enter message template with {variables}"
                   resize="vertical"
@@ -818,9 +933,7 @@ export default function ThresholdConfigurator({
                       }
                     }}
                   />
-                  <FormControl.Label>
-                    Add call-to-action button
-                  </FormControl.Label>
+                  <FormControl.Label>Call-to-action button</FormControl.Label>
                 </FormControl>
               </CheckboxGroup>
 

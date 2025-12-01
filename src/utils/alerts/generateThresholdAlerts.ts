@@ -60,7 +60,8 @@ export function clearStaticBannerStates(): void {
  */
 function calculatePriority(
   metricType: ThresholdMetric,
-  percentage: number
+  percentage: number,
+  maxDaysIntoPeriod: number | null
 ): number {
   // Overage is more urgent than quota (you're spending real money)
   const basePriority = {
@@ -69,8 +70,14 @@ function calculatePriority(
     quota: 0, // Base priority - just usage limits
   }[metricType];
 
+  // Billing period constraints make thresholds more specific
+  // Lower maxDaysIntoPeriod = more specific (narrower time window) = higher priority
+  // Subtract days to invert priority (fewer days = higher priority)
+  const billingPeriodBonus =
+    maxDaysIntoPeriod !== null ? 10000 - maxDaysIntoPeriod : 0;
+
   // Add percentage - higher percentage = higher priority
-  return basePriority + percentage;
+  return billingPeriodBonus + basePriority + percentage;
 }
 
 /**
@@ -227,6 +234,16 @@ function isThresholdTriggered(
     }
   }
 
+  // Check billing period constraint if configured
+  if (threshold.billingPeriod) {
+    const daysIntoPeriod =
+      userState.billingPeriod.daysInPeriod -
+      userState.billingPeriod.daysRemaining;
+    if (daysIntoPeriod > threshold.billingPeriod.maxDaysIntoPeriod) {
+      return false;
+    }
+  }
+
   // If threshold applies to overage, automatically filter to overage-capable plans
   if (
     (threshold.appliesTo === "overage" || threshold.appliesTo === "both") &&
@@ -371,12 +388,16 @@ export function generateThresholdAlerts(
         : undefined;
 
       // Calculate priority based on threshold's configured percentage
-      // This ensures higher thresholds always have higher priority
+      // Billing period constraints make thresholds more specific and take priority
       alerts.push({
         id: threshold.id,
         severity: threshold.severity,
         message: processedMessage,
-        priority: calculatePriority(threshold.appliesTo, threshold.percentage),
+        priority: calculatePriority(
+          threshold.appliesTo,
+          threshold.percentage,
+          threshold.billingPeriod?.maxDaysIntoPeriod ?? null
+        ),
         triggeredBy: threshold,
         dismissable: threshold.dismissable,
         staticContext: threshold.static ? messageContext : undefined,

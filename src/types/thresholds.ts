@@ -55,6 +55,11 @@ export interface ThresholdConfig {
     /** Button text */
     label: string;
   };
+  /** Optional billing period constraint configuration */
+  billingPeriod?: {
+    /** Maximum days into billing period for this threshold to apply */
+    maxDaysIntoPeriod: number;
+  };
 }
 
 /**

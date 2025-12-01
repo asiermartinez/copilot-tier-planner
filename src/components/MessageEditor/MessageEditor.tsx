@@ -5,7 +5,6 @@ import MessageField from "@/components/MessageField";
 import type { CustomMessages } from "@/types/messages/customMessages";
 import { getDefaultMessages } from "@/utils/messages/defaultMessages";
 import { usePlanner } from "@/contexts";
-import { getThresholdIdForAlert } from "@/utils/alertFieldMapping";
 import styles from "./MessageEditor.module.css";
 
 interface MessageEditorProps {
