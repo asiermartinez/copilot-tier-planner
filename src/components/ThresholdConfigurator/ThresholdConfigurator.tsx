@@ -35,6 +35,7 @@ import type {
 } from "@/types/thresholds";
 import { DEFAULT_THRESHOLDS } from "@/types/thresholds";
 import { usePlanner } from "@/contexts";
+import { clearStaticBannerStates } from "@/utils/alerts/generateThresholdAlerts";
 import styles from "./ThresholdConfigurator.module.css";
 
 interface ThresholdConfiguratorProps {
@@ -253,6 +254,7 @@ export default function ThresholdConfigurator({
   };
 
   const handleResetToDefaults = () => {
+    clearStaticBannerStates();
     onChange({ thresholds: [...DEFAULT_THRESHOLDS] });
   };
 
@@ -609,7 +611,7 @@ export default function ThresholdConfigurator({
                   onClick={() => handleDuplicateThreshold(threshold.id)}
                 />
                 <IconButton
-                  aria-label="Remove threshold"
+                  aria-label="Delete threshold"
                   icon={TrashIcon}
                   size="small"
                   variant="danger"

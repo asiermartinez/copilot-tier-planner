@@ -47,6 +47,14 @@ export interface ThresholdAlert {
 const staticBannerStates = new Map<string, ThresholdTemplateContext>();
 
 /**
+ * Clear all static banner states
+ * Should be called when user dismisses alerts or resets thresholds
+ */
+export function clearStaticBannerStates(): void {
+  staticBannerStates.clear();
+}
+
+/**
  * Calculate priority based on metric type and percentage
  * Severity is just a visual choice and doesn't affect priority
  */
@@ -286,11 +294,50 @@ export function generateThresholdAlerts(
 
     if (isTriggered) {
       // For static banners, freeze the context when first triggered
+      // OR when static is newly enabled (no frozen state exists yet)
       if (threshold.static && !staticBannerStates.has(threshold.id)) {
-        staticBannerStates.set(threshold.id, { ...context });
+        // Create a frozen context at the threshold crossing point
+        const frozenContext = { ...context };
+
+        // Override percentage-related values to reflect the threshold point
+        if (threshold.appliesTo === "quota" || threshold.appliesTo === "both") {
+          frozenContext.percentage = threshold.percentage;
+          // Recalculate derived values based on threshold percentage
+          const limit = context.limit;
+          if (limit > 0) {
+            const thresholdCurrent = Math.round(
+              (threshold.percentage / 100) * limit
+            );
+            frozenContext.current = thresholdCurrent;
+            frozenContext.remaining = Math.max(0, limit - thresholdCurrent);
+          }
+        }
+
+        if (
+          threshold.appliesTo === "overage" ||
+          threshold.appliesTo === "both"
+        ) {
+          frozenContext.budgetPercentage = threshold.percentage;
+          // Recalculate derived budget values based on threshold percentage
+          const budget = context.budget;
+          if (budget > 0) {
+            const thresholdBudgetUsed = (threshold.percentage / 100) * budget;
+            frozenContext.budgetUsed =
+              Math.round(thresholdBudgetUsed * 100) / 100;
+            frozenContext.budgetRemaining =
+              Math.round((budget - thresholdBudgetUsed) * 100) / 100;
+          }
+        }
+
+        staticBannerStates.set(threshold.id, frozenContext);
       }
 
-      // Use static context if available, otherwise use current context
+      // Clear frozen state if static was disabled
+      if (!threshold.static && staticBannerStates.has(threshold.id)) {
+        staticBannerStates.delete(threshold.id);
+      }
+
+      // Use static context if threshold is static and has frozen state
       const messageContext =
         threshold.static && staticBannerStates.has(threshold.id)
           ? staticBannerStates.get(threshold.id)!
@@ -322,12 +369,10 @@ export function generateThresholdAlerts(
         staticContext: threshold.static ? messageContext : undefined,
         cta: processedCta,
       });
-    } else {
-      // Clear static state when threshold is no longer triggered
-      if (staticBannerStates.has(threshold.id)) {
-        staticBannerStates.delete(threshold.id);
-      }
     }
+    // Note: We don't clear static states when threshold becomes untriggered
+    // to prevent losing frozen context during rapid state changes (e.g., fast slider movement)
+    // Static states are cleared explicitly via clearStaticBannerStates()
   }
 
   // Sort by priority (highest first)

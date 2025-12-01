@@ -20,7 +20,10 @@ import type {
 } from "@/types/messages/customMessages";
 import type { ThresholdsConfig, ThresholdConfig } from "@/types/thresholds";
 import { DEFAULT_THRESHOLDS } from "@/types/thresholds";
-import { getHighestPriorityAlert } from "@/utils/alerts/generateThresholdAlerts";
+import {
+  getHighestPriorityAlert,
+  clearStaticBannerStates,
+} from "@/utils/alerts/generateThresholdAlerts";
 
 /**
  * Set of dismissed alert IDs
@@ -295,6 +298,7 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
 
   const clearDismissedAlerts = useCallback(() => {
     setDismissedAlerts(new Set());
+    clearStaticBannerStates();
   }, []);
 
   // Initialize state from URL or default
