@@ -650,31 +650,23 @@ export default function ThresholdConfigurator({
             </div>
 
             <div className={styles.cardContent}>
-              <div className={styles.row}>
-                <ActionMenu>
-                  <ActionMenu.Anchor>
-                    <Button trailingAction={TriangleDownIcon}>
-                      <span
-                        style={{
-                          color: "var(--fgColor-muted)",
-                          display: "inline-block",
-                        }}
-                      >
-                        Plans:
-                      </span>{" "}
-                      {threshold.plans.length === PLAN_OPTIONS.length
-                        ? "All"
-                        : threshold.plans
-                            .map(
-                              p =>
-                                PLAN_OPTIONS.find(opt => opt.value === p)
-                                  ?.label || p
-                            )
-                            .join(", ")}
-                    </Button>
-                  </ActionMenu.Anchor>
-                  <ActionMenu.Overlay align="end">
-                    <ActionList selectionVariant="multiple">
+              <ActionMenu>
+                <ActionMenu.Anchor>
+                  <Button trailingAction={TriangleDownIcon}>
+                    <span
+                      style={{
+                        color: "var(--fgColor-muted)",
+                        display: "inline-block",
+                      }}
+                    >
+                      Threshold:
+                    </span>{" "}
+                    {formatThresholdScope(threshold.plans, threshold.areas)}
+                  </Button>
+                </ActionMenu.Anchor>
+                <ActionMenu.Overlay align="end">
+                  <ActionList>
+                    <ActionList.Group title="Plans" selectionVariant="multiple">
                       {PLAN_OPTIONS.map(option => (
                         <ActionList.Item
                           key={option.value}
@@ -718,32 +710,12 @@ export default function ThresholdConfigurator({
                           {option.label}
                         </ActionList.Item>
                       ))}
-                    </ActionList>
-                  </ActionMenu.Overlay>
-                </ActionMenu>
-
-                <ActionMenu>
-                  <ActionMenu.Anchor>
-                    <Button trailingAction={TriangleDownIcon}>
-                      <span
-                        style={{
-                          color: "var(--fgColor-muted)",
-                          display: "inline-block",
-                        }}
-                      >
-                        Consumption:
-                      </span>{" "}
-                      {threshold.areas
-                        .map(
-                          a =>
-                            AREA_OPTIONS.find(opt => opt.value === a)?.label ||
-                            a
-                        )
-                        .join(", ")}
-                    </Button>
-                  </ActionMenu.Anchor>
-                  <ActionMenu.Overlay align="end">
-                    <ActionList selectionVariant="multiple">
+                    </ActionList.Group>
+                    <ActionList.Divider />
+                    <ActionList.Group
+                      title="Consumption range"
+                      selectionVariant="multiple"
+                    >
                       {AREA_OPTIONS.map(option => {
                         const availableAreas = getAvailableAreas(
                           threshold.plans
@@ -786,10 +758,10 @@ export default function ThresholdConfigurator({
                           </ActionList.Item>
                         );
                       })}
-                    </ActionList>
-                  </ActionMenu.Overlay>
-                </ActionMenu>
-              </div>
+                    </ActionList.Group>
+                  </ActionList>
+                </ActionMenu.Overlay>
+              </ActionMenu>
 
               <FormControl className={styles.formControl}>
                 <FormControl.Label>Consumption</FormControl.Label>
