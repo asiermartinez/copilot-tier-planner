@@ -169,6 +169,84 @@ export const PRO_SKU: Sku = {
 };
 
 /**
+ * GitHub Copilot Pro (Trial)
+ *
+ * Free 30-day trial of GitHub Copilot Pro for eligible users.
+ * Includes all Pro features with no payment required during the trial period.
+ */
+export const PRO_TRIAL_SKU: Sku = {
+  id: "pro-trial",
+  name: "GitHub Copilot Pro (Trial)",
+  tier: SkuTier.PRO,
+  description:
+    "Get unlimited completions and access to premium models. Includes a free 30-day trial for eligible users.",
+  longDescription:
+    "Free 30-day trial of GitHub Copilot Pro for eligible users. This trial includes all features of Copilot Pro: unlimited completions, access to premium models in Copilot Chat, access to Copilot coding agent, and a monthly allowance of premium requests. No payment required during the trial period.",
+  pricing: {
+    monthlyUsd: 0,
+    annualUsd: 0,
+    perSeat: false,
+    additionalPremiumRequestPrice: 0.04,
+  },
+  limits: {
+    premiumRequestsPerMonth: 300,
+    premiumRequestsOveragePolicy: {
+      behavior: OverageBehavior.BILL,
+      pricePerUnit: 0.04,
+      maxOverage: null,
+      allowBudgetCap: true,
+      warningThreshold: 80,
+    },
+    chatMessagesPerMonth: null, // Unlimited
+    chatMessagesOveragePolicy: null,
+    codeCompletionsPerMonth: null, // Unlimited
+    codeCompletionsOveragePolicy: null,
+    canPurchaseAdditionalPremiumRequests: true,
+  },
+  features: {
+    // Agents
+    copilotCodingAgent: true,
+    agentMode: true,
+    copilotCodeReview: true,
+    modelContextProtocol: true,
+
+    // Chat
+    chatInIdes: true,
+    inlineChat: true,
+    slashCommands: true,
+    chatInGitHubMobile: true,
+    chatInGitHub: true,
+    chatInWindowsTerminal: true,
+    chatSkillsInIdes: true,
+
+    // Models
+    premiumModelsAccess: true,
+    allModelsAccess: false,
+
+    // Inline suggestions
+    nextEditSuggestions: true,
+
+    // Customization
+    repositoryAndPersonalCustomInstructions: true,
+    organizationCustomInstructions: false,
+    promptFiles: true,
+    blockSuggestionsMatchingPublicCode: true,
+    excludeSpecifiedFiles: true,
+    organizationPolicyManagement: false,
+
+    // Other features
+    pullRequestSummaries: true,
+    auditLogs: false,
+    contentExclusion: false,
+    knowledgeBases: false,
+    copilotCli: true,
+    gitHubSpark: true,
+  },
+  audience: "individual",
+  available: true,
+};
+
+/**
  * GitHub Copilot Pro+
  *
  * Offers the highest level of access for individual developers with a larger
@@ -409,6 +487,7 @@ export const ENTERPRISE_SKU: Sku = {
 export const ALL_SKUS: Sku[] = [
   FREE_SKU,
   PRO_SKU,
+  PRO_TRIAL_SKU,
   PRO_PLUS_SKU,
   BUSINESS_SKU,
   ENTERPRISE_SKU,
@@ -420,6 +499,7 @@ export const ALL_SKUS: Sku[] = [
 export const SKU_MAP: Record<SkuId, Sku> = {
   free: FREE_SKU,
   pro: PRO_SKU,
+  "pro-trial": PRO_TRIAL_SKU,
   "pro-plus": PRO_PLUS_SKU,
   business: BUSINESS_SKU,
   enterprise: ENTERPRISE_SKU,

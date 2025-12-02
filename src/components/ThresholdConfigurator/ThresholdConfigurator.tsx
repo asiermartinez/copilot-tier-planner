@@ -83,6 +83,7 @@ function suggestSeverity(percentage: number): ThresholdSeverity {
 
 const PLAN_OPTIONS: { value: SkuId; label: string }[] = [
   { value: "free", label: "Free" },
+  { value: "pro-trial", label: "Pro (Trial)" },
   { value: "pro", label: "Pro" },
   { value: "pro-plus", label: "Pro+" },
   { value: "business", label: "Business" },

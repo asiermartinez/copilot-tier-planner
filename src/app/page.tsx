@@ -1,10 +1,10 @@
 "use client";
 import { useState } from "react";
 import { MarkGithubIcon } from "@primer/octicons-react";
-import { Stack, Button } from "@primer/react";
+import { Button } from "@primer/react";
 
-import AccountTypeSelector from "@/components/AccountTypeSelector";
-import SkuSelector from "@/components/SkuSelector";
+import PlanSelector from "@/components/PlanSelector";
+import type { SkuId } from "@/types/sku";
 import ViewToggle from "@/components/ViewToggle";
 import StatePayloadView from "@/components/StatePayloadView";
 import UIMessagesView from "@/components/UIMessagesView";
@@ -34,19 +34,11 @@ export default function RootPage() {
   const [currentHistoryIndex, setCurrentHistoryIndex] = useState(-1);
   const [isLoading, setIsLoading] = useState(false);
 
-  const accountType = userState.account.accountType;
   const skuId = userState.subscription.skuId;
 
-  // Update SKU when account type changes to ensure it's valid for new audience
-  const handleAccountTypeChange = (newAccountType: AccountType) => {
-    // Update both account type and SKU atomically to avoid race conditions
-    if (newAccountType === "individual") {
-      updateAccountTypeAndSku(newAccountType, "free");
-    } else {
-      // Both organization and enterprise can have Business or Enterprise
-      // Default to Business for both
-      updateAccountTypeAndSku(newAccountType, "business");
-    }
+  // Handle plan change (updates both account type and SKU)
+  const handlePlanChange = (newAccountType: AccountType, newSkuId: SkuId) => {
+    updateAccountTypeAndSku(newAccountType, newSkuId);
   };
 
   const handleSendMessage = () => {
@@ -91,23 +83,9 @@ export default function RootPage() {
         {/* Left Panel - State Controls */}
         <div className={styles.leftPanel}>
           <div className={styles.panelContent}>
-            <Stack
-              direction="vertical"
-              gap="normal"
-              style={{ marginBottom: "var(--base-size-24)" }}
-            >
-              <AccountTypeSelector
-                value={accountType}
-                onChange={handleAccountTypeChange}
-              />
-              <SkuSelector
-                value={skuId}
-                accountType={accountType}
-                onChange={newSku =>
-                  updateAccountTypeAndSku(accountType, newSku)
-                }
-              />
-            </Stack>
+            <div style={{ marginBottom: "var(--base-size-24)" }}>
+              <PlanSelector skuId={skuId} onChange={handlePlanChange} />
+            </div>
             <UsageControls />
           </div>
         </div>

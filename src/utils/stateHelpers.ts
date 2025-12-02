@@ -509,6 +509,7 @@ export function formatSkuId(skuId: SkuId): string {
   const nameMap: Record<SkuId, string> = {
     free: "Free",
     pro: "Pro",
+    "pro-trial": "Pro (Trial)",
     "pro-plus": "Pro+",
     business: "Business",
     enterprise: "Enterprise",

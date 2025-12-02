@@ -17,6 +17,7 @@ interface SkuSelectorProps {
 const SKU_LABELS: Record<SkuId, string> = {
   free: "Free",
   pro: "Pro",
+  "pro-trial": "Pro (Trial)",
   "pro-plus": "Pro+",
   business: "Business",
   enterprise: "Enterprise",
@@ -25,7 +26,7 @@ const SKU_LABELS: Record<SkuId, string> = {
 // Get available SKU IDs based on account type
 function getAvailableSkuIds(accountType: AccountType): SkuId[] {
   if (accountType === "individual") {
-    return ["free", "pro", "pro-plus"];
+    return ["free", "pro-trial", "pro", "pro-plus"];
   } else if (accountType === "organization") {
     // Organizations can have Business or Enterprise
     return ["business", "enterprise"];

@@ -19,7 +19,13 @@ export enum SkuTier {
 /**
  * String literal type for SKU IDs
  */
-export type SkuId = "free" | "pro" | "pro-plus" | "business" | "enterprise";
+export type SkuId =
+  | "free"
+  | "pro"
+  | "pro-trial"
+  | "pro-plus"
+  | "business"
+  | "enterprise";
 
 /**
  * Pricing structure for a SKU
