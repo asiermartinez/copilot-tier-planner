@@ -315,10 +315,12 @@ export function generateThresholdAlerts(
       // For static banners, freeze the context when first triggered
       // OR when static is newly enabled (no frozen state exists yet)
       // OR when the threshold percentage has changed
+      // OR when the user's plan (SKU) has changed (affects nextPlan value)
       const existingFrozenState = staticBannerStates.get(threshold.id);
       const shouldUpdateFrozenState =
         threshold.static &&
         (!existingFrozenState ||
+          existingFrozenState.planName !== context.planName ||
           (threshold.areas.includes("quota") &&
             existingFrozenState.percentage !== threshold.percentage) ||
           (threshold.areas.includes("overage") &&
