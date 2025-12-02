@@ -11,7 +11,7 @@ import type {
   ThresholdsConfig,
   ThresholdTemplateContext,
   ThresholdSeverity,
-  ThresholdMetric,
+  ThresholdArea,
 } from "@/types/thresholds";
 import { SKU_MAP, getSkuById } from "@/data/skus";
 import { replaceTemplate } from "@/utils/messages/templateUtils";
@@ -55,44 +55,67 @@ export function clearStaticBannerStates(): void {
 }
 
 /**
- * Calculate priority based on metric type and percentage
+ * Calculate priority based on areas, percentage, and user state
  * Severity is just a visual choice and doesn't affect priority
  *
  * Priority order:
- * 1. Metric type (overage > both > quota) - most important, overage is spending real money
- * 2. Consumption percentage - higher percentage wins within same metric type
- * 3. Has billing period constraint - more specific
- * 4. Lower days into period - even more specific within constrained thresholds
+ * 1. Context match (overage thresholds when in overage mode get huge boost)
+ * 2. Areas (overage > quota) - overage is spending real money
+ * 3. Consumption percentage - higher percentage wins within same areas
+ * 4. Has billing period constraint - more specific
+ * 5. Lower days into period - even more specific within constrained thresholds
  */
 function calculatePriority(
-  metricType: ThresholdMetric,
+  areas: ThresholdArea[],
   percentage: number,
-  maxDaysIntoPeriod: number | null
+  maxDaysIntoPeriod: number | null,
+  userState: UserState
 ): number {
   // Priority structure using powers of 10 to ensure proper ordering:
-  // - Metric type: multiply by 100,000,000 (most important - overage is spending money)
-  // - Percentage: multiply by 1,000,000 (second most important)
-  // - Has billing constraint: add 100,000 if present (third priority)
-  // - Days specificity: subtract days if constraint present (final tiebreaker)
+  // - Context match: multiply by 1,000,000,000 (most important - show relevant threshold)
+  // - Areas: multiply by 100,000,000 (overage is spending money)
+  // - Percentage: multiply by 1,000,000 (higher = more urgent)
+  // - Has billing constraint: add 100,000 if present
+  // - Days specificity: subtract days if constraint present
 
-  // 1. Metric type is the primary factor (overage is most urgent - spending real money)
-  const metricTypePriority = {
-    overage: 100000000, // Most urgent - spending money beyond quota
-    both: 50000000, // Medium priority - could be either quota or overage
-    quota: 0, // Base priority - just usage limits
-  }[metricType];
+  const hasOverage = areas.includes("overage");
+  const hasQuota = areas.includes("quota");
 
-  // 2. Consumption percentage is the second factor (higher percentage = more urgent)
+  // Check if user is in overage mode (quota exceeded and using overage budget)
+  const quotaPercentage = userState.usage.premiumRequests.percentageUsed ?? 0;
+  const inOverageMode =
+    quotaPercentage >= 100 && userState.overageBudget !== null;
+
+  // 1. Context match - massive boost for overage thresholds when in overage mode
+  // This ensures overage thresholds take priority over quota thresholds when actually using overage
+  const contextMatchPriority =
+    inOverageMode && hasOverage && !hasQuota
+      ? 1000000000 // Huge boost for pure overage thresholds when in overage mode
+      : 0;
+
+  // 2. Areas are the second factor (overage is more urgent - spending money)
+  const areasPriority = hasOverage
+    ? 100000000 // Overage is spending money beyond quota
+    : hasQuota
+      ? 0 // Base priority - just usage limits
+      : 0;
+
+  // 3. Consumption percentage is the third factor (higher percentage = more urgent)
   const percentagePriority = percentage * 1000000;
 
-  // 3. Having a billing period constraint makes threshold more specific
-  // 4. Lower maxDaysIntoPeriod = narrower time window = higher priority
+  // 4. Having a billing period constraint makes threshold more specific
+  // 5. Lower maxDaysIntoPeriod = narrower time window = higher priority
   const billingPeriodPriority =
     maxDaysIntoPeriod !== null
       ? 100000 - maxDaysIntoPeriod // Add bonus, subtract days for specificity
       : 0;
 
-  return metricTypePriority + percentagePriority + billingPeriodPriority;
+  return (
+    contextMatchPriority +
+    areasPriority +
+    percentagePriority +
+    billingPeriodPriority
+  );
 }
 
 /**
@@ -223,30 +246,15 @@ function isThresholdTriggered(
     return false;
   }
 
-  // Get SKU to check plan filter
+  // Get SKU to check plan applicability
   const sku = getSkuById(userState.subscription.skuId);
   const skuId = userState.subscription.skuId;
   const allowsOverageBudget =
     sku.limits.premiumRequestsOveragePolicy?.allowBudgetCap ?? false;
 
-  // Check plan filter
-  if (threshold.planFilter) {
-    switch (threshold.planFilter) {
-      case "free-only":
-        if (skuId !== "free") {
-          return false;
-        }
-        break;
-      case "paid-only":
-        if (skuId === "free") {
-          return false;
-        }
-        break;
-      case "all":
-      default:
-        // No filter, applies to all plans
-        break;
-    }
+  // Check if threshold applies to current plan
+  if (!threshold.plans.includes(skuId)) {
+    return false;
   }
 
   // Check billing period constraint if configured
@@ -259,34 +267,25 @@ function isThresholdTriggered(
     }
   }
 
-  // If threshold applies to overage, automatically filter to overage-capable plans
-  if (
-    (threshold.appliesTo === "overage" || threshold.appliesTo === "both") &&
-    !allowsOverageBudget
-  ) {
+  // If threshold applies to overage area, check if plan supports overage budget
+  if (threshold.areas.includes("overage") && !allowsOverageBudget) {
     return false;
   }
 
-  // Special case: Don't show "quota exceeded no budget" threshold if user HAS overage budget
-  if (
-    threshold.id === "quota-exceeded-no-budget" &&
-    userState.overageBudget !== null
-  ) {
-    return false;
-  }
+  // Check if any of the threshold's areas are triggered (OR logic)
+  const isQuotaTriggered =
+    threshold.areas.includes("quota") &&
+    isQuotaThresholdTriggered(threshold, userState);
 
-  // Special case: Don't show "quota reached with budget" threshold if user has NO overage budget
-  if (
-    threshold.id === "quota-reached-with-budget" &&
-    userState.overageBudget === null
-  ) {
-    return false;
-  }
+  const isOverageTriggered =
+    threshold.areas.includes("overage") &&
+    isOverageThresholdTriggered(threshold, userState);
 
   // Special case: Don't show 100% quota thresholds when user has overage budget
   // This allows 0% overage thresholds to take priority when entering overage mode
   if (
-    threshold.appliesTo === "quota" &&
+    threshold.areas.includes("quota") &&
+    !threshold.areas.includes("overage") &&
     threshold.percentage === 100 &&
     userState.overageBudget !== null &&
     userState.usage.premiumRequests.percentageUsed !== null &&
@@ -295,19 +294,7 @@ function isThresholdTriggered(
     return false;
   }
 
-  switch (threshold.appliesTo) {
-    case "quota":
-      return isQuotaThresholdTriggered(threshold, userState);
-    case "overage":
-      return isOverageThresholdTriggered(threshold, userState);
-    case "both":
-      return (
-        isQuotaThresholdTriggered(threshold, userState) ||
-        isOverageThresholdTriggered(threshold, userState)
-      );
-    default:
-      return false;
-  }
+  return isQuotaTriggered || isOverageTriggered;
 }
 
 /**
@@ -332,20 +319,17 @@ export function generateThresholdAlerts(
       const shouldUpdateFrozenState =
         threshold.static &&
         (!existingFrozenState ||
-          (threshold.appliesTo === "quota" &&
+          (threshold.areas.includes("quota") &&
             existingFrozenState.percentage !== threshold.percentage) ||
-          (threshold.appliesTo === "overage" &&
-            existingFrozenState.budgetPercentage !== threshold.percentage) ||
-          (threshold.appliesTo === "both" &&
-            (existingFrozenState.percentage !== threshold.percentage ||
-              existingFrozenState.budgetPercentage !== threshold.percentage)));
+          (threshold.areas.includes("overage") &&
+            existingFrozenState.budgetPercentage !== threshold.percentage));
 
       if (shouldUpdateFrozenState) {
         // Create a frozen context at the threshold crossing point
         const frozenContext = { ...context };
 
         // Override percentage-related values to reflect the threshold point
-        if (threshold.appliesTo === "quota" || threshold.appliesTo === "both") {
+        if (threshold.areas.includes("quota")) {
           frozenContext.percentage = threshold.percentage;
           // Recalculate derived values based on threshold percentage
           const limit = context.limit;
@@ -358,10 +342,7 @@ export function generateThresholdAlerts(
           }
         }
 
-        if (
-          threshold.appliesTo === "overage" ||
-          threshold.appliesTo === "both"
-        ) {
+        if (threshold.areas.includes("overage")) {
           frozenContext.budgetPercentage = threshold.percentage;
           // Recalculate derived budget values based on threshold percentage
           const budget = context.budget;
@@ -402,16 +383,18 @@ export function generateThresholdAlerts(
           }
         : undefined;
 
-      // Calculate priority based on threshold's configured percentage
+      // Calculate priority based on threshold's configured percentage and user state
+      // Overage thresholds get massive boost when user is in overage mode
       // Billing period constraints make thresholds more specific and take priority
       alerts.push({
         id: threshold.id,
         severity: threshold.severity,
         message: processedMessage,
         priority: calculatePriority(
-          threshold.appliesTo,
+          threshold.areas,
           threshold.percentage,
-          threshold.billingPeriod?.maxDaysIntoPeriod ?? null
+          threshold.billingPeriod?.maxDaysIntoPeriod ?? null,
+          userState
         ),
         triggeredBy: threshold,
         dismissable: threshold.dismissable,

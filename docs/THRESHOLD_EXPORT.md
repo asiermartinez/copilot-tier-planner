@@ -43,8 +43,8 @@ The exported JSON has the following structure:
     {
       "id": "quota-warning-75",
       "percentage": 75,
-      "appliesTo": "quota",
-      "planFilter": "all",
+      "plans": ["free", "pro", "pro-plus", "business", "enterprise"],
+      "areas": ["quota"],
       "severity": "warning",
       "message": "You've used {percentage}% of your quota",
       "enabled": true,
@@ -62,8 +62,8 @@ The exported JSON has the following structure:
 - **thresholds**: Array of threshold configurations
   - **id**: Unique identifier for the threshold
   - **percentage**: Trigger percentage (0-100)
-  - **appliesTo**: Metric type (`"quota"`, `"overage"`, or `"both"`)
-  - **planFilter**: Which plans this applies to (`"all"`, `"free-only"`, `"paid-only"`)
+  - **plans**: Array of SKU IDs this threshold applies to (e.g., `["free", "pro", "pro-plus"]`)
+  - **areas**: Array of areas this threshold monitors (`["quota"]`, `["overage"]`, or `["quota", "overage"]`)
   - **severity**: Banner severity (`"info"`, `"warning"`, `"critical"`, `"success"`, `"upsell"`)
   - **message**: Message template with placeholder support
   - **enabled**: Whether this threshold is active
@@ -145,14 +145,14 @@ Threshold messages support the following placeholders:
 
 - **Check JSON format**: Ensure the JSON is valid (no trailing commas, proper quotes)
 - **Verify structure**: Make sure it has the `thresholds` array
-- **Check required fields**: Each threshold must have `id`, `percentage`, `appliesTo`, `severity`, `message`, `enabled`, `dismissable`, and `static`
+- **Check required fields**: Each threshold must have `id`, `percentage`, `plans`, `areas`, `severity`, `message`, `enabled`, `dismissable`, and `static`
 
 ### Thresholds Not Triggering
 
 - Check that `enabled` is set to `true`
 - Verify `percentage` values match your test scenarios
-- Ensure `planFilter` matches your current plan type
-- Check `appliesTo` matches the metric you're testing (quota vs overage)
+- Ensure `plans` includes your current SKU (e.g., `["free"]` or `["pro", "pro-plus"]`)
+- Check `areas` matches the metric you're testing (`["quota"]` or `["overage"]`)
 
 ## Example: Creating Custom Thresholds
 
@@ -164,8 +164,8 @@ Here's an example of creating a custom threshold configuration from scratch:
     {
       "id": "custom-early-warning",
       "percentage": 50,
-      "appliesTo": "quota",
-      "planFilter": "all",
+      "plans": ["free", "pro", "pro-plus", "business", "enterprise"],
+      "areas": ["quota"],
       "severity": "info",
       "message": "You're halfway through your quota. {remaining} requests remaining.",
       "enabled": true,
@@ -175,8 +175,8 @@ Here's an example of creating a custom threshold configuration from scratch:
     {
       "id": "custom-critical-alert",
       "percentage": 95,
-      "appliesTo": "quota",
-      "planFilter": "paid-only",
+      "plans": ["pro", "pro-plus", "business", "enterprise"],
+      "areas": ["quota"],
       "severity": "critical",
       "message": "Critical: Only {remaining} requests left!",
       "enabled": true,

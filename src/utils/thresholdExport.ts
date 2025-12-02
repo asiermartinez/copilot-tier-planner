@@ -85,8 +85,15 @@ export function validateExport(exportedJson: string): {
             `Threshold ${index}: 'percentage' must be between 0 and 100`
           );
         }
-        if (!t.appliesTo) {
-          errors.push(`Threshold ${index}: missing 'appliesTo'`);
+        if (!t.plans || !Array.isArray(t.plans)) {
+          errors.push(`Threshold ${index}: 'plans' must be an array`);
+        } else if (t.plans.length === 0) {
+          errors.push(`Threshold ${index}: 'plans' cannot be empty`);
+        }
+        if (!t.areas || !Array.isArray(t.areas)) {
+          errors.push(`Threshold ${index}: 'areas' must be an array`);
+        } else if (t.areas.length === 0) {
+          errors.push(`Threshold ${index}: 'areas' cannot be empty`);
         }
         if (!t.severity) {
           errors.push(`Threshold ${index}: missing 'severity'`);

@@ -5,18 +5,12 @@
  * Users can define when alerts appear, what severity they have, and what message to show.
  */
 
-/**
- * What metric the threshold applies to
- */
-export type ThresholdMetric = "quota" | "overage" | "both";
+import type { SkuId } from "./sku";
 
 /**
- * Which plans this threshold applies to
+ * What area the threshold applies to
  */
-export type ThresholdPlanFilter =
-  | "all" // Applies to all plans
-  | "free-only" // Only for Free tier
-  | "paid-only"; // Only for Pro, Pro+, Business, Enterprise
+export type ThresholdArea = "quota" | "overage";
 
 /**
  * Alert severity levels for banners (maps to Primer Banner variants)
@@ -36,10 +30,10 @@ export interface ThresholdConfig {
   id: string;
   /** Percentage level that triggers this threshold (0-100) */
   percentage: number;
-  /** Which metric this threshold applies to */
-  appliesTo: ThresholdMetric;
-  /** Which plans this threshold applies to (optional, defaults to "all") */
-  planFilter?: ThresholdPlanFilter;
+  /** Which SKU plans this threshold applies to (must have at least one) */
+  plans: SkuId[];
+  /** Which areas this threshold applies to (quota, overage, or both - must have at least one) */
+  areas: ThresholdArea[];
   /** Banner severity when this threshold is triggered */
   severity: ThresholdSeverity;
   /** Message template to display (supports placeholders) */
@@ -78,13 +72,13 @@ export const DEFAULT_THRESHOLDS: ThresholdConfig[] = [
   {
     id: "threshold-1764251183483",
     percentage: 50,
-    appliesTo: "quota",
+    plans: ["free"],
+    areas: ["quota"],
     severity: "info",
     message: "You've used {percentage}% of your free requests this month",
     enabled: true,
     dismissable: true,
     static: true,
-    planFilter: "free-only",
     cta: {
       label: "Upgrade to {nextPlan}",
     },
@@ -92,120 +86,19 @@ export const DEFAULT_THRESHOLDS: ThresholdConfig[] = [
   {
     id: "threshold-1764251237111",
     percentage: 100,
-    appliesTo: "quota",
+    plans: ["free"],
+    areas: ["quota"],
     severity: "upsell",
     message:
       "You have reached your free plan limit. Limit resets on {resetDate}",
     enabled: true,
     dismissable: false,
     static: false,
-    planFilter: "free-only",
     cta: {
       label: "Upgrade to {nextPlan}",
     },
   },
 ];
-
-// export const DEFAULT_THRESHOLDS: ThresholdConfig[] = [
-//   {
-//     id: "quota-warning-75",
-//     percentage: 75,
-//     appliesTo: "quota",
-//     planFilter: "all",
-//     severity: "warning",
-//     message: "You've used {percentage}% of your quota",
-//     enabled: true,
-//     dismissable: true,
-//     static: false,
-//   },
-//   {
-//     id: "quota-critical-90",
-//     percentage: 90,
-//     appliesTo: "quota",
-//     planFilter: "all",
-//     severity: "critical",
-//     message: "Approaching quota limit: {current} of {limit} requests used",
-//     enabled: true,
-//     dismissable: true,
-//     static: false,
-//   },
-//   {
-//     id: "quota-exceeded-free-tier",
-//     percentage: 100,
-//     appliesTo: "quota",
-//     planFilter: "free-only",
-//     severity: "critical",
-//     message: "Quota limit reached. Upgrade to {nextPlan} for more requests.",
-//     enabled: true,
-//     dismissable: false,
-//     static: true,
-//     cta: {
-//       label: "Upgrade to {nextPlan}",
-//     },
-//   },
-//   {
-//     id: "quota-exceeded-no-budget",
-//     percentage: 100,
-//     appliesTo: "quota",
-//     planFilter: "paid-only",
-//     severity: "critical",
-//     message: "Quota limit reached. Set up an overage budget to continue.",
-//     enabled: true,
-//     dismissable: false,
-//     static: true,
-//     cta: {
-//       label: "Set up overage budget",
-//     },
-//   },
-//   {
-//     id: "quota-reached-with-budget",
-//     percentage: 100,
-//     appliesTo: "quota",
-//     planFilter: "paid-only",
-//     severity: "info",
-//     message:
-//       "Quota limit reached. Now using overage budget ({overage} overage requests)",
-//     enabled: true,
-//     dismissable: true,
-//     static: false,
-//   },
-//   {
-//     id: "overage-warning-75",
-//     percentage: 75,
-//     appliesTo: "overage",
-//     planFilter: "paid-only",
-//     severity: "warning",
-//     message: "You've used {budgetPercentage}% of your overage budget",
-//     enabled: true,
-//     dismissable: true,
-//     static: false,
-//   },
-//   {
-//     id: "overage-critical-90",
-//     percentage: 90,
-//     appliesTo: "overage",
-//     planFilter: "paid-only",
-//     severity: "critical",
-//     message: "Overage budget nearly exhausted: ${budgetRemaining} remaining",
-//     enabled: true,
-//     dismissable: true,
-//     static: false,
-//   },
-//   {
-//     id: "overage-exceeded-100",
-//     percentage: 100,
-//     appliesTo: "overage",
-//     planFilter: "paid-only",
-//     severity: "critical",
-//     message: "Overage budget limit reached",
-//     enabled: true,
-//     dismissable: false,
-//     static: true,
-//     cta: {
-//       label: "Upgrade to {nextPlan}",
-//     },
-//   },
-// ];
 
 /**
  * Template variables available for threshold messages

@@ -29,10 +29,10 @@ import {
 import type {
   ThresholdConfig,
   ThresholdsConfig,
-  ThresholdMetric,
+  ThresholdArea,
   ThresholdSeverity,
-  ThresholdPlanFilter,
 } from "@/types/thresholds";
+import type { SkuId } from "@/types/sku";
 import { DEFAULT_THRESHOLDS } from "@/types/thresholds";
 import { SKU_MAP } from "@/data/skus";
 import { usePlanner } from "@/contexts";
@@ -45,25 +45,25 @@ interface ThresholdConfiguratorProps {
 }
 
 /**
- * Determine appropriate metric based on current state
+ * Determine appropriate areas based on current state
  */
-function suggestMetric(
+function suggestAreas(
   quotaPercentage: number,
   overagePercentage: number,
   hasOverageBudget: boolean
-): ThresholdMetric {
-  // If no overage budget, must be quota
+): ThresholdArea[] {
+  // If no overage budget, must be quota only
   if (!hasOverageBudget) {
-    return "quota";
+    return ["quota"];
   }
 
-  // If actively using overages (overage percentage > 0 or quota at/over 100%), suggest overage metric
+  // If actively using overages (overage percentage > 0 or quota at/over 100%), suggest overage
   if (overagePercentage > 0 || quotaPercentage >= 100) {
-    return "overage";
+    return ["overage"];
   }
 
   // Otherwise suggest quota
-  return "quota";
+  return ["quota"];
 }
 
 /**
@@ -81,19 +81,17 @@ function suggestSeverity(percentage: number): ThresholdSeverity {
   }
 }
 
-type CombinedMetricFilter =
-  | "quota-all"
-  | "quota-free"
-  | "quota-paid"
-  | "overage-paid"
-  | "both-paid";
+const PLAN_OPTIONS: { value: SkuId; label: string }[] = [
+  { value: "free", label: "Free" },
+  { value: "pro", label: "Pro" },
+  { value: "pro-plus", label: "Pro+" },
+  { value: "business", label: "Business" },
+  { value: "enterprise", label: "Enterprise" },
+];
 
-const COMBINED_OPTIONS: { value: CombinedMetricFilter; label: string }[] = [
-  { value: "quota-all", label: "Quota (all plans)" },
-  { value: "quota-free", label: "Quota (free only)" },
-  { value: "quota-paid", label: "Quota (paid only)" },
-  { value: "overage-paid", label: "Overage (paid only)" },
-  { value: "both-paid", label: "Both (paid only)" },
+const AREA_OPTIONS: { value: ThresholdArea; label: string }[] = [
+  { value: "quota", label: "Quota" },
+  { value: "overage", label: "Overage" },
 ];
 
 const SEVERITY_OPTIONS: { value: ThresholdSeverity; label: string }[] = [
@@ -104,45 +102,38 @@ const SEVERITY_OPTIONS: { value: ThresholdSeverity; label: string }[] = [
   { value: "upsell", label: "Upsell" },
 ];
 
-function getCombinedValue(
-  appliesTo: ThresholdMetric,
-  planFilter?: ThresholdPlanFilter
-): CombinedMetricFilter {
-  const filter = planFilter ?? "all";
+/**
+ * Get available areas for selected plans
+ */
+function getAvailableAreas(plans: SkuId[]): ThresholdArea[] {
+  const hasPaidPlans = plans.some(p => p !== "free");
 
-  if (appliesTo === "quota") {
-    if (filter === "free-only") return "quota-free";
-    if (filter === "paid-only") return "quota-paid";
-    return "quota-all";
+  if (!hasPaidPlans) {
+    // Only free plan selected - only quota available
+    return ["quota"];
   }
 
-  if (appliesTo === "overage") {
-    return "overage-paid"; // Overage only works on paid plans
-  }
-
-  if (appliesTo === "both") {
-    return "both-paid"; // Both only works on paid plans (free doesn't have overage)
-  }
-
-  return "quota-all";
+  // Paid plans selected - both quota and overage available
+  return ["quota", "overage"];
 }
 
-function splitCombinedValue(combined: CombinedMetricFilter): {
-  appliesTo: ThresholdMetric;
-  planFilter: ThresholdPlanFilter;
-} {
-  switch (combined) {
-    case "quota-all":
-      return { appliesTo: "quota", planFilter: "all" };
-    case "quota-free":
-      return { appliesTo: "quota", planFilter: "free-only" };
-    case "quota-paid":
-      return { appliesTo: "quota", planFilter: "paid-only" };
-    case "overage-paid":
-      return { appliesTo: "overage", planFilter: "paid-only" };
-    case "both-paid":
-      return { appliesTo: "both", planFilter: "paid-only" };
-  }
+/**
+ * Format threshold scope for display (compact)
+ */
+function formatThresholdScope(plans: SkuId[], areas: ThresholdArea[]): string {
+  const planLabels =
+    plans.length === PLAN_OPTIONS.length
+      ? "all plans"
+      : plans
+          .map(p => PLAN_OPTIONS.find(opt => opt.value === p)?.label || p)
+          .join(", ");
+  const areaLabels = areas
+    .map(a =>
+      (AREA_OPTIONS.find(opt => opt.value === a)?.label || a).toLowerCase()
+    )
+    .join(" or ");
+
+  return `${areaLabels} (${planLabels})`;
 }
 
 export default function ThresholdConfigurator({
@@ -229,16 +220,21 @@ export default function ThresholdConfigurator({
     const skuAllowsOverageBudget =
       currentSku.limits.premiumRequestsOveragePolicy?.allowBudgetCap ?? false;
 
-    // Determine which metric is active
-    const activeMetric = suggestMetric(
+    // Suggest plans based on current SKU
+    const currentSkuId = userState.subscription.skuId;
+    const suggestedPlans: SkuId[] = [currentSkuId];
+
+    // Determine which areas are active
+    const activeAreas = suggestAreas(
       quotaPercentage,
       overagePercentage,
       hasOverageBudget && skuAllowsOverageBudget
     );
 
-    // Use the current percentage, rounded to nearest 5
+    // Use the current percentage based on primary area, rounded to nearest 5
+    const primaryArea = activeAreas[0];
     const currentPercentage =
-      activeMetric === "overage" ? overagePercentage : quotaPercentage;
+      primaryArea === "overage" ? overagePercentage : quotaPercentage;
     const suggestedPercentage = Math.min(
       100,
       Math.max(0, Math.round(currentPercentage / 5) * 5)
@@ -247,9 +243,9 @@ export default function ThresholdConfigurator({
     // Suggest severity based on percentage
     const suggestedSeverity = suggestSeverity(suggestedPercentage);
 
-    // Create appropriate message based on metric
+    // Create appropriate message based on primary area
     const suggestedMessage =
-      activeMetric === "overage"
+      primaryArea === "overage"
         ? "You've used {budgetPercentage}% of your overage budget"
         : "You've used {percentage}% of your quota";
 
@@ -265,7 +261,8 @@ export default function ThresholdConfigurator({
     const newThreshold: ThresholdConfig = {
       id: newId,
       percentage: suggestedPercentage,
-      appliesTo: activeMetric,
+      plans: suggestedPlans,
+      areas: activeAreas,
       severity: suggestedSeverity,
       message: suggestedMessage,
       enabled: true,
@@ -323,13 +320,7 @@ export default function ThresholdConfigurator({
       ? config.thresholds.filter(threshold => {
           // Check if threshold applies to current SKU
           const currentSkuId = userState.subscription.skuId;
-          const planFilter = threshold.planFilter ?? "all";
-
-          if (planFilter === "all") return true;
-          if (planFilter === "free-only") return currentSkuId === "free";
-          if (planFilter === "paid-only") return currentSkuId !== "free";
-
-          return true;
+          return threshold.plans.includes(currentSkuId);
         })
       : config.thresholds;
 
@@ -637,16 +628,7 @@ export default function ThresholdConfigurator({
                   id={`threshold-title-${threshold.id}`}
                 >
                   {threshold.percentage}%{" "}
-                  {
-                    COMBINED_OPTIONS.find(
-                      opt =>
-                        opt.value ===
-                        getCombinedValue(
-                          threshold.appliesTo,
-                          threshold.planFilter
-                        )
-                    )?.label
-                  }
+                  {formatThresholdScope(threshold.plans, threshold.areas)}
                 </Text>
               </div>
               <div style={{ display: "flex", gap: "var(--base-size-4)" }}>
@@ -678,37 +660,58 @@ export default function ThresholdConfigurator({
                           display: "inline-block",
                         }}
                       >
-                        Applies to:
+                        Plans:
                       </span>{" "}
-                      {
-                        COMBINED_OPTIONS.find(
-                          opt =>
-                            opt.value ===
-                            getCombinedValue(
-                              threshold.appliesTo,
-                              threshold.planFilter
+                      {threshold.plans.length === PLAN_OPTIONS.length
+                        ? "All"
+                        : threshold.plans
+                            .map(
+                              p =>
+                                PLAN_OPTIONS.find(opt => opt.value === p)
+                                  ?.label || p
                             )
-                        )?.label
-                      }
+                            .join(", ")}
                     </Button>
                   </ActionMenu.Anchor>
                   <ActionMenu.Overlay align="end">
-                    <ActionList selectionVariant="single">
-                      {COMBINED_OPTIONS.map(option => (
+                    <ActionList selectionVariant="multiple">
+                      {PLAN_OPTIONS.map(option => (
                         <ActionList.Item
                           key={option.value}
-                          selected={
-                            getCombinedValue(
-                              threshold.appliesTo,
-                              threshold.planFilter
-                            ) === option.value
-                          }
+                          selected={threshold.plans.includes(option.value)}
                           onSelect={() => {
-                            const { appliesTo, planFilter } =
-                              splitCombinedValue(option.value);
+                            const isSelected = threshold.plans.includes(
+                              option.value
+                            );
+                            let newPlans: SkuId[];
+
+                            if (isSelected) {
+                              // Prevent deselecting the last plan
+                              if (threshold.plans.length === 1) {
+                                return;
+                              }
+                              newPlans = threshold.plans.filter(
+                                p => p !== option.value
+                              );
+                            } else {
+                              newPlans = [...threshold.plans, option.value];
+                            }
+
+                            // Check if areas need to be adjusted
+                            const availableAreas = getAvailableAreas(newPlans);
+                            const validAreas = threshold.areas.filter(a =>
+                              availableAreas.includes(a)
+                            );
+
+                            // Ensure at least one area is selected
+                            const newAreas =
+                              validAreas.length > 0
+                                ? validAreas
+                                : [availableAreas[0]];
+
                             handleUpdateThreshold(threshold.id, {
-                              appliesTo,
-                              planFilter,
+                              plans: newPlans,
+                              areas: newAreas,
                             });
                           }}
                         >
@@ -728,30 +731,61 @@ export default function ThresholdConfigurator({
                           display: "inline-block",
                         }}
                       >
-                        Banner:
+                        Consumption:
                       </span>{" "}
-                      {
-                        SEVERITY_OPTIONS.find(
-                          opt => opt.value === threshold.severity
-                        )?.label
-                      }
+                      {threshold.areas
+                        .map(
+                          a =>
+                            AREA_OPTIONS.find(opt => opt.value === a)?.label ||
+                            a
+                        )
+                        .join(", ")}
                     </Button>
                   </ActionMenu.Anchor>
                   <ActionMenu.Overlay align="end">
-                    <ActionList selectionVariant="single">
-                      {SEVERITY_OPTIONS.map(option => (
-                        <ActionList.Item
-                          key={option.value}
-                          selected={threshold.severity === option.value}
-                          onSelect={() =>
-                            handleUpdateThreshold(threshold.id, {
-                              severity: option.value,
-                            })
-                          }
-                        >
-                          {option.label}
-                        </ActionList.Item>
-                      ))}
+                    <ActionList selectionVariant="multiple">
+                      {AREA_OPTIONS.map(option => {
+                        const availableAreas = getAvailableAreas(
+                          threshold.plans
+                        );
+                        const isAvailable = availableAreas.includes(
+                          option.value
+                        );
+                        const isSelected = threshold.areas.includes(
+                          option.value
+                        );
+
+                        return (
+                          <ActionList.Item
+                            key={option.value}
+                            selected={isSelected}
+                            disabled={!isAvailable}
+                            onSelect={() => {
+                              if (!isAvailable) return;
+
+                              let newAreas: ThresholdArea[];
+
+                              if (isSelected) {
+                                // Prevent deselecting the last area
+                                if (threshold.areas.length === 1) {
+                                  return;
+                                }
+                                newAreas = threshold.areas.filter(
+                                  a => a !== option.value
+                                );
+                              } else {
+                                newAreas = [...threshold.areas, option.value];
+                              }
+
+                              handleUpdateThreshold(threshold.id, {
+                                areas: newAreas,
+                              });
+                            }}
+                          >
+                            {option.label}
+                          </ActionList.Item>
+                        );
+                      })}
                     </ActionList>
                   </ActionMenu.Overlay>
                 </ActionMenu>
@@ -911,6 +945,43 @@ export default function ThresholdConfigurator({
                   resize="vertical"
                 />
               </FormControl>
+
+              <ActionMenu>
+                <ActionMenu.Anchor>
+                  <Button trailingAction={TriangleDownIcon}>
+                    <span
+                      style={{
+                        color: "var(--fgColor-muted)",
+                        display: "inline-block",
+                      }}
+                    >
+                      Type:
+                    </span>{" "}
+                    {
+                      SEVERITY_OPTIONS.find(
+                        opt => opt.value === threshold.severity
+                      )?.label
+                    }
+                  </Button>
+                </ActionMenu.Anchor>
+                <ActionMenu.Overlay align="end">
+                  <ActionList selectionVariant="single">
+                    {SEVERITY_OPTIONS.map(option => (
+                      <ActionList.Item
+                        key={option.value}
+                        selected={threshold.severity === option.value}
+                        onSelect={() =>
+                          handleUpdateThreshold(threshold.id, {
+                            severity: option.value,
+                          })
+                        }
+                      >
+                        {option.label}
+                      </ActionList.Item>
+                    ))}
+                  </ActionList>
+                </ActionMenu.Overlay>
+              </ActionMenu>
 
               <CheckboxGroup>
                 <CheckboxGroup.Label visuallyHidden>

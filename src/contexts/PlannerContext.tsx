@@ -19,7 +19,7 @@ import type {
   CustomMessages,
   CustomThresholds,
 } from "@/types/messages/customMessages";
-import type { ThresholdsConfig, ThresholdConfig } from "@/types/thresholds";
+import type { ThresholdsConfig } from "@/types/thresholds";
 import { DEFAULT_THRESHOLDS } from "@/types/thresholds";
 import {
   getHighestPriorityAlert,
@@ -364,43 +364,29 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
     const currentSkuId = userState.subscription.skuId;
     // const currentAccountType = userState.account.accountType;
 
-    // Helper to check if threshold applies to current plan
-    const appliesToCurrentPlan = (t: ThresholdConfig) => {
-      if (!t.planFilter || t.planFilter === "all") {
-        return true;
-      }
-      if (t.planFilter === "free-only") {
-        return currentSkuId === "free";
-      }
-      if (t.planFilter === "paid-only") {
-        return currentSkuId !== "free";
-      }
-      return true;
-    };
-
-    // Extract quota thresholds for premium requests (filtered by plan)
+    // Extract quota thresholds for premium requests (filtered by plan and area)
     const quotaThresholds = Array.from(
       new Set(
         thresholdsConfig.thresholds
           .filter(
             t =>
               t.enabled &&
-              (t.appliesTo === "quota" || t.appliesTo === "both") &&
-              appliesToCurrentPlan(t)
+              t.plans.includes(currentSkuId) &&
+              t.areas.includes("quota")
           )
           .map(t => t.percentage)
       )
     ).sort((a, b) => a - b);
 
-    // Extract overage budget thresholds (filtered by plan)
+    // Extract overage budget thresholds (filtered by plan and area)
     const overageThresholds = Array.from(
       new Set(
         thresholdsConfig.thresholds
           .filter(
             t =>
               t.enabled &&
-              (t.appliesTo === "overage" || t.appliesTo === "both") &&
-              appliesToCurrentPlan(t)
+              t.plans.includes(currentSkuId) &&
+              t.areas.includes("overage")
           )
           .map(t => t.percentage)
       )
