@@ -376,7 +376,7 @@ export default function ThresholdConfigurator({
 
       {showThresholdDialog && (
         <Dialog
-          title="Threshold export/import"
+          title="Threshold configuration"
           onClose={() => setShowThresholdDialog(false)}
           footerButtons={
             dialogMode === "import"
@@ -409,6 +409,7 @@ export default function ThresholdConfigurator({
                 onChange={index =>
                   setDialogMode(index === 0 ? "export" : "import")
                 }
+                fullWidth
               >
                 <SegmentedControl.Button selected={dialogMode === "export"}>
                   Export
@@ -422,7 +423,9 @@ export default function ThresholdConfigurator({
               {dialogMode === "export" ? (
                 <>
                   <FormControl style={{ display: "block", width: "100%" }}>
-                    <FormControl.Label>Export configuration</FormControl.Label>
+                    <FormControl.Label visuallyHidden>
+                      Export configuration
+                    </FormControl.Label>
                     <div style={{ position: "relative", width: "100%" }}>
                       <IconButton
                         aria-label={copied ? "Copied" : "Copy JSON"}
@@ -459,7 +462,9 @@ export default function ThresholdConfigurator({
               ) : (
                 <>
                   <FormControl style={{ display: "block", width: "100%" }}>
-                    <FormControl.Label>Import configuration</FormControl.Label>
+                    <FormControl.Label visuallyHidden>
+                      Import configuration
+                    </FormControl.Label>
                     <Textarea
                       value={importJson}
                       onChange={e => setImportJson(e.target.value)}
