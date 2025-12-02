@@ -138,15 +138,6 @@ export function validateResourceUsage(usage: unknown): usage is ResourceUsage {
   if (typeof u.isOverQuota !== "boolean") return false;
   if (typeof u.isBlocked !== "boolean") return false;
 
-  // Optional fields
-  if (
-    u.blockReason !== undefined &&
-    u.blockReason !== null &&
-    typeof u.blockReason !== "string"
-  ) {
-    return false;
-  }
-
   // alertThresholds must be null if limit is null, otherwise array
   if (u.limit === null) {
     if (u.alertThresholds !== null) return false;

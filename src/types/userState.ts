@@ -41,8 +41,6 @@ export interface ResourceUsage {
   isOverQuota: boolean;
   /** Whether usage is currently blocked due to quota/budget limits */
   isBlocked: boolean;
-  /** Reason for blocking (if blocked) */
-  blockReason?: string | null;
   /** Alert thresholds (percentages, e.g., [50, 75, 90, 100]), null if unlimited */
   alertThresholds: number[] | null;
   /** Last crossed threshold value (null if none crossed or unlimited) */

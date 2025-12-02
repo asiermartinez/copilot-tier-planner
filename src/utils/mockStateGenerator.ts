@@ -13,7 +13,7 @@ import type {
 import type { SkuId } from "@/types/sku";
 import { getSkuById } from "@/data/skus";
 import { getOveragePricePerRequest } from "@/utils/skuHelpers";
-import { BLOCK_REASONS } from "@/data/messages";
+
 import {
   DEFAULT_ALERT_THRESHOLDS,
   getLastCrossedThreshold,
@@ -147,22 +147,18 @@ function generateResourceUsage(
 
   // Determine if usage should be blocked
   let isBlocked = false;
-  let blockReason: string | null = null;
 
   if (isAtLimit) {
     if (blockOnOverage) {
       // SKU doesn't allow overages at all (e.g., FREE plan)
       isBlocked = true;
-      blockReason = BLOCK_REASONS.QUOTA_EXCEEDED_NO_OVERAGES;
     } else if (overageBudget === null) {
       // SKU allows overages but user hasn't enabled overage budget - block at limit
       isBlocked = true;
-      blockReason = BLOCK_REASONS.LIMIT_REACHED;
     } else {
       // SKU allows overages and user has enabled overage budget
       if (overageBudget.currentSpentUsd >= overageBudget.maxBudgetUsd) {
         isBlocked = true;
-        blockReason = BLOCK_REASONS.BUDGET_EXHAUSTED;
       }
       // Otherwise, billing continues (not blocked)
     }
@@ -176,7 +172,6 @@ function generateResourceUsage(
     percentageUsed,
     isOverQuota,
     isBlocked,
-    blockReason,
     alertThresholds,
     lastCrossedThreshold,
   };
