@@ -1,8 +1,9 @@
 "use client";
 
 import { FormControl, Stack, TextInput, ToggleSwitch } from "@primer/react";
-import { usePlanner } from "@/contexts";
+import { usePlanner, useScenario } from "@/contexts";
 import { SKU_MAP } from "@/data/skus";
+import type { Sku } from "@/types/sku";
 import styles from "./UsageControls.module.css";
 
 /**
@@ -29,7 +30,22 @@ export default function UsageControls() {
     loadFromSimpleState,
   } = usePlanner();
 
-  const currentSku = SKU_MAP[userState.subscription.skuId];
+  const { currentScenario } = useScenario();
+
+  // Get base SKU and merge with variations
+  const baseSku = SKU_MAP[userState.subscription.skuId];
+  const variation =
+    currentScenario.skuVariations?.[userState.subscription.skuId];
+  const currentSku: Sku = {
+    ...baseSku,
+    ...(variation || {}),
+    pricing: variation?.pricing
+      ? { ...baseSku.pricing, ...variation.pricing }
+      : baseSku.pricing,
+    limits: variation?.limits
+      ? { ...baseSku.limits, ...variation.limits }
+      : baseSku.limits,
+  };
   const usage = userState.usage;
   const overageBudget = userState.overageBudget;
   const overagesEnabled = overageBudget !== null;

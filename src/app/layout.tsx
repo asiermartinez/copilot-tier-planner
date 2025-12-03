@@ -1,6 +1,6 @@
 "use client";
 import { ThemeProvider, BaseStyles } from "@primer/react";
-import { PlannerProvider } from "@/contexts";
+import { PlannerProvider, ScenarioProvider } from "@/contexts";
 import "@/css/global.css";
 
 export default function RootLayout({
@@ -15,9 +15,11 @@ export default function RootLayout({
       <body>
         <ThemeProvider colorMode="light">
           <BaseStyles>
-            <PlannerProvider>
-              <div className="root">{children}</div>
-            </PlannerProvider>
+            <ScenarioProvider>
+              <PlannerProvider>
+                <div className="root">{children}</div>
+              </PlannerProvider>
+            </ScenarioProvider>
           </BaseStyles>
         </ThemeProvider>
       </body>

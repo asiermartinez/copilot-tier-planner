@@ -11,7 +11,9 @@ import UIMessagesView from "@/components/UIMessagesView";
 import UsageControls from "@/components/UsageControls";
 import ThresholdConfigurator from "@/components/ThresholdConfigurator";
 import MessageInput from "@/components/MessageInput";
-import { usePlanner } from "@/contexts";
+import ModeToggle from "@/components/ModeToggle";
+import { VisualBuilder } from "@/components/VisualBuilder";
+import { usePlanner, useScenario } from "@/contexts";
 import styles from "./page.module.css";
 
 type ViewToggleMode = "messages" | "payload";
@@ -28,7 +30,9 @@ export default function RootPage() {
     dismissedAlerts,
     clearDismissedAlerts,
   } = usePlanner();
-  const [viewMode, setViewMode] = useState<ViewToggleMode>("messages");
+  const { viewMode } = useScenario();
+  const [innerViewMode, setInnerViewMode] =
+    useState<ViewToggleMode>("messages");
   const [messageValue, setMessageValue] = useState("");
   const [messageHistory, setMessageHistory] = useState<string[]>([]);
   const [currentHistoryIndex, setCurrentHistoryIndex] = useState(-1);
@@ -76,79 +80,95 @@ export default function RootPage() {
           <MarkGithubIcon size={24} className={styles.titleIcon} />
           Copilot Tier Planner
         </h1>
+        <div style={{ marginLeft: "auto" }}>
+          <ModeToggle />
+        </div>
       </header>
 
-      {/* Main Content - Three Column Layout */}
+      {/* Main Content - Conditional Layout based on view mode */}
       <main className={styles.mainContent}>
-        {/* Left Panel - State Controls */}
-        <div className={styles.leftPanel}>
-          <div className={styles.panelContent}>
-            <div style={{ marginBottom: "var(--base-size-24)" }}>
-              <PlanSelector skuId={skuId} onChange={handlePlanChange} />
-            </div>
-            <UsageControls />
+        {viewMode === "visual" ? (
+          /* Visual Builder - Full Width */
+          <div className={styles.visualContainer}>
+            <VisualBuilder />
           </div>
-        </div>
-
-        {/* Center Panel - UI Messages, Input & State Payload */}
-        <div className={styles.centerPanel}>
-          <div className={styles.panelContent}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <ViewToggle value={viewMode} onChange={setViewMode} />
-              {dismissedAlerts.size > 0 && (
-                <Button
-                  variant="invisible"
-                  onClick={clearDismissedAlerts}
-                  size="small"
-                >
-                  Restore banner
-                </Button>
-              )}
-            </div>
-            <div className={styles.viewContent}>
-              {viewMode === "messages" ? (
-                <div className={styles.messagesContainer}>
-                  {/* Banner Space - Shows alerts when present */}
-                  <div style={{ minHeight: "60px" }}>
-                    <UIMessagesView userState={userState} />
-                  </div>
-
-                  {/* Message Input - Always visible below banner */}
-                  <div style={{ flexShrink: 0 }}>
-                    <MessageInput
-                      value={messageValue}
-                      onValueChange={setMessageValue}
-                      onSendMessage={handleSendMessage}
-                      loading={isLoading}
-                      disabled={isBlocked}
-                      history={messageHistory}
-                      currentHistoryIndex={currentHistoryIndex}
-                      onHistoryIndexChange={setCurrentHistoryIndex}
-                    />
-                  </div>
+        ) : (
+          /* Messages View - Three Column Layout */
+          <>
+            {/* Left Panel - State Controls */}
+            <div className={styles.leftPanel}>
+              <div className={styles.panelContent}>
+                <div style={{ marginBottom: "var(--base-size-24)" }}>
+                  <PlanSelector skuId={skuId} onChange={handlePlanChange} />
                 </div>
-              ) : (
-                <StatePayloadView userState={userState} />
-              )}
+                <UsageControls />
+              </div>
             </div>
-          </div>
-        </div>
 
-        {/* Right Panel - Threshold Configurator */}
-        <div className={styles.rightPanel}>
-          <div className={styles.rightPanelContent}>
-            <ThresholdConfigurator
-              config={thresholdsConfig}
-              onChange={updateThresholdsConfig}
-            />
-          </div>
-        </div>
+            {/* Center Panel - UI Messages, Input & State Payload */}
+            <div className={styles.centerPanel}>
+              <div className={styles.panelContent}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <ViewToggle
+                    value={innerViewMode}
+                    onChange={setInnerViewMode}
+                  />
+                  {dismissedAlerts.size > 0 && (
+                    <Button
+                      variant="invisible"
+                      onClick={clearDismissedAlerts}
+                      size="small"
+                    >
+                      Restore banner
+                    </Button>
+                  )}
+                </div>
+                <div className={styles.viewContent}>
+                  {innerViewMode === "messages" ? (
+                    <div className={styles.messagesContainer}>
+                      {/* Banner Space - Shows alerts when present */}
+                      <div style={{ minHeight: "60px" }}>
+                        <UIMessagesView userState={userState} />
+                      </div>
+
+                      {/* Message Input - Always visible below banner */}
+                      <div style={{ flexShrink: 0 }}>
+                        <MessageInput
+                          value={messageValue}
+                          onValueChange={setMessageValue}
+                          onSendMessage={handleSendMessage}
+                          loading={isLoading}
+                          disabled={isBlocked}
+                          history={messageHistory}
+                          currentHistoryIndex={currentHistoryIndex}
+                          onHistoryIndexChange={setCurrentHistoryIndex}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <StatePayloadView userState={userState} />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Panel - Threshold Configurator */}
+            <div className={styles.rightPanel}>
+              <div className={styles.rightPanelContent}>
+                <ThresholdConfigurator
+                  config={thresholdsConfig}
+                  onChange={updateThresholdsConfig}
+                />
+              </div>
+            </div>
+          </>
+        )}
       </main>
     </div>
   );

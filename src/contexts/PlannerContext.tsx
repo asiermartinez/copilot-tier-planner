@@ -11,10 +11,11 @@ import {
   ReactNode,
 } from "react";
 import type { UserState, SimpleUserState } from "@/types/userState";
-import type { SkuId } from "@/types/sku";
+import type { SkuId, Sku } from "@/types/sku";
 import { getSkuById } from "@/data/skus";
 import { generateUserState } from "@/utils/mockStateGenerator";
 import { DEFAULT_ALERT_THRESHOLDS } from "@/data/alertThresholds";
+import type { SkuVariation } from "@/types/scenario";
 import type {
   CustomMessages,
   CustomThresholds,
@@ -25,6 +26,7 @@ import {
   getHighestPriorityAlert,
   clearStaticBannerStates,
 } from "@/utils/alerts/generateThresholdAlerts";
+import { useScenario } from "./ScenarioContext";
 
 /**
  * Set of dismissed alert IDs
@@ -145,11 +147,25 @@ const getDefaultSimpleState = (): SimpleUserState => {
 /**
  * Generate full UserState from SimpleUserState
  */
-function generateStateFromSimple(simple: SimpleUserState): UserState {
+function generateStateFromSimple(
+  simple: SimpleUserState,
+  skuVariation?: SkuVariation
+): UserState {
   const accountType = simple.accountType;
 
-  // Check if the SKU allows overage budgets
-  const sku = getSkuById(simple.skuId);
+  // Get base SKU and merge with variations
+  const baseSku = getSkuById(simple.skuId);
+  const sku: Sku = {
+    ...baseSku,
+    ...(skuVariation || {}),
+    pricing: skuVariation?.pricing
+      ? { ...baseSku.pricing, ...skuVariation.pricing }
+      : baseSku.pricing,
+    limits: skuVariation?.limits
+      ? { ...baseSku.limits, ...skuVariation.limits }
+      : baseSku.limits,
+  };
+
   const allowsOverageBudget =
     sku.limits.premiumRequestsOveragePolicy?.allowBudgetCap ?? false;
 
@@ -279,6 +295,9 @@ interface PlannerProviderProps {
  * Provider component that manages SKU planner state
  */
 export function PlannerProvider({ children }: PlannerProviderProps) {
+  // Access scenario context for SKU variations
+  const { currentScenario } = useScenario();
+
   // Custom messages and thresholds state
   const [customMessages, setCustomMessages] = useState<
     CustomMessages | undefined
@@ -317,11 +336,14 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
       if (encoded) {
         const simpleState = decodeStateFromUrl(encoded);
         if (simpleState) {
-          return generateStateFromSimple(simpleState);
+          const variation = currentScenario.skuVariations?.[simpleState.skuId];
+          return generateStateFromSimple(simpleState, variation);
         }
       }
     }
-    return generateStateFromSimple(getDefaultSimpleState());
+    const defaultState = getDefaultSimpleState();
+    const variation = currentScenario.skuVariations?.[defaultState.skuId];
+    return generateStateFromSimple(defaultState, variation);
   });
 
   // Debounce URL updates to prevent rate limiting
@@ -499,9 +521,10 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
       const simpleState = toSimpleState(userState);
       simpleState.accountType = newAccountType;
       simpleState.skuId = skuId;
-      setUserState(generateStateFromSimple(simpleState));
+      const variation = currentScenario.skuVariations?.[skuId];
+      setUserState(generateStateFromSimple(simpleState, variation));
     },
-    [userState]
+    [userState, currentScenario.skuVariations]
   );
 
   /**
@@ -511,9 +534,10 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
     (seats: number) => {
       const simpleState = toSimpleState(userState);
       simpleState.seats = seats;
-      setUserState(generateStateFromSimple(simpleState));
+      const variation = currentScenario.skuVariations?.[simpleState.skuId];
+      setUserState(generateStateFromSimple(simpleState, variation));
     },
-    [userState]
+    [userState, currentScenario.skuVariations]
   );
 
   /**
@@ -523,9 +547,10 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
     (used: number) => {
       const simpleState = toSimpleState(userState);
       simpleState.premiumRequestsUsed = used;
-      setUserState(generateStateFromSimple(simpleState));
+      const variation = currentScenario.skuVariations?.[simpleState.skuId];
+      setUserState(generateStateFromSimple(simpleState, variation));
     },
-    [userState]
+    [userState, currentScenario.skuVariations]
   );
 
   /**
@@ -535,9 +560,10 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
     (used: number) => {
       const simpleState = toSimpleState(userState);
       simpleState.chatMessagesUsed = used;
-      setUserState(generateStateFromSimple(simpleState));
+      const variation = currentScenario.skuVariations?.[simpleState.skuId];
+      setUserState(generateStateFromSimple(simpleState, variation));
     },
-    [userState]
+    [userState, currentScenario.skuVariations]
   );
 
   /**
@@ -547,21 +573,23 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
     (used: number) => {
       const simpleState = toSimpleState(userState);
       simpleState.codeCompletionsUsed = used;
-      setUserState(generateStateFromSimple(simpleState));
+      const variation = currentScenario.skuVariations?.[simpleState.skuId];
+      setUserState(generateStateFromSimple(simpleState, variation));
     },
-    [userState]
+    [userState, currentScenario.skuVariations]
   );
 
   /**
    * Update overage budget
    */
   const updateOverageBudget = useCallback(
-    (budgetUsd: number | null) => {
+    (maxBudgetUsd: number | null) => {
       const simpleState = toSimpleState(userState);
-      simpleState.overageBudgetUsd = budgetUsd;
-      setUserState(generateStateFromSimple(simpleState));
+      simpleState.overageBudgetUsd = maxBudgetUsd;
+      const variation = currentScenario.skuVariations?.[simpleState.skuId];
+      setUserState(generateStateFromSimple(simpleState, variation));
     },
-    [userState]
+    [userState, currentScenario.skuVariations]
   );
 
   /**
@@ -571,9 +599,10 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
     (days: number) => {
       const simpleState = toSimpleState(userState);
       simpleState.daysIntoPeriod = days;
-      setUserState(generateStateFromSimple(simpleState));
+      const variation = currentScenario.skuVariations?.[simpleState.skuId];
+      setUserState(generateStateFromSimple(simpleState, variation));
     },
-    [userState]
+    [userState, currentScenario.skuVariations]
   );
 
   /**
@@ -601,9 +630,13 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
   /**
    * Load state from simplified state object
    */
-  const loadFromSimpleState = useCallback((simpleState: SimpleUserState) => {
-    setUserState(generateStateFromSimple(simpleState));
-  }, []);
+  const loadFromSimpleState = useCallback(
+    (simpleState: SimpleUserState) => {
+      const variation = currentScenario.skuVariations?.[simpleState.skuId];
+      setUserState(generateStateFromSimple(simpleState, variation));
+    },
+    [currentScenario.skuVariations]
+  );
 
   const value = useMemo<PlannerContextValue>(
     () => ({

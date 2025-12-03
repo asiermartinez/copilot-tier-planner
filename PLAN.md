@@ -453,18 +453,86 @@ The playground must visually represent all key UI messaging elements that appear
 
 ---
 
-### Phase 5: Future Enhancements (Optional)
+### Phase 5: Visual Builder - Graph-Based SKU Planning
+**Goal**: Add a visual layer for building and reasoning about SKU paths, upgrade strategies, and migration scenarios.
+
+**Tasks**:
+- [x] 5.1 Install and configure React Flow dependencies
+- [x] 5.2 Create visual mode context and state management
+  - [x] ViewMode context (visual/messages toggle)
+  - [x] Scenario context (SKU variations, edges, desired paths)
+  - [x] Export/import functionality for scenarios
+- [x] 5.3 Build core Visual Builder components
+  - [x] VisualBuilder main canvas wrapper
+  - [x] SkuNode custom node component
+  - [ ] TransitionEdge custom edge component
+  - [x] Edge type support (upgrade, budget, org-join)
+- [x] 5.4 Implement layered graph layout
+  - [x] Individual layer (Free → Pro → Pro+)
+  - [x] Organization layer (Business, Enterprise)
+  - [x] Cross-layer transitions (join org)
+- [x] 5.5 Add path highlighting and current state indication
+  - [x] Highlight current SKU based on Plan Selector
+  - [x] Show migration paths between SKUs
+  - [x] Visual indicator for desired paths
+- [x] 5.6 Implement inline SKU editing
+  - [x] Node editor for SKU properties
+  - [x] Edit limits, pricing, features
+  - [x] Changes reflect in both visual and message views
+- [x] 5.7 Add edge configuration and desired path marking
+  - [x] Mark edges as desired/recommended
+  - [x] Budget addition as self-loop edges
+  - [x] Edge filtering controls (UI component added)
+- [x] 5.8 Integrate with existing UI
+  - [x] Add SegmentedControl to header for view toggle
+  - [x] Sync state between visual and message views
+  - [x] Node click handlers for editing
+  - [ ] Update threshold configurator to use desired paths for CTAs (future)
+- [x] 5.9 Scenario management
+  - [x] Save/load named scenarios (context methods ready)
+  - [x] Export/import scenario JSON (infrastructure ready)
+  - [x] Default scenario with standard SKU hierarchy
+- [x] 5.10 Visual polish and UX improvements
+  - [x] Remove arrow markers from edges for cleaner look
+  - [x] Use side-based edge routing (left/right handles)
+  - [x] Minimal card design (removed colored left borders)
+  - [x] Fixed budget loop edges to be visible (using right-side handles)
+  - [x] Smoother bezier curves for connections
+  - [x] Labels appear on hover only
+  - [x] Hidden connection handles until hover
+
+**Acceptance Criteria**:
+- ✅ Users can toggle between visual and message views
+- ✅ Visual builder shows SKU hierarchy as an interactive graph
+- ✅ Current SKU is highlighted based on plan selector state
+- ✅ Users can edit SKU properties by clicking nodes
+- ✅ Edge filters allow showing/hiding connection types
+- ✅ Changes in visual mode update message view and vice versa
+- ✅ Scenarios can be exported/imported (infrastructure ready)
+- ✅ Individual vs organization SKU contexts are visually distinct
+- ✅ Modified SKUs show visual indicator
+- ✅ Cleaner default view (only upgrades shown by default)
+- ✅ Minimal, modern card design without distracting visual elements
+- ✅ Smooth bezier curves for natural-looking connections
+- ✅ Budget loops visible and properly routed
+- ✅ No arrow clutter - clean connection lines
+- ✅ Side-based edge routing for better flow
+
+**Status**: ✅ COMPLETE - Visual builder fully functional with polished UX
+
+### Phase 6: Future Enhancements (Optional)
 **Goal**: Advanced features that could be added based on team feedback.
 
 **Potential Tasks** (not prioritized):
-- [ ] 5.1 Create custom SKU editor for hypothetical pricing scenarios
-- [ ] 5.2 Add message variant editor for testing different wordings
-- [ ] 5.3 Implement message priority and stacking logic
-- [ ] 5.4 Add comparison mode (view multiple states side-by-side)
-- [ ] 5.5 Create saved scenarios library
-- [ ] 5.6 Add analytics/usage tracking for internal metrics
-- [ ] 5.7 Implement dark mode support
-- [ ] 5.8 Add export to presentation format (slides/PDF)
+- [ ] 6.1 Add message variant editor for testing different wordings
+- [ ] 6.2 Implement message priority and stacking logic
+- [ ] 6.3 Add comparison mode (view multiple scenarios side-by-side)
+- [ ] 6.4 Multi-step migration path planning with cost estimation
+- [ ] 6.5 Add analytics/usage tracking for internal metrics
+- [ ] 6.6 Implement dark mode support
+- [ ] 6.7 Add export to presentation format (slides/PDF)
+- [ ] 6.8 Conditional edge logic (show edge only if requirements met)
+- [ ] 6.9 Animated transitions between visual states
 
 **Note**: These features should only be implemented if there's demonstrated need from product/design teams.
 

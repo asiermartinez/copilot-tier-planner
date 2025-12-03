@@ -1,9 +1,10 @@
 "use client";
 
 import { ActionMenu, ActionList, Button } from "@primer/react";
-import { TriangleDownIcon } from "@primer/octicons-react";
+import { TriangleDownIcon, DotFillIcon } from "@primer/octicons-react";
 import type { SkuId } from "@/types/sku";
 import { SKU_MAP } from "@/data/skus";
+import { useScenario } from "@/contexts";
 
 type AccountType = "individual" | "organization" | "enterprise";
 
@@ -25,7 +26,11 @@ const ORGANIZATION_PLANS: Array<{ skuId: SkuId; label: string }> = [
 ];
 
 export default function PlanSelector({ skuId, onChange }: PlanSelectorProps) {
+  const { currentScenario } = useScenario();
   const currentLabel = SKU_MAP[skuId].name;
+  const isCurrentModified =
+    currentScenario.skuVariations?.[skuId] &&
+    Object.keys(currentScenario.skuVariations[skuId]).length > 0;
 
   const handleSelect = (newSkuId: SkuId) => {
     // Determine account type based on selected SKU
@@ -54,36 +59,85 @@ export default function PlanSelector({ skuId, onChange }: PlanSelectorProps) {
           >
             Plan:
           </span>{" "}
-          {currentLabel}
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "4px",
+            }}
+          >
+            {currentLabel}
+            {isCurrentModified && (
+              <DotFillIcon size={16} fill="var(--bgColor-accent-emphasis)" />
+            )}
+          </span>
         </Button>
       </ActionMenu.Anchor>
       <ActionMenu.Overlay align="end">
         <ActionList>
           <ActionList.Group title="Individual" selectionVariant="single">
-            {INDIVIDUAL_PLANS.map(plan => (
-              <ActionList.Item
-                key={plan.skuId}
-                selected={skuId === plan.skuId}
-                onSelect={() => handleSelect(plan.skuId)}
-              >
-                {plan.label}
-              </ActionList.Item>
-            ))}
+            {INDIVIDUAL_PLANS.map(plan => {
+              const variation = currentScenario.skuVariations?.[plan.skuId];
+              const isModified = variation && Object.keys(variation).length > 0;
+              return (
+                <ActionList.Item
+                  key={plan.skuId}
+                  selected={skuId === plan.skuId}
+                  onSelect={() => handleSelect(plan.skuId)}
+                >
+                  <span
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      width: "100%",
+                    }}
+                  >
+                    <span>{plan.label}</span>
+                    {isModified && (
+                      <DotFillIcon
+                        size={12}
+                        fill="var(--bgColor-accent-emphasis)"
+                      />
+                    )}
+                  </span>
+                </ActionList.Item>
+              );
+            })}
           </ActionList.Group>
           <ActionList.Divider />
           <ActionList.Group
             title="Organization and enterprise"
             selectionVariant="single"
           >
-            {ORGANIZATION_PLANS.map(plan => (
-              <ActionList.Item
-                key={plan.skuId}
-                selected={skuId === plan.skuId}
-                onSelect={() => handleSelect(plan.skuId)}
-              >
-                {plan.label}
-              </ActionList.Item>
-            ))}
+            {ORGANIZATION_PLANS.map(plan => {
+              const variation = currentScenario.skuVariations?.[plan.skuId];
+              const isModified = variation && Object.keys(variation).length > 0;
+              return (
+                <ActionList.Item
+                  key={plan.skuId}
+                  selected={skuId === plan.skuId}
+                  onSelect={() => handleSelect(plan.skuId)}
+                >
+                  <span
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      width: "100%",
+                    }}
+                  >
+                    <span>{plan.label}</span>
+                    {isModified && (
+                      <DotFillIcon
+                        size={12}
+                        fill="var(--bgColor-accent-emphasis)"
+                      />
+                    )}
+                  </span>
+                </ActionList.Item>
+              );
+            })}
           </ActionList.Group>
         </ActionList>
       </ActionMenu.Overlay>

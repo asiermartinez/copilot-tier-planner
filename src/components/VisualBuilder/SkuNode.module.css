@@ -1,0 +1,116 @@
+/* SKU Node Component Styles - GitHub Minimal Design */
+
+.skuNode {
+  min-width: 240px;
+  max-width: 240px;
+  background: var(--bgColor-default);
+  border: 1px solid var(--borderColor-default);
+  border-radius: var(--borderRadius-medium);
+  font-family: var(--fontStack-system);
+  transition: border-color 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.skuNode:hover {
+  border-color: var(--borderColor-emphasis);
+}
+
+.skuNode.selected {
+  border-color: var(--borderColor-accent-emphasis);
+}
+
+.skuNode.current {
+  border-color: var(--borderColor-accent-emphasis);
+  box-shadow: 0 0 0 2px var(--borderColor-accent-emphasis);
+}
+
+/* Handle styles - minimal and hidden */
+.handle {
+  width: 8px;
+  height: 8px;
+  background: transparent;
+  border: none;
+  opacity: 0;
+}
+
+.skuNode:hover .handle {
+  opacity: 1;
+  background: var(--borderColor-muted);
+}
+
+/* Node content */
+
+.nodeHeader {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--base-size-4);
+  padding: var(--base-size-8) var(--base-size-12);
+  background-color: var(--bgColor-muted);
+  border-bottom: 1px solid var(--borderColor-muted);
+}
+
+.nodeName {
+  font-size: var(--text-caption-size);
+  font-weight: var(--base-text-weight-semibold);
+  color: var(--fgColor-default);
+  line-height: 1.3;
+  display: flex;
+  align-items: center;
+  gap: var(--base-size-2);
+  flex: 1;
+  min-width: 0;
+}
+
+.modifiedIndicator {
+  color: var(--fgColor-attention);
+  font-size: var(--text-caption-size);
+  font-weight: var(--base-text-weight-bold);
+  line-height: 1;
+}
+
+.nodePrice {
+  font-size: var(--text-caption-size);
+  font-weight: var(--base-text-weight-normal);
+  color: var(--fgColor-muted);
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.nodeBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--base-size-2);
+  padding: var(--base-size-12);
+}
+
+.limitItem {
+  font-size: var(--text-caption-size);
+  color: var(--fgColor-muted);
+  font-weight: var(--base-text-weight-normal);
+  line-height: 1.3;
+}
+
+.limitLabel {
+  color: var(--fgColor-muted);
+  font-weight: var(--base-text-weight-normal);
+}
+
+.limitValue {
+  color: var(--fgColor-default);
+  font-weight: var(--base-text-weight-semibold);
+  font-size: var(--text-body-size-small);
+}
+
+/* Desired path indicator */
+.desiredIndicator {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 10px;
+  line-height: 1;
+  cursor: help;
+  opacity: 0.6;
+}

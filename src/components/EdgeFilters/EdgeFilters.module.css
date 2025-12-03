@@ -1,0 +1,25 @@
+/* Edge Filters Component Styles */
+
+.container {
+  background: var(--bgColor-default);
+  border: 1px solid var(--borderColor-default);
+  border-radius: var(--borderRadius-medium);
+  padding: var(--base-size-16);
+  box-shadow: var(--shadow-resting-medium);
+  display: flex;
+  flex-direction: column;
+  gap: var(--base-size-12);
+  min-width: 220px;
+}
+
+.title {
+  font-size: var(--text-body-size-medium);
+  color: var(--fgColor-default);
+  margin-bottom: var(--base-size-4);
+}
+
+.divider {
+  height: 1px;
+  background: var(--borderColor-muted);
+  margin: var(--base-size-4) 0;
+}
