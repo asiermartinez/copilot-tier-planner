@@ -321,6 +321,7 @@ export function generateThresholdAlerts(
         threshold.static &&
         (!existingFrozenState ||
           existingFrozenState.planName !== context.planName ||
+          existingFrozenState.limit !== context.limit ||
           (threshold.areas.includes("quota") &&
             existingFrozenState.percentage !== threshold.percentage) ||
           (threshold.areas.includes("overage") &&

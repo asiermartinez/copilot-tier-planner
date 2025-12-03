@@ -16,7 +16,7 @@ export default function EdgeFilters() {
   return (
     <div className={styles.container}>
       <Text className={styles.title} weight="semibold">
-        Show Connections
+        Show paths
       </Text>
       <Stack direction="vertical" gap="condensed">
         <FormControl>
@@ -26,21 +26,21 @@ export default function EdgeFilters() {
               updateEdgeFilters({ showUpgrades: e.target.checked })
             }
           />
-          <FormControl.Label>Upgrade Paths</FormControl.Label>
+          <FormControl.Label>Upgrade</FormControl.Label>
         </FormControl>
         <FormControl>
           <Checkbox
             checked={edgeFilters.showBudget}
             onChange={e => updateEdgeFilters({ showBudget: e.target.checked })}
           />
-          <FormControl.Label>Budget Options</FormControl.Label>
+          <FormControl.Label>Overages</FormControl.Label>
         </FormControl>
         <FormControl>
           <Checkbox
             checked={edgeFilters.showOrgJoin}
             onChange={e => updateEdgeFilters({ showOrgJoin: e.target.checked })}
           />
-          <FormControl.Label>Join Organization</FormControl.Label>
+          <FormControl.Label>Org and enterprise upgrade</FormControl.Label>
         </FormControl>
       </Stack>
 
@@ -52,7 +52,7 @@ export default function EdgeFilters() {
             checked={highlightDesiredPaths}
             onChange={toggleHighlightDesiredPaths}
           />
-          <FormControl.Label>Highlight Recommended Paths</FormControl.Label>
+          <FormControl.Label>Recommended paths</FormControl.Label>
         </FormControl>
       </Stack>
     </div>

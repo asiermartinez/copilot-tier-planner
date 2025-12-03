@@ -10,7 +10,7 @@ import type {
   ResourceUsage,
   OverageBudget,
 } from "@/types/userState";
-import type { SkuId } from "@/types/sku";
+import type { SkuId, Sku } from "@/types/sku";
 import { getSkuById } from "@/data/skus";
 import { getOveragePricePerRequest } from "@/utils/skuHelpers";
 
@@ -60,6 +60,8 @@ interface GenerateUserStateOptions {
   id: string;
   timestamp: string;
   skuId: SkuId;
+  /** Optional pre-merged SKU (for variations) - if not provided, will fetch from SKU_MAP */
+  sku?: Sku;
   account: AccountInfo;
   billing: BillingInfo;
   billingPeriod: BillingPeriodInfo;
@@ -224,7 +226,8 @@ function generateOverageBudget(
 export function generateUserState(
   options: GenerateUserStateOptions
 ): UserState {
-  const sku = getSkuById(options.skuId);
+  // Use provided SKU (with variations) or fetch base SKU
+  const sku = options.sku || getSkuById(options.skuId);
 
   const premiumRequestsCurrent = options.usage.premiumRequests ?? 0;
   const chatMessagesCurrent = options.usage.chatMessages ?? 0;

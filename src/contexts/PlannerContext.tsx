@@ -199,6 +199,7 @@ function generateStateFromSimple(
     id: `state-${Date.now()}`,
     timestamp: new Date().toISOString(), // Always use current time for timestamp
     skuId: simple.skuId,
+    sku, // Pass merged SKU with variations
     account: {
       userId: "user-playground",
       username: "playground-user",
@@ -348,6 +349,31 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
 
   // Debounce URL updates to prevent rate limiting
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Memoize stringified variations for dependency tracking
+  const skuVariationsKey = useMemo(
+    () => JSON.stringify(currentScenario.skuVariations),
+    [currentScenario.skuVariations]
+  );
+
+  // Regenerate user state when SKU variations change for the current SKU
+  useEffect(() => {
+    setUserState(prevState => {
+      const currentSkuId = prevState.subscription.skuId;
+      const variation = currentScenario.skuVariations?.[currentSkuId];
+      const simpleState = toSimpleState(prevState);
+      const newState = generateStateFromSimple(simpleState, variation);
+
+      // Only update if the limits actually changed (to avoid infinite loops)
+      const oldLimit = prevState.usage.premiumRequests.limit;
+      const newLimit = newState.usage.premiumRequests.limit;
+
+      if (oldLimit !== newLimit) {
+        return newState;
+      }
+      return prevState;
+    });
+  }, [skuVariationsKey, currentScenario.skuVariations]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
