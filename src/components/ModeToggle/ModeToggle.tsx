@@ -20,10 +20,10 @@ export default function ModeToggle() {
       size="small"
     >
       <SegmentedControl.Button selected={viewMode === "messages"}>
-        Messages
+        Threshold builder
       </SegmentedControl.Button>
       <SegmentedControl.Button selected={viewMode === "visual"}>
-        Visual
+        Plan builder
       </SegmentedControl.Button>
     </SegmentedControl>
   );
