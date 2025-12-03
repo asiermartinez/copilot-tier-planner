@@ -105,12 +105,3 @@
 }
 
 /* Desired path indicator */
-.desiredIndicator {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  font-size: 10px;
-  line-height: 1;
-  cursor: help;
-  opacity: 0.6;
-}

@@ -221,13 +221,24 @@ export function ScenarioProvider({ children }: ScenarioProviderProps) {
   );
 
   // Mark an edge as desired/recommended
+  // Only one edge from the same source can be marked as desired
   const setDesiredPath = useCallback(
     (edgeId: string, desired: boolean) => {
+      // Find the edge being marked
+      const targetEdge = currentScenario.edges.find(e => e.id === edgeId);
+      if (!targetEdge) return;
+
       const updated = {
         ...currentScenario,
-        edges: currentScenario.edges.map(e =>
-          e.id === edgeId ? { ...e, desired } : e
-        ),
+        edges: currentScenario.edges.map(e => {
+          // If marking as desired, unmark all other edges from the same source
+          if (e.id === edgeId) {
+            return { ...e, desired };
+          } else if (desired && e.source === targetEdge.source) {
+            return { ...e, desired: false };
+          }
+          return e;
+        }),
         modifiedAt: new Date().toISOString(),
       };
       updateCurrentScenario(updated);

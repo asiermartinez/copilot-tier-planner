@@ -1,0 +1,18 @@
+/**
+ * Custom Edge Styles
+ * Includes marching ants animation for desired paths
+ */
+
+/* Marching ants animation for desired upgrade paths */
+@keyframes marchingAnts {
+  0% {
+    stroke-dashoffset: 12;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.marchingAnts {
+  animation: marchingAnts 0.5s linear infinite;
+}

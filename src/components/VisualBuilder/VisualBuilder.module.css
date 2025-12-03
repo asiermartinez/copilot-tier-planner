@@ -45,21 +45,21 @@
 }
 
 /* React Flow overrides for better integration */
-:global(.react-flow__node) {
+.visualBuilder :global(.react-flow__node) {
   cursor: pointer;
 }
 
 /* Edge path styling with smooth curves - GitHub style */
-:global(.react-flow__edge) {
+.visualBuilder :global(.react-flow__edge) {
   cursor: pointer;
   transition: opacity 0.15s ease;
 }
 
-:global(.react-flow__edge:active) {
+.visualBuilder :global(.react-flow__edge:active) {
   opacity: 0.6;
 }
 
-:global(.react-flow__edge-path) {
+.visualBuilder :global(.react-flow__edge-path) {
   stroke-linecap: round;
   stroke-linejoin: round;
   transition:
@@ -68,13 +68,13 @@
 }
 
 /* Edge labels - subtle and minimal */
-:global(.react-flow__edge-text) {
+.visualBuilder :global(.react-flow__edge-text) {
   font-size: 11px;
   font-weight: var(--base-text-weight-normal);
   fill: var(--fgColor-muted);
 }
 
-:global(.react-flow__edge-textbg) {
+.visualBuilder :global(.react-flow__edge-textbg) {
   fill: var(--bgColor-default);
   fill-opacity: 0.9;
   stroke: none;
@@ -82,32 +82,32 @@
 }
 
 /* Show labels by default */
-:global(.react-flow__edge-text) {
+.visualBuilder :global(.react-flow__edge-text) {
   opacity: 1;
 }
 
-:global(.react-flow__edge-textbg) {
+.visualBuilder :global(.react-flow__edge-textbg) {
   opacity: 0.9;
 }
 
 /* Edge arrows are handled by CustomEdge component */
 
 /* Background pattern customization - white with dotted pattern */
-:global(.react-flow__background) {
+.visualBuilder :global(.react-flow__background) {
   background-color: #ffffff !important;
 }
 
-:global(.react-flow__background circle) {
+.visualBuilder :global(.react-flow__background circle) {
   fill: #d0d7de !important;
   opacity: 1 !important;
 }
 
 /* Selection styling */
-:global(.react-flow__node.selected) {
+.visualBuilder :global(.react-flow__node.selected) {
   outline: none;
 }
 
-:global(.react-flow__edge.selected .react-flow__edge-path) {
+.visualBuilder :global(.react-flow__edge.selected .react-flow__edge-path) {
   stroke: var(--borderColor-accent-emphasis) !important;
 }
 

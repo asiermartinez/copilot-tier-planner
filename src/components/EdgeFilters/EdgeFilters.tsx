@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Stack, Checkbox, Text, FormControl } from "@primer/react";
 import { useScenario } from "@/contexts";
 import styles from "./EdgeFilters.module.css";
@@ -12,6 +13,23 @@ export default function EdgeFilters() {
     useScenario();
 
   const { edgeFilters, highlightDesiredPaths } = visualState;
+
+  // Listen for auto-enable event from threshold triggers
+  useEffect(() => {
+    const handleAutoEnable = () => {
+      if (!highlightDesiredPaths) {
+        toggleHighlightDesiredPaths();
+      }
+    };
+
+    window.addEventListener("auto-enable-recommended-paths", handleAutoEnable);
+    return () => {
+      window.removeEventListener(
+        "auto-enable-recommended-paths",
+        handleAutoEnable
+      );
+    };
+  }, [highlightDesiredPaths, toggleHighlightDesiredPaths]);
 
   return (
     <div className={styles.container}>

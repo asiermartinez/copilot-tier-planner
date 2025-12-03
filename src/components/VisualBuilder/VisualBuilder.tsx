@@ -22,6 +22,7 @@ import CustomEdge from "./CustomEdge";
 import EdgeFilters from "@/components/EdgeFilters";
 import NodeEditor from "@/components/NodeEditor";
 import styles from "./VisualBuilder.module.css";
+import { getHighestPriorityAlert } from "@/utils/alerts/generateThresholdAlerts";
 
 /**
  * Node type registry for React Flow
@@ -42,13 +43,47 @@ const edgeTypes = {
  * Main Visual Builder component - displays SKU hierarchy as interactive graph
  */
 export default function VisualBuilder() {
-  const { updateAccountTypeAndSku, updateOverageBudget, userState } =
-    usePlanner();
-  const { currentScenario, visualState } = useScenario();
+  const {
+    updateAccountTypeAndSku,
+    updateOverageBudget,
+    userState,
+    thresholdsConfig,
+  } = usePlanner();
+  const { currentScenario, visualState, setDesiredPath, updateEdgeFilters } =
+    useScenario();
 
   // Node editor state
   const [selectedSkuId, setSelectedSkuId] = useState<SkuId | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
+
+  // Track selected edge for marking as desired
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+
+  // Auto-enable recommended paths checkbox when threshold is reached
+  useEffect(() => {
+    const highestAlert = getHighestPriorityAlert(userState, thresholdsConfig);
+
+    // If we have a critical alert (100% quota or overages), enable recommended paths
+    if (highestAlert && !visualState.highlightDesiredPaths) {
+      const alertMessage = highestAlert.message.toLowerCase();
+      const isCritical =
+        alertMessage.includes("100%") ||
+        alertMessage.includes("overage") ||
+        alertMessage.includes("exceeded");
+
+      if (isCritical) {
+        updateEdgeFilters({ ...visualState.edgeFilters });
+        // Enable the checkbox by updating visual state
+        window.dispatchEvent(new CustomEvent("auto-enable-recommended-paths"));
+      }
+    }
+  }, [
+    userState,
+    thresholdsConfig,
+    visualState.highlightDesiredPaths,
+    visualState.edgeFilters,
+    updateEdgeFilters,
+  ]);
 
   // Build nodes from SKU hierarchy - horizontal layout
   const initialNodes: Node<SkuNodeData>[] = useMemo(
@@ -148,6 +183,11 @@ export default function VisualBuilder() {
       );
     };
 
+    // Handler for marking edge as desired
+    const handleMarkDesired = (edgeId: string, desired: boolean) => {
+      setDesiredPath(edgeId, desired);
+    };
+
     return currentScenario.edges
       .filter(edge => {
         // Apply edge type filters
@@ -168,6 +208,16 @@ export default function VisualBuilder() {
         const isDesired = edge.desired === true;
         const isBudget = edge.type === EdgeType.BUDGET;
 
+        // Determine if this edge should animate
+        // Only animate if:
+        // 1. Edge is marked as desired
+        // 2. Recommended paths checkbox is enabled
+        // 3. The source node is currently selected
+        const shouldAnimate =
+          isDesired &&
+          highlightDesiredPaths &&
+          edge.source === userState.subscription.skuId;
+
         // Determine edge styling based on type and state
         let edgeStyle: {
           stroke: string;
@@ -186,26 +236,29 @@ export default function VisualBuilder() {
           };
         }
 
-        if (isDesired && highlightDesiredPaths) {
-          edgeStyle = {
-            stroke: "var(--borderColor-accent-emphasis)",
-            strokeWidth: 2,
-          };
-        }
-
         if (edge.type === EdgeType.ORG_JOIN) {
           edgeStyle.strokeDasharray = "4,4";
           edgeStyle.stroke = "var(--borderColor-default)";
         }
 
         // Determine edge type for better routing
-        let edgeType = "default"; // Use default bezier curves
-        let edgeData = {};
+        const edgeType = isBudget ? "smoothstep" : "default";
+        const edgeData: {
+          desired: boolean;
+          shouldAnimate: boolean;
+          onMarkDesired: (edgeId: string, desired: boolean) => void;
+          showMarkButton: boolean;
+          type?: string;
+        } = {
+          desired: isDesired,
+          shouldAnimate: shouldAnimate,
+          onMarkDesired: handleMarkDesired,
+          showMarkButton: highlightDesiredPaths,
+        };
 
         // Budget edges use smoothstep to route around the card
         if (isBudget) {
-          edgeType = "smoothstep";
-          edgeData = { type: "smoothstep" };
+          edgeData.type = "smoothstep";
         }
 
         // Smart handle selection based on node positions
@@ -265,9 +318,10 @@ export default function VisualBuilder() {
           target: edge.target,
           type: edgeType,
           label: edge.label,
-          animated: isDesired && highlightDesiredPaths,
+          animated: false, // We use CSS animation instead
           style: edgeStyle,
           data: edgeData,
+          selected: edge.id === selectedEdgeId,
           // Add offset for budget loops to route around the card
           ...(isBudget
             ? {
@@ -280,7 +334,14 @@ export default function VisualBuilder() {
           ...edgeHandles,
         };
       });
-  }, [currentScenario.edges, visualState, initialNodes]);
+  }, [
+    currentScenario.edges,
+    visualState,
+    initialNodes,
+    userState.subscription.skuId,
+    selectedEdgeId,
+    setDesiredPath,
+  ]);
 
   const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -333,9 +394,12 @@ export default function VisualBuilder() {
     setSelectedSkuId(null);
   }, []);
 
-  // Handle edge click - transition to target SKU or enable overage budget
+  // Handle edge click - select edge for marking as desired and navigate to target
   const onEdgeClick = useCallback(
     (event: React.MouseEvent, edge: Edge) => {
+      // Toggle edge selection (for showing mark/unmark button)
+      setSelectedEdgeId(prev => (prev === edge.id ? null : edge.id));
+
       // Find the target SKU from the edge
       const targetSkuId = edge.target as SkuId;
 
@@ -348,10 +412,9 @@ export default function VisualBuilder() {
         if (!currentOverageBudget) {
           updateOverageBudget(10); // Default $10 budget
         }
-        return;
       }
 
-      // Determine account type based on target SKU
+      // For all edges (including budget), ensure we're on the target node
       let accountType: "individual" | "organization" | "enterprise" =
         "individual";
 
@@ -366,6 +429,11 @@ export default function VisualBuilder() {
     },
     [updateAccountTypeAndSku, updateOverageBudget, userState.overageBudget]
   );
+
+  // Handle canvas click - deselect edge
+  const onPaneClick = useCallback(() => {
+    setSelectedEdgeId(null);
+  }, []);
 
   return (
     <div className={styles.visualBuilder}>
@@ -388,6 +456,7 @@ export default function VisualBuilder() {
         onEdgesChange={onEdgesChange}
         onNodeClick={onNodeClick}
         onEdgeClick={onEdgeClick}
+        onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         connectionMode={ConnectionMode.Loose}
@@ -396,7 +465,7 @@ export default function VisualBuilder() {
           animated: false,
           style: { strokeWidth: 2 },
         }}
-        edgesFocusable={false}
+        edgesFocusable={true}
         nodesDraggable={true}
         nodesConnectable={false}
         minZoom={0.3}

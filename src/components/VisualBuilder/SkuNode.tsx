@@ -30,7 +30,7 @@ function SkuNode({
   selected?: boolean;
 }) {
   const { userState } = usePlanner();
-  const { getDesiredEdge, currentScenario } = useScenario();
+  const { currentScenario } = useScenario();
 
   const skuId = data.skuId;
   const baseSku = SKU_MAP[skuId];
@@ -49,7 +49,6 @@ function SkuNode({
   };
 
   const isCurrentSku = userState.subscription.skuId === skuId;
-  const hasDesiredPath = getDesiredEdge(skuId) !== null;
   const isModified = variation && Object.keys(variation).length > 0;
 
   // Determine node styling based on state
@@ -174,13 +173,6 @@ function SkuNode({
               : `${sku.limits.premiumRequestsPerMonth} premium requests`}
           </div>
         </div>
-
-        {/* Desired path indicator */}
-        {hasDesiredPath && (
-          <div className={styles.desiredIndicator} title="Recommended path">
-            ⭐
-          </div>
-        )}
       </div>
     </>
   );
