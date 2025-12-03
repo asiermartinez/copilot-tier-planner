@@ -70,7 +70,7 @@ export default function EdgeFilters() {
             checked={highlightDesiredPaths}
             onChange={toggleHighlightDesiredPaths}
           />
-          <FormControl.Label>Recommended paths</FormControl.Label>
+          <FormControl.Label>Suggested upgrade paths</FormControl.Label>
         </FormControl>
       </Stack>
     </div>
