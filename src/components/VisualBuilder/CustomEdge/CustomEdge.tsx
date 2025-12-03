@@ -168,7 +168,7 @@ export default function CustomEdge({
               size="small"
               variant={isDesired ? "primary" : "default"}
               icon={isDesired ? StarFillIcon : StarIcon}
-              aria-label={isDesired ? "Desired path" : "Mark as desired"}
+              aria-label={isDesired ? "Suggested upgrade" : "Mark as suggested"}
               onClick={e => {
                 e.stopPropagation();
                 if (onMarkDesired) {
