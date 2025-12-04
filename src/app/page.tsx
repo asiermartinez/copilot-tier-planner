@@ -5,6 +5,7 @@ import { Button } from "@primer/react";
 
 import PlanSelector from "@/components/PlanSelector";
 import type { SkuId } from "@/types/sku";
+import type { AccountType } from "@/types/userState";
 import ViewToggle from "@/components/ViewToggle";
 import StatePayloadView from "@/components/StatePayloadView";
 import UIMessagesView from "@/components/UIMessagesView";
@@ -17,8 +18,6 @@ import { usePlanner, useScenario } from "@/contexts";
 import styles from "./page.module.css";
 
 type ViewToggleMode = "messages" | "payload";
-
-type AccountType = "individual" | "organization" | "enterprise";
 
 export default function RootPage() {
   const {

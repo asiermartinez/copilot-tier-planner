@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { ActionMenu, ActionList, Button } from "@primer/react";
 import { TriangleDownIcon } from "@primer/octicons-react";
-
-type AccountType = "individual" | "organization" | "enterprise";
+import type { AccountType } from "@/types/userState";
 
 interface AccountTypeSelectorProps {
   value: AccountType;

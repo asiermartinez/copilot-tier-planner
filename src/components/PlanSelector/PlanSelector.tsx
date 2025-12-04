@@ -10,8 +10,7 @@ import {
 } from "@/data/skus";
 import { useScenario } from "@/contexts";
 import { useMemo } from "react";
-
-type AccountType = "individual" | "organization" | "enterprise";
+import type { AccountType } from "@/types/userState";
 
 interface PlanSelectorProps {
   skuId: SkuId;

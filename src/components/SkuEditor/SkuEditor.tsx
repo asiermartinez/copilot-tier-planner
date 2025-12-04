@@ -120,8 +120,10 @@ export default function SkuEditor() {
     if (!currentSkuId || !baseSku) return;
 
     if (isCustomSku && customSku) {
-      const monthlyUsd =
-        parseFloat(monthlyPrice) || customSku.pricing.monthlyUsd;
+      const parsedPrice = parseFloat(monthlyPrice);
+      const monthlyUsd = isNaN(parsedPrice)
+        ? customSku.pricing.monthlyUsd
+        : parsedPrice;
       const newTier = inferTierFromPrice(monthlyUsd, audience);
 
       // Check if audience or tier changed
@@ -141,9 +143,9 @@ export default function SkuEditor() {
         },
         limits: {
           ...customSku.limits,
-          premiumRequestsPerMonth:
-            parseInt(premiumRequests) ||
-            customSku.limits.premiumRequestsPerMonth,
+          premiumRequestsPerMonth: isNaN(parseInt(premiumRequests))
+            ? customSku.limits.premiumRequestsPerMonth
+            : parseInt(premiumRequests),
         },
       };
 
@@ -154,15 +156,21 @@ export default function SkuEditor() {
       updateCustomSku(currentSkuId, updatedSku);
     } else {
       // For built-in SKUs, create a variation
+      const parsedPrice = parseFloat(monthlyPrice);
+      const parsedRequests = parseInt(premiumRequests);
+
       const newVariation: SkuVariation = {
         pricing: {
           ...baseSku.pricing,
-          monthlyUsd: parseFloat(monthlyPrice) || baseSku.pricing.monthlyUsd,
+          monthlyUsd: isNaN(parsedPrice)
+            ? baseSku.pricing.monthlyUsd
+            : parsedPrice,
         },
         limits: {
           ...baseSku.limits,
-          premiumRequestsPerMonth:
-            parseInt(premiumRequests) || baseSku.limits.premiumRequestsPerMonth,
+          premiumRequestsPerMonth: isNaN(parsedRequests)
+            ? baseSku.limits.premiumRequestsPerMonth
+            : parsedRequests,
         },
       };
       updateSkuVariation(currentSkuId, newVariation);

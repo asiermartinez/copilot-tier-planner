@@ -7,15 +7,14 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   ReactNode,
 } from "react";
-import type { UserState, SimpleUserState } from "@/types/userState";
-import type { SkuId, Sku } from "@/types/sku";
-import { getSkuById } from "@/data/skus";
-import { generateUserState } from "@/utils/mockStateGenerator";
-import { DEFAULT_ALERT_THRESHOLDS } from "@/data/alertThresholds";
-import type { SkuVariation } from "@/types/scenario";
+import type {
+  UserState,
+  SimpleUserState,
+  AccountType,
+} from "@/types/userState";
+import type { SkuId } from "@/types/sku";
 import type {
   CustomMessages,
   CustomThresholds,
@@ -27,6 +26,13 @@ import {
   clearStaticBannerStates,
 } from "@/utils/alerts/generateThresholdAlerts";
 import { useScenario } from "./ScenarioContext";
+import { usePlannerState } from "@/hooks/usePlannerState";
+import { useUrlState } from "@/hooks/useUrlState";
+import {
+  getDefaultSimpleState,
+  toSimpleState,
+  generateStateFromSimple,
+} from "@/utils/simpleStateHelpers";
 
 /**
  * Set of dismissed alert IDs
@@ -71,15 +77,10 @@ interface PlannerContextValue {
   updateSku: (skuId: SkuId) => void;
 
   /** Update account type (generates new state) */
-  updateAccountType: (
-    accountType: "individual" | "organization" | "enterprise"
-  ) => void;
+  updateAccountType: (accountType: AccountType) => void;
 
   /** Update account type and SKU together (generates new state) */
-  updateAccountTypeAndSku: (
-    accountType: "individual" | "organization" | "enterprise",
-    skuId: SkuId
-  ) => void;
+  updateAccountTypeAndSku: (accountType: AccountType, skuId: SkuId) => void;
 
   /** Update number of seats (for org/enterprise) */
   updateSeats: (seats: number) => void;
@@ -126,179 +127,6 @@ const PlannerContext = createContext<PlannerContextValue | undefined>(
 );
 
 /**
- * Default simple state (FREE individual user, no usage)
- */
-const getDefaultSimpleState = (): SimpleUserState => {
-  const now = new Date();
-  const currentDay = now.getDate();
-
-  return {
-    skuId: "free",
-    accountType: "individual",
-    premiumRequestsUsed: 0,
-    chatMessagesUsed: 0,
-    codeCompletionsUsed: 0,
-    overageBudgetUsd: null,
-    daysIntoPeriod: currentDay,
-    currentTimestamp: now.toISOString(),
-  };
-};
-
-/**
- * Generate full UserState from SimpleUserState
- */
-function generateStateFromSimple(
-  simple: SimpleUserState,
-  skuVariation?: SkuVariation,
-  customSkus?: Sku[]
-): UserState {
-  const accountType = simple.accountType;
-
-  // Get base SKU from built-in SKUs or custom SKUs
-  let baseSku: Sku | undefined = getSkuById(simple.skuId);
-
-  // If not found in built-in SKUs, check custom SKUs
-  if (!baseSku && customSkus) {
-    baseSku = customSkus.find(sku => sku.id === simple.skuId);
-  }
-
-  // If still not found, default to FREE plan (guaranteed to exist in built-in SKUs)
-  if (!baseSku) {
-    console.warn(`SKU not found: ${simple.skuId}, defaulting to FREE plan`);
-    baseSku = getSkuById("free")!;
-  }
-
-  const sku: Sku = {
-    ...baseSku,
-    ...(skuVariation || {}),
-    pricing: skuVariation?.pricing
-      ? { ...baseSku.pricing, ...skuVariation.pricing }
-      : baseSku.pricing,
-    limits: skuVariation?.limits
-      ? { ...baseSku.limits, ...skuVariation.limits }
-      : baseSku.limits,
-  };
-
-  const allowsOverageBudget =
-    sku.limits.premiumRequestsOveragePolicy?.allowBudgetCap ?? false;
-
-  // Use fixed timestamp if available, otherwise create new one
-  const now = simple.currentTimestamp
-    ? new Date(simple.currentTimestamp)
-    : new Date();
-
-  // Calculate billing dates based on days into period
-  const daysIntoPeriod = simple.daysIntoPeriod ?? now.getDate();
-
-  // Calculate billing start by subtracting days into period from today
-  // Use timestamp arithmetic to avoid month boundary issues
-  const billingStart = new Date(
-    now.getTime() - daysIntoPeriod * 24 * 60 * 60 * 1000
-  );
-  billingStart.setHours(0, 0, 0, 0);
-
-  // Calculate billing end (exactly one month from billing start)
-  const billingEnd = new Date(billingStart);
-  billingEnd.setMonth(billingEnd.getMonth() + 1);
-  billingEnd.setHours(0, 0, 0, 0);
-
-  // Calculate total days in period
-  const totalDays = Math.round(
-    (billingEnd.getTime() - billingStart.getTime()) / (1000 * 60 * 60 * 24)
-  );
-  const daysRemaining = Math.max(0, totalDays - daysIntoPeriod);
-
-  return generateUserState({
-    id: `state-${Date.now()}`,
-    timestamp: new Date().toISOString(), // Always use current time for timestamp
-    skuId: simple.skuId,
-    sku, // Pass merged SKU with variations
-    account: {
-      userId: "user-playground",
-      username: "playground-user",
-      accountType,
-      email: "user@example.com",
-      organizationName:
-        accountType === "organization" || accountType === "enterprise"
-          ? "Example Org"
-          : undefined,
-      seats: simple.seats ?? (accountType === "individual" ? undefined : 10),
-    },
-    billing: {
-      startDate: billingStart.toISOString(),
-      status: "active",
-      billingFrequency: "monthly",
-      autoRenew: true,
-      nextRenewalDate: billingEnd.toISOString(),
-    },
-    billingPeriod: {
-      startDate: billingStart.toISOString(),
-      endDate: billingEnd.toISOString(),
-      daysRemaining,
-    },
-    usage: {
-      premiumRequests: simple.premiumRequestsUsed,
-      chatMessages: simple.chatMessagesUsed ?? 0,
-      codeCompletions: simple.codeCompletionsUsed ?? 0,
-    },
-    overageBudget:
-      allowsOverageBudget &&
-      simple.overageBudgetUsd !== null &&
-      simple.overageBudgetUsd !== undefined
-        ? {
-            maxBudgetUsd: simple.overageBudgetUsd,
-            alertThresholds: DEFAULT_ALERT_THRESHOLDS,
-          }
-        : null,
-  });
-}
-
-/**
- * Convert UserState to SimpleUserState for URL encoding
- */
-function toSimpleState(state: UserState): SimpleUserState {
-  const simpleState: SimpleUserState = {
-    skuId: state.subscription.skuId,
-    accountType: state.account.accountType,
-    premiumRequestsUsed: state.usage.premiumRequests.current,
-    chatMessagesUsed: state.usage.chatMessages.current,
-    codeCompletionsUsed: state.usage.codeCompletions.current,
-    overageBudgetUsd: state.overageBudget?.maxBudgetUsd ?? null,
-    daysIntoPeriod:
-      state.billingPeriod.daysInPeriod - state.billingPeriod.daysRemaining,
-    currentTimestamp: state.timestamp,
-  };
-
-  // Only include seats for organization and enterprise accounts
-  if (state.account.accountType !== "individual" && state.account.seats) {
-    simpleState.seats = state.account.seats;
-  }
-
-  return simpleState;
-}
-
-/**
- * Encode simple state to Base64 for URL
- */
-function encodeStateToUrl(state: SimpleUserState): string {
-  const json = JSON.stringify(state);
-  return btoa(json);
-}
-
-/**
- * Decode simple state from Base64 URL parameter
- */
-function decodeStateFromUrl(encoded: string): SimpleUserState | null {
-  try {
-    const json = atob(encoded);
-    const state = JSON.parse(json);
-    return state;
-  } catch {
-    return null;
-  }
-}
-
-/**
  * Provider component props
  */
 interface PlannerProviderProps {
@@ -311,6 +139,50 @@ interface PlannerProviderProps {
 export function PlannerProvider({ children }: PlannerProviderProps) {
   // Access scenario context for SKU variations
   const { currentScenario } = useScenario();
+
+  // URL state management
+  const { readFromUrl, updateUrl } = useUrlState();
+
+  // Initialize state from URL or default
+  const getInitialState = (): UserState => {
+    const urlState = readFromUrl();
+    if (urlState) {
+      const variation = currentScenario.skuVariations?.[urlState.skuId];
+      return generateStateFromSimple(
+        urlState,
+        variation,
+        currentScenario.customSkus
+      );
+    }
+    const defaultState = getDefaultSimpleState();
+    const variation = currentScenario.skuVariations?.[defaultState.skuId];
+    return generateStateFromSimple(
+      defaultState,
+      variation,
+      currentScenario.customSkus
+    );
+  };
+
+  // State management with reducer pattern
+  const {
+    state: userState,
+    updateSku,
+    updateAccountType,
+    updateAccountTypeAndSku,
+    updateSeats,
+    updatePremiumRequests,
+    updateChatMessages,
+    updateCodeCompletions,
+    updateOverageBudget,
+    updateDaysIntoPeriod,
+    updateThresholdData,
+    setState,
+    loadFromSimpleState,
+  } = usePlannerState({
+    initialState: getInitialState(),
+    skuVariations: currentScenario.skuVariations,
+    customSkus: currentScenario.customSkus,
+  });
 
   // Custom messages and thresholds state
   const [customMessages, setCustomMessages] = useState<
@@ -342,35 +214,6 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
     clearStaticBannerStates();
   }, []);
 
-  // Initialize state from URL or default
-  const [userState, setUserState] = useState<UserState>(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const encoded = params.get("state");
-      if (encoded) {
-        const simpleState = decodeStateFromUrl(encoded);
-        if (simpleState) {
-          const variation = currentScenario.skuVariations?.[simpleState.skuId];
-          return generateStateFromSimple(
-            simpleState,
-            variation,
-            currentScenario.customSkus
-          );
-        }
-      }
-    }
-    const defaultState = getDefaultSimpleState();
-    const variation = currentScenario.skuVariations?.[defaultState.skuId];
-    return generateStateFromSimple(
-      defaultState,
-      variation,
-      currentScenario.customSkus
-    );
-  });
-
-  // Debounce URL updates to prevent rate limiting
-  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
   // Memoize stringified variations for dependency tracking
   const skuVariationsKey = useMemo(
     () => JSON.stringify(currentScenario.skuVariations),
@@ -379,61 +222,37 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
 
   // Regenerate user state when SKU variations change for the current SKU
   useEffect(() => {
-    setUserState(prevState => {
-      const currentSkuId = prevState.subscription.skuId;
-      const variation = currentScenario.skuVariations?.[currentSkuId];
-      const simpleState = toSimpleState(prevState);
-      const newState = generateStateFromSimple(
-        simpleState,
-        variation,
-        currentScenario.customSkus
-      );
+    const currentSkuId = userState.subscription.skuId;
+    const variation = currentScenario.skuVariations?.[currentSkuId];
+    const simpleState = toSimpleState(userState);
+    const newState = generateStateFromSimple(
+      simpleState,
+      variation,
+      currentScenario.customSkus
+    );
 
-      // Only update if the limits actually changed (to avoid infinite loops)
-      const oldLimit = prevState.usage.premiumRequests.limit;
-      const newLimit = newState.usage.premiumRequests.limit;
+    // Only update if the limits actually changed (to avoid infinite loops)
+    const oldLimit = userState.usage.premiumRequests.limit;
+    const newLimit = newState.usage.premiumRequests.limit;
 
-      if (oldLimit !== newLimit) {
-        return newState;
-      }
-      return prevState;
-    });
+    if (oldLimit !== newLimit) {
+      setState(newState);
+    }
   }, [
     skuVariationsKey,
     currentScenario.skuVariations,
     currentScenario.customSkus,
+    userState,
+    setState,
   ]);
 
+  // Sync state to URL
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    const simpleState = toSimpleState(userState);
+    updateUrl(simpleState);
+  }, [userState, updateUrl]);
 
-    // Clear any existing timeout
-    if (updateTimeoutRef.current) {
-      clearTimeout(updateTimeoutRef.current);
-    }
-
-    // Set a new timeout to update URL after 500ms of inactivity
-    updateTimeoutRef.current = setTimeout(() => {
-      const simpleState = toSimpleState(userState);
-      const encoded = encodeStateToUrl(simpleState);
-      const params = new URLSearchParams(window.location.search);
-      params.set("state", encoded);
-
-      const newUrl = `${window.location.pathname}?${params.toString()}`;
-      window.history.replaceState({}, "", newUrl);
-    }, 500);
-
-    // Cleanup on unmount
-    return () => {
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
-      }
-    };
-  }, [userState]);
-
-  /**
-   * Update userState with threshold-related data whenever thresholds config or plan changes
-   */
+  // Update userState with threshold-related data whenever thresholds config or plan changes
   useEffect(() => {
     const alert = getHighestPriorityAlert(
       userState,
@@ -443,7 +262,6 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
     const lastCrossedThresholdMessage = alert?.message ?? undefined;
 
     const currentSkuId = userState.subscription.skuId;
-    // const currentAccountType = userState.account.accountType;
 
     // Extract quota thresholds for premium requests (filtered by plan and area)
     const quotaThresholds = Array.from(
@@ -504,27 +322,14 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
           userState.overageBudget.lastCrossedThreshold !== overageLastCrossed));
 
     if (needsUpdate) {
-      setUserState(prev => ({
-        ...prev,
-        usage: {
-          ...prev.usage,
-          premiumRequests: {
-            ...prev.usage.premiumRequests,
-            alertThresholds:
-              quotaThresholds.length > 0 ? quotaThresholds : null,
-            lastCrossedThreshold: premiumLastCrossed,
-            lastCrossedThresholdMessage,
-          },
-        },
-        overageBudget: prev.overageBudget
-          ? {
-              ...prev.overageBudget,
-              alertThresholds:
-                overageThresholds.length > 0 ? overageThresholds : [],
-              lastCrossedThreshold: overageLastCrossed,
-            }
-          : null,
-      }));
+      updateThresholdData({
+        quotaThresholds: quotaThresholds.length > 0 ? quotaThresholds : null,
+        overageThresholds:
+          overageThresholds.length > 0 ? overageThresholds : [],
+        premiumLastCrossed,
+        overageLastCrossed,
+        lastCrossedThresholdMessage,
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -532,243 +337,38 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
     userState.subscription.skuId,
     userState.account.accountType,
     userState.usage.premiumRequests.percentageUsed,
+    userState.usage.premiumRequests.lastCrossedThresholdMessage,
+    userState.usage.premiumRequests.alertThresholds,
+    userState.usage.premiumRequests.lastCrossedThreshold,
     userState.overageBudget?.percentageConsumed,
+    userState.overageBudget?.alertThresholds,
+    userState.overageBudget?.lastCrossedThreshold,
     currentScenario.customSkus,
+    updateThresholdData,
   ]);
 
-  /**
-   * Update SKU and regenerate state
-   */
-  const updateSku = useCallback(
-    (skuId: SkuId) => {
-      const simpleState = toSimpleState(userState);
-      simpleState.skuId = skuId;
-
-      // Clear overage budget when switching to a SKU that doesn't allow budget caps
-      let sku = getSkuById(skuId);
-
-      // If not found in built-in SKUs, check custom SKUs
-      if (!sku && currentScenario.customSkus) {
-        sku = currentScenario.customSkus.find(s => s.id === skuId);
-      }
-
-      const allowsOverageBudget =
-        sku?.limits.premiumRequestsOveragePolicy?.allowBudgetCap ?? false;
-
-      if (!allowsOverageBudget) {
-        simpleState.overageBudgetUsd = null;
-      }
-
-      setUserState(
-        generateStateFromSimple(
-          simpleState,
-          undefined,
-          currentScenario.customSkus
-        )
-      );
-    },
-    [userState, currentScenario.customSkus]
-  );
-
-  /**
-   * Update account type and regenerate state
-   */
-  const updateAccountType = useCallback(
-    (newAccountType: "individual" | "organization" | "enterprise") => {
-      const simpleState = toSimpleState(userState);
-      simpleState.accountType = newAccountType;
-      setUserState(
-        generateStateFromSimple(
-          simpleState,
-          undefined,
-          currentScenario.customSkus
-        )
-      );
-    },
-    [userState, currentScenario.customSkus]
-  );
-
-  /**
-   * Update account type and SKU together in a single state change
-   */
-  const updateAccountTypeAndSku = useCallback(
-    (
-      newAccountType: "individual" | "organization" | "enterprise",
-      skuId: SkuId
-    ) => {
-      const simpleState = toSimpleState(userState);
-      simpleState.accountType = newAccountType;
-      simpleState.skuId = skuId;
-      const variation = currentScenario.skuVariations?.[skuId];
-      setUserState(
-        generateStateFromSimple(
-          simpleState,
-          variation,
-          currentScenario.customSkus
-        )
-      );
-    },
-    [userState, currentScenario.skuVariations, currentScenario.customSkus]
-  );
-
-  /**
-   * Update number of seats
-   */
-  const updateSeats = useCallback(
-    (seats: number) => {
-      const simpleState = toSimpleState(userState);
-      simpleState.seats = seats;
-      const variation = currentScenario.skuVariations?.[simpleState.skuId];
-      setUserState(
-        generateStateFromSimple(
-          simpleState,
-          variation,
-          currentScenario.customSkus
-        )
-      );
-    },
-    [userState, currentScenario.skuVariations, currentScenario.customSkus]
-  );
-
-  /**
-   * Update premium requests usage
-   */
-  const updatePremiumRequests = useCallback(
-    (used: number) => {
-      const simpleState = toSimpleState(userState);
-      simpleState.premiumRequestsUsed = used;
-      const variation = currentScenario.skuVariations?.[simpleState.skuId];
-      setUserState(
-        generateStateFromSimple(
-          simpleState,
-          variation,
-          currentScenario.customSkus
-        )
-      );
-    },
-    [userState, currentScenario.skuVariations, currentScenario.customSkus]
-  );
-
-  /**
-   * Update chat messages usage
-   */
-  const updateChatMessages = useCallback(
-    (used: number) => {
-      const simpleState = toSimpleState(userState);
-      simpleState.chatMessagesUsed = used;
-      const variation = currentScenario.skuVariations?.[simpleState.skuId];
-      setUserState(
-        generateStateFromSimple(
-          simpleState,
-          variation,
-          currentScenario.customSkus
-        )
-      );
-    },
-    [userState, currentScenario.skuVariations, currentScenario.customSkus]
-  );
-
-  /**
-   * Update code completions usage
-   */
-  const updateCodeCompletions = useCallback(
-    (used: number) => {
-      const simpleState = toSimpleState(userState);
-      simpleState.codeCompletionsUsed = used;
-      const variation = currentScenario.skuVariations?.[simpleState.skuId];
-      setUserState(
-        generateStateFromSimple(
-          simpleState,
-          variation,
-          currentScenario.customSkus
-        )
-      );
-    },
-    [userState, currentScenario.skuVariations, currentScenario.customSkus]
-  );
-
-  /**
-   * Update overage budget
-   */
-  const updateOverageBudget = useCallback(
-    (maxBudgetUsd: number | null) => {
-      const simpleState = toSimpleState(userState);
-      simpleState.overageBudgetUsd = maxBudgetUsd;
-      const variation = currentScenario.skuVariations?.[simpleState.skuId];
-      setUserState(
-        generateStateFromSimple(
-          simpleState,
-          variation,
-          currentScenario.customSkus
-        )
-      );
-    },
-    [userState, currentScenario.skuVariations, currentScenario.customSkus]
-  );
-
-  /**
-   * Update days into billing period
-   */
-  const updateDaysIntoPeriod = useCallback(
-    (days: number) => {
-      const simpleState = toSimpleState(userState);
-      simpleState.daysIntoPeriod = days;
-      const variation = currentScenario.skuVariations?.[simpleState.skuId];
-      setUserState(
-        generateStateFromSimple(
-          simpleState,
-          variation,
-          currentScenario.customSkus
-        )
-      );
-    },
-    [userState, currentScenario.skuVariations, currentScenario.customSkus]
-  );
-
-  /**
-   * Load a preset state (placeholder - will be implemented when presets are finalized)
-   */
+  // Load a preset state (placeholder - will be implemented when presets are finalized)
   const loadPreset = useCallback((presetId: string) => {
     // TODO: Import and load preset by ID when presets are available
     console.log("Loading preset:", presetId);
   }, []);
 
-  /**
-   * Reset to default state
-   */
+  // Reset to default state
   const reset = useCallback(() => {
-    setUserState(
-      generateStateFromSimple(
-        getDefaultSimpleState(),
-        undefined,
-        currentScenario.customSkus
-      )
+    const defaultState = getDefaultSimpleState();
+    const variation = currentScenario.skuVariations?.[defaultState.skuId];
+    const newState = generateStateFromSimple(
+      defaultState,
+      variation,
+      currentScenario.customSkus
     );
-  }, [currentScenario.customSkus]);
+    setState(newState);
+  }, [currentScenario.skuVariations, currentScenario.customSkus, setState]);
 
-  /**
-   * Get simplified state for URL sharing
-   */
+  // Get simplified state for URL sharing
   const getSimpleState = useCallback(() => {
     return toSimpleState(userState);
   }, [userState]);
-
-  /**
-   * Load state from simplified state object
-   */
-  const loadFromSimpleState = useCallback(
-    (simpleState: SimpleUserState) => {
-      const variation = currentScenario.skuVariations?.[simpleState.skuId];
-      setUserState(
-        generateStateFromSimple(
-          simpleState,
-          variation,
-          currentScenario.customSkus
-        )
-      );
-    },
-    [currentScenario.skuVariations, currentScenario.customSkus]
-  );
 
   const value = useMemo<PlannerContextValue>(
     () => ({

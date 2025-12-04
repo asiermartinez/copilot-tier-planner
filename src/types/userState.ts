@@ -8,6 +8,11 @@
 import { SkuId } from "./sku";
 
 /**
+ * Account type
+ */
+export type AccountType = "individual" | "organization" | "enterprise";
+
+/**
  * Billing period tracking
  */
 export interface BillingPeriod {
@@ -94,7 +99,7 @@ export interface AccountInfo {
   /** Username or display name */
   username: string;
   /** Account type */
-  accountType: "individual" | "organization" | "enterprise";
+  accountType: AccountType;
   /** Email address */
   email?: string;
   /** Organization name (for org/enterprise accounts) */
@@ -175,7 +180,7 @@ export interface SimpleUserState {
   /** Current SKU ID */
   skuId: SkuId;
   /** Account type */
-  accountType: "individual" | "organization" | "enterprise";
+  accountType: AccountType;
   /** Number of seats (for org plans) */
   seats?: number;
   /** Premium requests used this period */

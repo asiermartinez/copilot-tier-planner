@@ -10,8 +10,7 @@ import {
   getSimplifiedSkuName,
 } from "@/data/skus";
 import { useScenario } from "@/contexts";
-
-type AccountType = "individual" | "organization" | "enterprise";
+import type { AccountType } from "@/types/userState";
 
 interface SkuSelectorProps {
   value: SkuId;
