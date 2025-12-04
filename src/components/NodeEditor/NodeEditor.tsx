@@ -62,7 +62,7 @@ export default function NodeEditor({
   const customSku = useMemo(() => {
     const found = currentScenario.customSkus?.find(s => s.id === skuId);
     return found;
-  }, [currentScenario.customSkus, skuId, currentScenario.modifiedAt]);
+  }, [currentScenario.customSkus, skuId]);
 
   const isCustomSku = !!customSku;
 
@@ -71,7 +71,7 @@ export default function NodeEditor({
     const builtInSku = skuId ? getSkuById(skuId) : undefined;
     const result = builtInSku || customSku;
     return result;
-  }, [skuId, customSku, currentScenario.modifiedAt]);
+  }, [skuId, customSku]);
 
   const variation = useMemo(
     () =>

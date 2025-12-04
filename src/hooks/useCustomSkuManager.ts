@@ -5,6 +5,7 @@ import type { SkuId, Sku } from "@/types/sku";
 import { OverageBehavior } from "@/types/sku";
 import { EdgeType } from "@/types/scenario";
 import type { SkuScenario } from "@/types/scenario";
+import { SKU_MAP } from "@/data/skus";
 
 interface UseCustomSkuManagerOptions {
   currentScenario: SkuScenario;
@@ -37,10 +38,10 @@ export function useCustomSkuManager({
       let audience: "individual" | "organization" | "enterprise" = "individual";
       if (connectFrom) {
         const allSkus = [
-          ...Object.values(require("@/data/skus").SKU_MAP),
+          ...Object.values(SKU_MAP),
           ...(currentScenario.customSkus || []),
         ];
-        const sourceSku = allSkus.find((s: any) => s.id === connectFrom);
+        const sourceSku = allSkus.find((s: Sku) => s.id === connectFrom);
         if (sourceSku) {
           // New SKU inherits the audience of the source node
           // This ensures we don't create invalid connections (e.g., individual linked to enterprise)
@@ -119,10 +120,10 @@ export function useCustomSkuManager({
       if (connectFrom) {
         // Find source SKU
         const allSkus = [
-          ...Object.values(require("@/data/skus").SKU_MAP),
+          ...Object.values(SKU_MAP),
           ...(currentScenario.customSkus || []),
         ];
-        const sourceSku = allSkus.find((s: any) => s.id === connectFrom);
+        const sourceSku = allSkus.find((s: Sku) => s.id === connectFrom);
 
         // Auto-determine edge type based on audience relationship
         // Same audience = UPGRADE, different audience = ORG_JOIN
