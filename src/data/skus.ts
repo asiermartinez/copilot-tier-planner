@@ -176,7 +176,7 @@ export const PRO_SKU: Sku = {
  */
 export const PRO_TRIAL_SKU: Sku = {
   id: "pro-trial",
-  name: "GitHub Copilot Pro (Trial)",
+  name: "GitHub Copilot Pro 30-day trial",
   tier: SkuTier.PRO,
   description:
     "Get unlimited completions and access to premium models. Includes a free 30-day trial for eligible users.",
@@ -191,17 +191,17 @@ export const PRO_TRIAL_SKU: Sku = {
   limits: {
     premiumRequestsPerMonth: 300,
     premiumRequestsOveragePolicy: {
-      behavior: OverageBehavior.BILL,
+      behavior: OverageBehavior.BLOCK,
       pricePerUnit: 0.04,
       maxOverage: null,
-      allowBudgetCap: true,
+      allowBudgetCap: false,
       warningThreshold: 80,
     },
     chatMessagesPerMonth: null, // Unlimited
     chatMessagesOveragePolicy: null,
     codeCompletionsPerMonth: null, // Unlimited
     codeCompletionsOveragePolicy: null,
-    canPurchaseAdditionalPremiumRequests: true,
+    canPurchaseAdditionalPremiumRequests: false,
   },
   features: {
     // Agents

@@ -6,9 +6,10 @@ import {
   EdgeProps,
   getBezierPath,
   getSmoothStepPath,
+  useReactFlow,
 } from "@xyflow/react";
 import { IconButton } from "@primer/react";
-import { StarFillIcon, StarIcon } from "@primer/octicons-react";
+import { StarFillIcon, StarIcon, TrashIcon } from "@primer/octicons-react";
 import styles from "./CustomEdge.module.css";
 
 /**
@@ -39,6 +40,8 @@ export default function CustomEdge({
   label,
   data,
 }: EdgeProps) {
+  const { deleteElements } = useReactFlow();
+
   // Cast data to our custom type
   const edgeData = data as CustomEdgeData | undefined;
 
@@ -153,29 +156,47 @@ export default function CustomEdge({
         </EdgeLabelRenderer>
       )}
 
-      {/* Mark as desired button - shown when edge is selected and recommended paths is enabled */}
-      {selected && onMarkDesired && showMarkButton && (
+      {/* Action buttons when edge is selected */}
+      {selected && (
         <EdgeLabelRenderer>
           <div
             style={{
               position: "absolute",
               transform: `translate(-50%, -50%) translate(${labelX}px,${labelY + 30}px)`,
               pointerEvents: "all",
+              display: "flex",
+              gap: "4px",
             }}
             className="nodrag nopan"
           >
+            {/* Delete button */}
             <IconButton
               size="small"
-              variant={isDesired ? "primary" : "default"}
-              icon={isDesired ? StarFillIcon : StarIcon}
-              aria-label={isDesired ? "Suggested upgrade" : "Mark as suggested"}
+              variant="danger"
+              icon={TrashIcon}
+              aria-label="Delete"
               onClick={e => {
                 e.stopPropagation();
-                if (onMarkDesired) {
-                  onMarkDesired(id, !isDesired);
-                }
+                deleteElements({ edges: [{ id }] });
               }}
             />
+            {/* Mark as desired button - shown when recommended paths is enabled */}
+            {onMarkDesired && showMarkButton && (
+              <IconButton
+                size="small"
+                variant={isDesired ? "primary" : "default"}
+                icon={isDesired ? StarFillIcon : StarIcon}
+                aria-label={
+                  isDesired ? "Suggested upgrade" : "Mark as suggested"
+                }
+                onClick={e => {
+                  e.stopPropagation();
+                  if (onMarkDesired) {
+                    onMarkDesired(id, !isDesired);
+                  }
+                }}
+              />
+            )}
           </div>
         </EdgeLabelRenderer>
       )}

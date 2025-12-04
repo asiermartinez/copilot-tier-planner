@@ -30,7 +30,7 @@ const DEFAULT_EDGES: SkuEdge[] = [
     source: "free",
     target: "pro-trial",
     type: EdgeType.UPGRADE,
-    label: "Start Trial",
+    label: "Upgrade",
     cost: {
       type: "upgrade",
       estimatedMonthlyUsd: 0,
@@ -42,7 +42,7 @@ const DEFAULT_EDGES: SkuEdge[] = [
     source: "pro-trial",
     target: "pro",
     type: EdgeType.UPGRADE,
-    label: "Convert",
+    label: "Upgrade",
     cost: {
       type: "upgrade",
       estimatedMonthlyUsd: 10,

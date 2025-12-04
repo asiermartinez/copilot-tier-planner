@@ -487,7 +487,14 @@ The playground must visually represent all key UI messaging elements that appear
   - [x] Add SegmentedControl to header for view toggle
   - [x] Sync state between visual and message views
   - [x] Node click handlers for editing
-  - [ ] Update threshold configurator to use desired paths for CTAs (future)
+  - [x] Update threshold configurator to use desired paths for CTAs
+    - [x] Enable dynamic edge creation by dragging between nodes
+    - [x] Enable edge deletion with Delete key
+    - [x] Auto-generate edge types based on source/target (upgrade, budget, org-join)
+    - [x] Auto-generate edge labels ("Upgrade", "Set overages", "Join Org", "Join Enterprise")
+    - [x] Add {actionType} and {targetPlan} template variables for CTAs
+    - [x] CTAs now dynamically reflect desired upgrade path
+    - [x] Remove CONTEXT_SWITCH edge type (simplified to 3 types)
 - [x] 5.9 Scenario management
   - [x] Save/load named scenarios (context methods ready)
   - [x] Export/import scenario JSON (infrastructure ready)

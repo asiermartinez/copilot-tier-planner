@@ -11,6 +11,7 @@ import {
   applyNodeChanges,
   type OnNodesChange,
   type OnEdgesChange,
+  type Connection,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Button } from "@primer/react";
@@ -27,6 +28,7 @@ import styles from "./VisualBuilder.module.css";
 import { getHighestPriorityAlert } from "@/utils/alerts/generateThresholdAlerts";
 import { getAllSkus as getBuiltInSkus } from "@/data/skus";
 import { useVisualNodes, useVisualEdges, useCustomSkuManager } from "@/hooks";
+import { generateEdge } from "@/utils/edgeHelpers";
 
 /**
  * Node type registry for React Flow
@@ -81,10 +83,17 @@ function VisualBuilderInner() {
 
   // Auto-enable recommended paths checkbox when threshold is reached
   useEffect(() => {
+    // Get desired edge from current SKU
+    const desiredEdge = currentScenario.edges.find(
+      edge =>
+        edge.source === userState.subscription.skuId && edge.desired === true
+    );
+
     const highestAlert = getHighestPriorityAlert(
       userState,
       thresholdsConfig,
-      currentScenario.customSkus
+      currentScenario.customSkus,
+      desiredEdge || null
     );
 
     // If we have a critical alert (100% quota or overages), enable recommended paths
@@ -148,7 +157,6 @@ function VisualBuilderInner() {
       visualState.edgeFilters.showUpgrades,
       visualState.edgeFilters.showBudget,
       visualState.edgeFilters.showOrgJoin,
-      visualState.edgeFilters.showContextSwitch,
     ]
   );
 
@@ -205,10 +213,77 @@ function VisualBuilderInner() {
     [setNodes, currentScenario, updateCurrentScenario]
   );
 
-  // Edge change handler (for React Flow compatibility)
-  const handleEdgesChange: OnEdgesChange = useCallback(() => {
-    // Edges are computed, so we don't need to handle changes
-  }, []);
+  // Edge change handler - handle deletions
+  const handleEdgesChange: OnEdgesChange = useCallback(
+    changes => {
+      // Handle edge deletions
+      const deletions = changes.filter(change => change.type === "remove");
+
+      if (deletions.length > 0) {
+        const edgeIdsToRemove = new Set(deletions.map(d => d.id));
+        const updatedEdges = currentScenario.edges.filter(
+          edge => !edgeIdsToRemove.has(edge.id)
+        );
+
+        const updated = {
+          ...currentScenario,
+          edges: updatedEdges,
+          modifiedAt: new Date().toISOString(),
+        };
+        updateCurrentScenario(updated);
+      }
+    },
+    [currentScenario, updateCurrentScenario]
+  );
+
+  // Connection handler - create new edges
+  const handleConnect = useCallback(
+    (connection: Connection) => {
+      if (!connection.source || !connection.target) return;
+
+      const sourceId = connection.source as SkuId;
+      const targetId = connection.target as SkuId;
+
+      // Find source and target SKUs
+      const allSkus = [
+        ...getBuiltInSkus(),
+        ...(currentScenario.customSkus || []),
+      ];
+      const sourceSku = allSkus.find(s => s.id === sourceId);
+      const targetSku = allSkus.find(s => s.id === targetId);
+
+      // Generate edge with auto-inferred properties
+      const newEdge = generateEdge(sourceId, targetId, sourceSku, targetSku);
+
+      // Check if this exact edge already exists
+      const existingEdge = currentScenario.edges.find(
+        e => e.source === sourceId && e.target === targetId
+      );
+
+      if (existingEdge) {
+        // Replace the existing edge with the new one (preserves desired state)
+        const updated = {
+          ...currentScenario,
+          edges: currentScenario.edges.map(e =>
+            e.source === sourceId && e.target === targetId
+              ? { ...newEdge, desired: e.desired }
+              : e
+          ),
+          modifiedAt: new Date().toISOString(),
+        };
+        updateCurrentScenario(updated);
+      } else {
+        // Add new edge to scenario
+        const updated = {
+          ...currentScenario,
+          edges: [...currentScenario.edges, newEdge],
+          modifiedAt: new Date().toISOString(),
+        };
+        updateCurrentScenario(updated);
+      }
+    },
+    [currentScenario, updateCurrentScenario]
+  );
 
   // Sync nodes when custom SKUs are added/removed or their data changes
   useEffect(() => {
@@ -377,6 +452,7 @@ function VisualBuilderInner() {
         edges={edges}
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
+        onConnect={handleConnect}
         onNodeClick={onNodeClick}
         onEdgeClick={onEdgeClick}
         onPaneClick={onPaneClick}
@@ -390,8 +466,8 @@ function VisualBuilderInner() {
         }}
         edgesFocusable={true}
         nodesDraggable={true}
-        nodesConnectable={false}
-        deleteKeyCode={null}
+        nodesConnectable={true}
+        deleteKeyCode="Delete"
         minZoom={0.3}
         maxZoom={2}
       >

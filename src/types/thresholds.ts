@@ -80,7 +80,7 @@ export const DEFAULT_THRESHOLDS: ThresholdConfig[] = [
     dismissable: true,
     static: true,
     cta: {
-      label: "Upgrade to {nextPlan}",
+      label: "{actionType} {targetPlan}",
     },
   },
   {
@@ -95,7 +95,7 @@ export const DEFAULT_THRESHOLDS: ThresholdConfig[] = [
     dismissable: false,
     static: false,
     cta: {
-      label: "Upgrade to {nextPlan}",
+      label: "{actionType} {targetPlan}",
     },
   },
 ];
@@ -121,6 +121,10 @@ export interface ThresholdTemplateContext {
   // Plan-related
   planName: string;
   nextPlan: string;
+
+  // Desired path action (for CTAs)
+  actionType: string;
+  targetPlan: string;
 
   // Time-related
   daysRemaining: number;

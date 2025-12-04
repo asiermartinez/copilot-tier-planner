@@ -15,11 +15,16 @@ interface UIMessagesViewProps {
 export default function UIMessagesView({ userState }: UIMessagesViewProps) {
   const { thresholdsConfig, setActiveAlertId, dismissedAlerts, dismissAlert } =
     usePlanner();
-  const { currentScenario } = useScenario();
+  const { currentScenario, getDesiredEdge } = useScenario();
+
+  // Get desired edge from current SKU
+  const desiredEdge = getDesiredEdge(userState.subscription.skuId);
+
   const alert = getHighestPriorityAlert(
     userState,
     thresholdsConfig,
-    currentScenario.customSkus
+    currentScenario.customSkus,
+    desiredEdge
   );
 
   // Filter out dismissed alerts

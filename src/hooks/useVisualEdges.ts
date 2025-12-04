@@ -38,11 +38,6 @@ export function useVisualEdges({
           return false;
         if (edge.type === EdgeType.ORG_JOIN && !edgeFilters.showOrgJoin)
           return false;
-        if (
-          edge.type === EdgeType.CONTEXT_SWITCH &&
-          !edgeFilters.showContextSwitch
-        )
-          return false;
         return true;
       })
       .map(edge => {

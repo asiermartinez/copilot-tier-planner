@@ -16,6 +16,8 @@ import type {
 import { SKU_MAP, getSkuById } from "@/data/skus";
 import { replaceTemplate } from "@/utils/messages/templateUtils";
 import type { Sku } from "@/types/sku";
+import type { SkuEdge } from "@/types/scenario";
+import { getActionType, getTargetPlan } from "@/utils/edgeHelpers";
 
 /**
  * Alert to be displayed to the user
@@ -124,7 +126,8 @@ function calculatePriority(
  */
 function buildTemplateContext(
   userState: UserState,
-  customSkus?: Sku[]
+  customSkus?: Sku[],
+  desiredEdge?: SkuEdge | null
 ): ThresholdTemplateContext {
   const { premiumRequests } = userState.usage;
   const { overageBudget } = userState;
@@ -196,6 +199,27 @@ function buildTemplateContext(
     year: "numeric",
   });
 
+  // Desired path action variables (for CTAs)
+  let actionType = "";
+  let targetPlan = "";
+
+  if (desiredEdge) {
+    // Find target SKU for the desired edge
+    let targetSku: Sku | undefined = SKU_MAP[desiredEdge.target];
+    if (!targetSku && customSkus) {
+      targetSku = customSkus.find(s => s.id === desiredEdge.target);
+    }
+
+    actionType = getActionType(desiredEdge, targetSku);
+    targetPlan = getTargetPlan(desiredEdge, targetSku);
+  } else {
+    // Fallback: Use standard upgrade path when no desired edge is set
+    if (nextPlan) {
+      actionType = "Upgrade to";
+      targetPlan = nextPlan;
+    }
+  }
+
   return {
     current,
     limit: limit ?? 0,
@@ -209,6 +233,8 @@ function buildTemplateContext(
     budgetPercentage: Math.round(budgetPercentage),
     planName,
     nextPlan: nextPlan ?? "",
+    actionType,
+    targetPlan,
     daysRemaining,
     daysInPeriod,
     resetDate,
@@ -334,9 +360,10 @@ function isThresholdTriggered(
 export function generateThresholdAlerts(
   userState: UserState,
   thresholdsConfig: ThresholdsConfig,
-  customSkus?: Sku[]
+  customSkus?: Sku[],
+  desiredEdge?: SkuEdge | null
 ): ThresholdAlert[] {
-  const context = buildTemplateContext(userState, customSkus);
+  const context = buildTemplateContext(userState, customSkus, desiredEdge);
   const alerts: ThresholdAlert[] = [];
 
   // Check each threshold
@@ -449,17 +476,19 @@ export function generateThresholdAlerts(
 }
 
 /**
- * Get the highest priority alert (for displaying a single alert)
+ * Get the highest priority alert (for displaying single alert)
  */
 export function getHighestPriorityAlert(
   userState: UserState,
   thresholdsConfig: ThresholdsConfig,
-  customSkus?: Sku[]
+  customSkus?: Sku[],
+  desiredEdge?: SkuEdge | null
 ): ThresholdAlert | null {
   const alerts = generateThresholdAlerts(
     userState,
     thresholdsConfig,
-    customSkus
+    customSkus,
+    desiredEdge
   );
   return alerts[0] ?? null;
 }

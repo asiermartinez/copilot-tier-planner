@@ -604,6 +604,17 @@ export default function ThresholdConfigurator({
                     <code>{"{nextPlan}"}</code>
                     <span>Next tier plan name</span>
                   </div>
+                  <div>
+                    <code>{"{actionType}"}</code>
+                    <span>
+                      CTA action (e.g., &quot;Upgrade to&quot;,
+                      &quot;Join&quot;)
+                    </span>
+                  </div>
+                  <div>
+                    <code>{"{targetPlan}"}</code>
+                    <span>Suggested upgrade target plan</span>
+                  </div>
                 </div>
               </div>
               <div>
@@ -1088,8 +1099,8 @@ export default function ThresholdConfigurator({
                       block
                     />
                     <FormControl.Caption>
-                      Variables like {"{nextPlan}"}, {"{percentage}"} work here
-                      too
+                      Try {"{actionType} {targetPlan}"} to reflect desired
+                      upgrade path. All variables work here.
                     </FormControl.Caption>
                   </FormControl>
                 )}

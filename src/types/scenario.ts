@@ -18,8 +18,6 @@ export enum EdgeType {
   BUDGET = "budget",
   /** Transition requiring organization membership */
   ORG_JOIN = "org-join",
-  /** Context switch (e.g., individual to organization) */
-  CONTEXT_SWITCH = "context-switch",
 }
 
 /**
@@ -121,7 +119,6 @@ export interface VisualBuilderState {
     showUpgrades: boolean;
     showBudget: boolean;
     showOrgJoin: boolean;
-    showContextSwitch: boolean;
   };
   /** Whether to highlight desired paths */
   highlightDesiredPaths: boolean;

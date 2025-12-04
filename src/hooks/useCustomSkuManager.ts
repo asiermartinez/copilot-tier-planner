@@ -37,7 +37,7 @@ export function useCustomSkuManager({
         perSeat: false,
       },
       limits: {
-        premiumRequestsPerMonth: 500,
+        premiumRequestsPerMonth: 50,
         premiumRequestsOveragePolicy: {
           behavior: OverageBehavior.BILL,
           pricePerUnit: 0.04,
