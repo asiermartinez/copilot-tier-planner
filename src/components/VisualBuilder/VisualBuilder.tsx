@@ -117,6 +117,7 @@ function VisualBuilderInner() {
     visualState.edgeFilters,
     updateEdgeFilters,
     currentScenario.customSkus,
+    currentScenario.edges,
   ]);
 
   // Generate nodes using custom hook
