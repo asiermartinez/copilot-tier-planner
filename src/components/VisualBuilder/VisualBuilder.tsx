@@ -12,6 +12,7 @@ import {
   type OnNodesChange,
   type OnEdgesChange,
   type Connection,
+  type OnConnectEnd,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Button } from "@primer/react";
@@ -63,8 +64,9 @@ function VisualBuilderInner() {
     updateCurrentScenario,
   } = useScenario();
 
-  // Get React Flow instance for viewport control
-  const { setCenter } = useReactFlow();
+  // Get React Flow instance for viewport control and screen conversion
+  const reactFlowInstance = useReactFlow();
+  const { setCenter } = reactFlowInstance;
 
   // Track selected edge for marking as desired
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
@@ -286,6 +288,32 @@ function VisualBuilderInner() {
     [currentScenario, updateCurrentScenario]
   );
 
+  // Handle connection end - create new node if released over empty space
+  const handleConnectEnd: OnConnectEnd = useCallback(
+    (event, connectionState) => {
+      // Only create new node if connection didn't complete to an existing node
+      if (!connectionState.toNode && connectionState.fromNode) {
+        const sourceId = connectionState.fromNode.id as SkuId;
+
+        // Get mouse position from event
+        const targetIsPane = (event.target as HTMLElement).classList.contains(
+          "react-flow__pane"
+        );
+
+        if (targetIsPane && event instanceof MouseEvent) {
+          const position = reactFlowInstance.screenToFlowPosition({
+            x: event.clientX,
+            y: event.clientY,
+          });
+
+          // Create new custom SKU with position and edge from source
+          createCustomSku({ position, connectFrom: sourceId });
+        }
+      }
+    },
+    [createCustomSku, reactFlowInstance]
+  );
+
   // Sync nodes when custom SKUs are added/removed or their data changes
   useEffect(() => {
     const prevCustomSkus = prevCustomSkusRef.current || [];
@@ -454,6 +482,7 @@ function VisualBuilderInner() {
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
         onConnect={handleConnect}
+        onConnectEnd={handleConnectEnd}
         onNodeClick={onNodeClick}
         onEdgeClick={onEdgeClick}
         onPaneClick={onPaneClick}
