@@ -73,6 +73,9 @@ function VisualBuilderInner() {
   // Track selected edge for marking as desired
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
 
+  // Track whether editor panel should be shown
+  const [showEditor, setShowEditor] = useState<boolean>(false);
+
   // Track pending SKU to switch to after creation
   const [pendingSkuSwitch, setPendingSkuSwitch] = useState<SkuId | null>(null);
 
@@ -338,7 +341,15 @@ function VisualBuilderInner() {
           });
 
           // Create new custom SKU with position and edge from source
-          createCustomSku({ position, connectFrom: sourceId });
+          const newSkuId = createCustomSku({ position, connectFrom: sourceId });
+
+          // Show editor panel
+          setShowEditor(true);
+
+          // Mark this SKU as pending to switch to after it's added to the scenario
+          setPendingSkuSwitch(newSkuId);
+          // Also set the ref for panning
+          pendingPanRef.current = newSkuId;
         }
       }
     },
@@ -406,6 +417,9 @@ function VisualBuilderInner() {
     ) => {
       const targetSkuId = node.data.skuId;
 
+      // Show editor panel
+      setShowEditor(true);
+
       // Deselect any selected edge
       setSelectedEdgeId(null);
 
@@ -432,7 +446,7 @@ function VisualBuilderInner() {
         });
       });
     },
-    [updateAccountTypeAndSku, setCenter, setSelectedEdgeId]
+    [updateAccountTypeAndSku, setCenter, setSelectedEdgeId, setShowEditor]
   );
 
   // Handle edge click - select edge for marking as desired and navigate to target
@@ -486,10 +500,19 @@ function VisualBuilderInner() {
     ]
   );
 
-  // Handle canvas click - deselect edge
+  // Handle canvas click - deselect edge and hide editor
   const onPaneClick = useCallback(() => {
     setSelectedEdgeId(null);
-  }, []);
+    setShowEditor(false);
+
+    // Deselect all nodes
+    setNodes(nds =>
+      nds.map(node => ({
+        ...node,
+        selected: false,
+      }))
+    );
+  }, [setNodes]);
 
   // Handle viewport changes to preserve canvas position
   const onMove = useCallback(() => {
@@ -509,7 +532,10 @@ function VisualBuilderInner() {
   const handleAddCustomSku = useCallback(() => {
     const newSkuId = createCustomSku();
 
-    // Mark this SKU as pending to switch to after it's added
+    // Show editor panel
+    setShowEditor(true);
+
+    // Mark this SKU as pending to switch to after it's added to the scenario
     setPendingSkuSwitch(newSkuId);
     // Also set the ref for panning
     pendingPanRef.current = newSkuId;
@@ -521,7 +547,12 @@ function VisualBuilderInner() {
       updateAccountTypeAndSku("individual", pendingSkuSwitch);
       setPendingSkuSwitch(null);
     }
-  }, [pendingSkuSwitch, customSkuExists, updateAccountTypeAndSku]);
+  }, [
+    pendingSkuSwitch,
+    currentScenario.customSkus,
+    customSkuExists,
+    updateAccountTypeAndSku,
+  ]);
 
   // Separate effect: Pan to new node when it appears in nodes array
   useEffect(() => {
@@ -546,7 +577,7 @@ function VisualBuilderInner() {
   return (
     <div className={styles.visualBuilder}>
       {/* SKU Editor Panel */}
-      <SkuEditor />
+      {showEditor && <SkuEditor />}
 
       {/* Add SKU Button */}
       <div className={styles.addSkuButton}>

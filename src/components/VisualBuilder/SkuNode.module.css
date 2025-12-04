@@ -12,6 +12,12 @@
   overflow: visible;
 }
 
+/* Current SKU indicator - blue outline (same as hover) */
+.skuNode.current {
+  outline: 2px solid var(--borderColor-accent-emphasis);
+  outline-offset: -2px;
+}
+
 .skuNode:hover,
 .skuNode.selected,
 .skuNode:global(.connecting),
