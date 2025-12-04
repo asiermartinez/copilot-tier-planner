@@ -18,6 +18,8 @@ export interface SkuNodeData extends Record<string, unknown> {
   isIndividual: boolean;
   /** Monthly price in USD - included to trigger re-renders when pricing changes */
   monthlyUsd: number;
+  /** Whether this node is currently being connected from */
+  isConnecting?: boolean;
 }
 
 /**
@@ -82,6 +84,7 @@ function SkuNode({
     styles.skuNode,
     isCurrentSku && styles.current,
     selected && styles.selected,
+    data.isConnecting && "connecting",
   ]
     .filter(Boolean)
     .join(" ");
@@ -89,59 +92,63 @@ function SkuNode({
   return (
     <>
       <div className={nodeClass}>
-        {/* Multiple handles for smart edge routing */}
+        {/* Multiple handles for edge connections - only right one is visible */}
         <Handle
           type="target"
           position={Position.Left}
           id="left"
-          className={styles.handle}
+          style={{ opacity: 0, pointerEvents: "none" }}
         />
         <Handle
           type="target"
           position={Position.Right}
           id="right"
-          className={styles.handle}
+          className={styles.visibleHandle}
+          style={{ right: -12, top: "50%", transform: "translateY(-50%)" }}
         />
         <Handle
           type="target"
           position={Position.Top}
           id="top"
-          className={styles.handle}
-          style={{ top: -8 }}
+          style={{ opacity: 0, pointerEvents: "none" }}
         />
         <Handle
           type="target"
           position={Position.Bottom}
           id="bottom"
-          className={styles.handle}
-          style={{ bottom: -8 }}
+          style={{ opacity: 0, pointerEvents: "none" }}
         />
         <Handle
           type="source"
           position={Position.Left}
           id="left-source"
-          className={styles.handle}
+          style={{ opacity: 0, pointerEvents: "none" }}
         />
         <Handle
           type="source"
           position={Position.Right}
           id="right-source"
-          className={styles.handle}
+          className={styles.visibleHandle}
+          style={{ right: -12, top: "50%", transform: "translateY(-50%)" }}
         />
         <Handle
           type="source"
           position={Position.Top}
           id="top-source"
-          className={styles.handle}
-          style={{ top: -8 }}
+          style={{ opacity: 0, pointerEvents: "none" }}
         />
         <Handle
           type="source"
           position={Position.Bottom}
           id="bottom-source"
-          className={styles.handle}
-          style={{ bottom: -8 }}
+          style={{ opacity: 0, pointerEvents: "none" }}
         />
+
+        {/* Custom handle visual - semicircle */}
+        <div className={styles.handleVisual} />
+
+        {/* Separate dot element positioned independently */}
+        <div className={styles.handleDotIndependent} />
 
         {/* Header with SKU name and pricing */}
         <div className={styles.nodeHeader}>

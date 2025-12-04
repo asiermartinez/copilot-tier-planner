@@ -71,6 +71,7 @@
 .visualBuilder :global(.react-flow__edge-path) {
   stroke-linecap: round;
   stroke-linejoin: round;
+  stroke-width: 2px;
   transition:
     stroke 0.15s ease,
     stroke-width 0.15s ease;
@@ -121,3 +122,14 @@
 }
 
 /* Selected edge arrow colors are handled by CustomEdge component */
+
+/* Connection line styling while dragging - accent color */
+.visualBuilder :global(.react-flow__connection-path) {
+  stroke: var(--borderColor-accent-emphasis) !important;
+  stroke-width: 2px !important;
+}
+
+.visualBuilder :global(.react-flow__connectionline) {
+  stroke: var(--borderColor-accent-emphasis) !important;
+  stroke-width: 2px !important;
+}

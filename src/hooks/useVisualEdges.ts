@@ -78,11 +78,13 @@ export function useVisualEdges({
           onMarkDesired: (edgeId: string, desired: boolean) => void;
           showMarkButton: boolean;
           type?: string;
+          isBudget?: boolean;
         } = {
           desired: isDesired,
           shouldAnimate: shouldAnimate,
           onMarkDesired,
           showMarkButton: highlightDesiredPaths,
+          isBudget: isBudget,
         };
 
         if (isBudget) {

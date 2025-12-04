@@ -7,13 +7,19 @@
   border: 1px solid var(--borderColor-default);
   border-radius: var(--borderRadius-medium);
   font-family: var(--fontStack-system);
-  transition: border-color 0.15s ease;
+  transition: all 0.15s ease;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
-.skuNode:hover {
-  border-color: var(--borderColor-emphasis);
+.skuNode:hover:not(.selected):not(.current),
+.skuNode:global(.connecting):not(.selected):not(.current) {
+  outline: 2px solid var(--borderColor-accent-emphasis);
+  outline-offset: -2px;
+}
+
+.skuNode:global(.dragging):not(.selected):not(.current) {
+  border: 2px solid var(--borderColor-accent-emphasis);
 }
 
 .skuNode.selected {
@@ -25,18 +31,104 @@
   box-shadow: 0 0 0 2px var(--borderColor-accent-emphasis);
 }
 
-/* Handle styles - minimal and hidden */
+/* Handle styles - larger and positioned outside node */
 .handle {
-  width: 8px;
-  height: 8px;
-  background: transparent;
-  border: none;
+  width: 24px;
+  height: 24px;
+  background: var(--bgColor-default);
+  border: 2px solid var(--borderColor-accent-emphasis);
+  border-radius: 50%;
   opacity: 0;
+  transition: opacity 0.15s ease;
 }
 
-.skuNode:hover .handle {
+/* Visible handle (right side) extends handle with inner grey dot */
+.visibleHandle {
+  composes: handle;
+  z-index: 10;
+  opacity: 0 !important; /* Hide the actual handle element */
+  pointer-events: all !important; /* Keep it clickable for React Flow */
+}
+
+/* Custom handle visual - wrapper with overflow hidden to clip circle */
+.handleVisual {
+  position: absolute;
+  width: 14px;
+  height: 24px;
+  right: -13px;
+  top: 50%;
+  transform: translateY(-50%);
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 10;
+}
+
+/* Adjust position and border for selected/current nodes with accent border */
+.skuNode.selected .handleVisual,
+.skuNode.current .handleVisual {
+  right: -14px;
+}
+
+.skuNode.selected .handleVisual::after,
+.skuNode.current .handleVisual::after {
+  border-width: 3px;
+}
+
+/* Full circle that gets clipped by wrapper */
+.handleVisual::after {
+  content: "";
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  right: 0;
+  top: 0;
+  background: var(--bgColor-default);
+  border: 2px solid var(--borderColor-accent-emphasis);
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+/* Show custom handle visual when hovering node, connecting, or dragging */
+.skuNode:hover .handleVisual,
+.skuNode:global(.connecting) .handleVisual,
+.skuNode:global(.dragging) .handleVisual {
   opacity: 1;
+}
+
+/* Independent dot positioned on top of everything */
+.handleDotIndependent {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
   background: var(--borderColor-muted);
+  border-radius: 50%;
+  opacity: 0;
+  transition: all 0.15s ease;
+  z-index: 20;
+  pointer-events: none;
+}
+
+/* Show dot when hovering node, connecting, or dragging */
+.skuNode:hover .handleDotIndependent,
+.skuNode:global(.connecting) .handleDotIndependent,
+.skuNode:global(.dragging) .handleDotIndependent {
+  opacity: 1;
+}
+
+/* Change inner circle to accent on handle hover or when connecting */
+.handleVisual:hover ~ .handleDotIndependent,
+.skuNode:global(.connecting) .handleDotIndependent {
+  background: var(--borderColor-accent-emphasis);
+}
+
+.skuNode:hover .handle,
+.skuNode:hover .visibleHandle {
+  opacity: 1;
 }
 
 /* Node content */
@@ -50,6 +142,8 @@
   padding: var(--base-size-8) var(--base-size-12);
   background-color: var(--bgColor-muted);
   border-bottom: 1px solid var(--borderColor-muted);
+  border-top-left-radius: var(--borderRadius-medium);
+  border-top-right-radius: var(--borderRadius-medium);
 }
 
 .nodeName {

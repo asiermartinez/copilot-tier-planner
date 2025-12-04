@@ -13,6 +13,7 @@ import {
   type OnEdgesChange,
   type Connection,
   type OnConnectEnd,
+  type OnConnectStart,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Button } from "@primer/react";
@@ -76,6 +77,11 @@ function VisualBuilderInner() {
 
   // Track pending pan - use ref to avoid stale closures
   const pendingPanRef = useRef<SkuId | null>(null);
+
+  // Track connection state for handle visibility - store source node ID
+  const [connectingFromNode, setConnectingFromNode] = useState<string | null>(
+    null
+  );
 
   // Custom SKU management
   const { createCustomSku, customSkuExists } = useCustomSkuManager({
@@ -288,9 +294,17 @@ function VisualBuilderInner() {
     [currentScenario, updateCurrentScenario]
   );
 
+  // Handle connection start - track which node we're connecting from
+  const handleConnectStart: OnConnectStart = useCallback((_event, params) => {
+    setConnectingFromNode(params.nodeId || null);
+  }, []);
+
   // Handle connection end - create new node if released over empty space
   const handleConnectEnd: OnConnectEnd = useCallback(
     (event, connectionState) => {
+      // Stop tracking connection state
+      setConnectingFromNode(null);
+
       // Only create new node if connection didn't complete to an existing node
       if (!connectionState.toNode && connectionState.fromNode) {
         const sourceId = connectionState.fromNode.id as SkuId;
@@ -354,9 +368,25 @@ function VisualBuilderInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentScenario.customSkus, setNodes]);
 
+  // Update nodes when connecting state changes
+  useEffect(() => {
+    setNodes(nds =>
+      nds.map(node => ({
+        ...node,
+        data: {
+          ...node.data,
+          isConnecting: connectingFromNode === node.id,
+        },
+      }))
+    );
+  }, [connectingFromNode, setNodes]);
+
   // Handle node click - switch to the plan and select node
   const onNodeClick = useCallback(
-    (event: React.MouseEvent, node: { data: { skuId: SkuId } }) => {
+    (
+      event: React.MouseEvent,
+      node: { data: { skuId: SkuId }; position: { x: number; y: number } }
+    ) => {
       const targetSkuId = node.data.skuId;
 
       // Determine account type based on target SKU
@@ -370,8 +400,19 @@ function VisualBuilderInner() {
 
       // Update the app state to transition to the new SKU with appropriate account type
       updateAccountTypeAndSku(accountType, targetSkuId);
+
+      // Refocus on the selected node
+      const targetX = node.position.x + 100;
+      const targetY = node.position.y + 75;
+
+      requestAnimationFrame(() => {
+        setCenter(targetX, targetY, {
+          zoom: 1,
+          duration: 400,
+        });
+      });
     },
-    [updateAccountTypeAndSku]
+    [updateAccountTypeAndSku, setCenter]
   );
 
   // Handle edge click - select edge for marking as desired and navigate to target
@@ -446,7 +487,7 @@ function VisualBuilderInner() {
         requestAnimationFrame(() => {
           setCenter(targetX, targetY, {
             zoom: 1,
-            duration: 800,
+            duration: 400,
           });
         });
 
@@ -482,6 +523,7 @@ function VisualBuilderInner() {
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
         onConnect={handleConnect}
+        onConnectStart={handleConnectStart}
         onConnectEnd={handleConnectEnd}
         onNodeClick={onNodeClick}
         onEdgeClick={onEdgeClick}

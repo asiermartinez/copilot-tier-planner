@@ -34,9 +34,7 @@ export function findNextAvailablePosition(
 
   if (sameAudienceNodes.length === 0) {
     // No existing nodes for this audience, use default position
-    return audience === "individual"
-      ? { x: 700, y: 150 }
-      : { x: 700, y: 600 };
+    return audience === "individual" ? { x: 700, y: 150 } : { x: 700, y: 600 };
   }
 
   // Find the node with the furthest right position

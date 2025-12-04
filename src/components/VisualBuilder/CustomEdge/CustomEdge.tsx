@@ -21,6 +21,7 @@ interface CustomEdgeData {
   shouldAnimate?: boolean;
   onMarkDesired?: (edgeId: string, desired: boolean) => void;
   showMarkButton?: boolean;
+  isBudget?: boolean;
 }
 
 /**
@@ -87,7 +88,7 @@ export default function CustomEdge({
   const markerId = `arrow-${id}-${selected ? "selected" : shouldAnimate ? "animating" : "default"}`;
 
   // Determine edge style based on state
-  let edgeStyle = { ...style };
+  let edgeStyle = { ...style, strokeWidth: 2 };
   let edgeClassName = "";
 
   if (shouldAnimate && isDesired) {
@@ -127,7 +128,7 @@ export default function CustomEdge({
         id={id}
         path={edgePath}
         style={edgeStyle}
-        markerEnd={`url(#${markerId})`}
+        markerEnd={undefined}
         className={edgeClassName}
       />
 
