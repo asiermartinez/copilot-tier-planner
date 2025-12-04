@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, useEffect } from "react";
+import { useCallback, useMemo, useState, useEffect, useRef } from "react";
 import {
   ReactFlow,
   Background,
@@ -10,19 +10,29 @@ import {
   Position,
   useNodesState,
   useEdgesState,
+  useReactFlow,
+  ReactFlowProvider,
+  type NodeChange,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { Button } from "@primer/react";
+import { PlusIcon } from "@primer/octicons-react";
 
 import { usePlanner, useScenario } from "@/contexts";
 import { EdgeType } from "@/types/scenario";
-import type { SkuId } from "@/types/sku";
+import type { SkuId, SkuTier, Sku } from "@/types/sku";
+import { OverageBehavior } from "@/types/sku";
 import SkuNode from "./SkuNode";
 import type { SkuNodeData } from "./SkuNode";
 import CustomEdge from "./CustomEdge";
 import EdgeFilters from "@/components/EdgeFilters";
-import NodeEditor from "@/components/NodeEditor";
+import SkuEditor from "@/components/SkuEditor";
 import styles from "./VisualBuilder.module.css";
 import { getHighestPriorityAlert } from "@/utils/alerts/generateThresholdAlerts";
+import {
+  getAllSkus as getBuiltInSkus,
+  getSimplifiedSkuName,
+} from "@/data/skus";
 
 /**
  * Node type registry for React Flow
@@ -40,28 +50,42 @@ const edgeTypes = {
 };
 
 /**
- * Main Visual Builder component - displays SKU hierarchy as interactive graph
+ * Inner Visual Builder component - must be wrapped in ReactFlowProvider
  */
-export default function VisualBuilder() {
+function VisualBuilderInner() {
   const {
     updateAccountTypeAndSku,
     updateOverageBudget,
     userState,
     thresholdsConfig,
   } = usePlanner();
-  const { currentScenario, visualState, setDesiredPath, updateEdgeFilters } =
-    useScenario();
+  const {
+    currentScenario,
+    visualState,
+    setDesiredPath,
+    updateEdgeFilters,
+    updateCurrentScenario,
+  } = useScenario();
 
-  // Node editor state
-  const [selectedSkuId, setSelectedSkuId] = useState<SkuId | null>(null);
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  // Get React Flow instance for viewport control
+  const { setCenter } = useReactFlow();
 
   // Track selected edge for marking as desired
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
 
+  // Track pending SKU to switch to after creation
+  const [pendingSkuSwitch, setPendingSkuSwitch] = useState<SkuId | null>(null);
+
+  // Track pending pan - use ref to avoid stale closures
+  const pendingPanRef = useRef<SkuId | null>(null);
+
   // Auto-enable recommended paths checkbox when threshold is reached
   useEffect(() => {
-    const highestAlert = getHighestPriorityAlert(userState, thresholdsConfig);
+    const highestAlert = getHighestPriorityAlert(
+      userState,
+      thresholdsConfig,
+      currentScenario.customSkus
+    );
 
     // If we have a critical alert (100% quota or overages), enable recommended paths
     if (highestAlert && !visualState.highlightDesiredPaths) {
@@ -83,94 +107,143 @@ export default function VisualBuilder() {
     visualState.highlightDesiredPaths,
     visualState.edgeFilters,
     updateEdgeFilters,
+    currentScenario.customSkus,
   ]);
 
   // Build nodes from SKU hierarchy - horizontal layout
-  const initialNodes: Node<SkuNodeData>[] = useMemo(
-    () => [
-      // Individual tier - horizontal left-to-right layout
-      {
-        id: "free",
+  const initialNodes: Node<SkuNodeData>[] = useMemo(() => {
+    const builtInSkus = getBuiltInSkus();
+    const allSkus = [...builtInSkus, ...(currentScenario.customSkus || [])];
+    const storedPositions = currentScenario.nodePositions || {};
+
+    // Helper to get tier name string
+    const getTierName = (tier: SkuTier): string => {
+      const tierNames: Record<SkuTier, string> = {
+        0: "FREE",
+        1: "PRO",
+        2: "PRO_PLUS",
+        3: "BUSINESS",
+        4: "ENTERPRISE",
+      };
+      return tierNames[tier] || "FREE";
+    };
+
+    // Helper to find next available position by finding the furthest node
+    const findNextAvailablePosition = (
+      audience: "individual" | "organization" | "enterprise",
+      allExistingNodes: Node<SkuNodeData>[]
+    ): { x: number; y: number } => {
+      const nodeWidth = 200; // Approximate node width
+      const horizontalPadding = 150; // Horizontal spacing between nodes
+
+      // Filter nodes by audience
+      const sameAudienceNodes = allExistingNodes.filter(node => {
+        const nodeData = node.data as SkuNodeData;
+        return nodeData.isIndividual === (audience === "individual");
+      });
+
+      if (sameAudienceNodes.length === 0) {
+        // No existing nodes for this audience, use default position
+        return audience === "individual"
+          ? { x: 700, y: 150 }
+          : { x: 700, y: 600 };
+      }
+
+      // Find the node with the furthest right position
+      const furthestNode = sameAudienceNodes.reduce((furthest, current) => {
+        return current.position.x > furthest.position.x ? current : furthest;
+      });
+
+      // Place new node to the right of the furthest node at the same height
+      return {
+        x: furthestNode.position.x + nodeWidth + horizontalPadding,
+        y: furthestNode.position.y,
+      };
+    };
+
+    // Helper to calculate default position based on tier and audience
+    const getDefaultPosition = (
+      sku: Sku,
+      individualNodes: Node<SkuNodeData>[],
+      orgNodes: Node<SkuNodeData>[]
+    ): { x: number; y: number } => {
+      const isIndividual = sku.audience === "individual";
+      const allExistingNodes = [...individualNodes, ...orgNodes];
+      let x = 0;
+      let y = 150;
+
+      if (isIndividual) {
+        // Individual plans - horizontal layout
+        if (sku.tier === 0) {
+          x = 0;
+          y = 150;
+        } else if (sku.tier === 1 && sku.id === "pro-trial") {
+          x = 350;
+          y = 0;
+        } else if (sku.tier === 1 && sku.id === "pro") {
+          x = 350;
+          y = 300;
+        } else if (sku.tier === 2 && sku.id === "pro-plus") {
+          x = 700;
+          y = 150;
+        } else {
+          // Custom individual SKUs - find position to the right of furthest individual node
+          return findNextAvailablePosition("individual", allExistingNodes);
+        }
+      } else {
+        // Organization/enterprise plans - below individual plans
+        if (sku.tier === 3) {
+          x = 350;
+          y = 600;
+        } else if (sku.tier === 4) {
+          x = 700;
+          y = 600;
+        } else {
+          // Custom org SKUs - find position to the right of furthest org node
+          return findNextAvailablePosition("organization", allExistingNodes);
+        }
+      }
+
+      return { x, y };
+    };
+
+    // Position nodes based on audience and tier
+    const individualNodes: Node<SkuNodeData>[] = [];
+    const orgNodes: Node<SkuNodeData>[] = [];
+
+    allSkus.forEach(sku => {
+      const isIndividual = sku.audience === "individual";
+      const tierName = getTierName(sku.tier);
+
+      // Use stored position if available, otherwise calculate default
+      const position =
+        storedPositions[sku.id] ||
+        getDefaultPosition(sku, individualNodes, orgNodes);
+
+      const node: Node<SkuNodeData> = {
+        id: sku.id,
         type: "skuNode",
-        position: { x: 0, y: 150 },
+        position,
         sourcePosition: Position.Right,
         targetPosition: Position.Left,
         data: {
-          skuId: "free",
-          label: "Free",
-          tier: "FREE",
-          isIndividual: true,
+          skuId: sku.id,
+          label: getSimplifiedSkuName(sku),
+          tier: tierName,
+          isIndividual,
+          monthlyUsd: sku.pricing.monthlyUsd,
         },
-      },
-      {
-        id: "pro-trial",
-        type: "skuNode",
-        position: { x: 350, y: 0 },
-        sourcePosition: Position.Right,
-        targetPosition: Position.Left,
-        data: {
-          skuId: "pro-trial",
-          label: "Pro (Trial)",
-          tier: "PRO",
-          isIndividual: true,
-        },
-      },
-      {
-        id: "pro",
-        type: "skuNode",
-        position: { x: 350, y: 300 },
-        sourcePosition: Position.Right,
-        targetPosition: Position.Left,
-        data: {
-          skuId: "pro",
-          label: "Pro",
-          tier: "PRO",
-          isIndividual: true,
-        },
-      },
-      {
-        id: "pro-plus",
-        type: "skuNode",
-        position: { x: 700, y: 150 },
-        sourcePosition: Position.Right,
-        targetPosition: Position.Left,
-        data: {
-          skuId: "pro-plus",
-          label: "Pro+",
-          tier: "PRO_PLUS",
-          isIndividual: true,
-        },
-      },
-      // Organization tier - below individual plans
-      {
-        id: "business",
-        type: "skuNode",
-        position: { x: 350, y: 600 },
-        sourcePosition: Position.Right,
-        targetPosition: Position.Left,
-        data: {
-          skuId: "business",
-          label: "Business",
-          tier: "BUSINESS",
-          isIndividual: false,
-        },
-      },
-      {
-        id: "enterprise",
-        type: "skuNode",
-        position: { x: 700, y: 600 },
-        sourcePosition: Position.Right,
-        targetPosition: Position.Left,
-        data: {
-          skuId: "enterprise",
-          label: "Enterprise",
-          tier: "ENTERPRISE",
-          isIndividual: false,
-        },
-      },
-    ],
-    []
-  );
+      };
+
+      if (isIndividual) {
+        individualNodes.push(node);
+      } else {
+        orgNodes.push(node);
+      }
+    });
+
+    return [...individualNodes, ...orgNodes];
+  }, [currentScenario.customSkus, currentScenario.nodePositions]);
 
   // Build edges from scenario configuration
   const initialEdges: Edge[] = useMemo(() => {
@@ -343,11 +416,90 @@ export default function VisualBuilder() {
     setDesiredPath,
   ]);
 
-  const [nodes, , onNodesChange] = useNodesState(initialNodes);
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
+  // Track previous initialNodes to detect changes
+  const prevInitialNodesRef = useRef(initialNodes);
+
+  // Sync nodes when custom SKUs are added/removed (but not when updated)
+  useEffect(() => {
+    const prevNodeIds = new Set(prevInitialNodesRef.current.map(n => n.id));
+    const newNodeIds = new Set(initialNodes.map(n => n.id));
+
+    // Check if any nodes were added or removed
+    const nodeAdded = initialNodes.some(n => !prevNodeIds.has(n.id));
+    const nodeRemoved = prevInitialNodesRef.current.some(
+      n => !newNodeIds.has(n.id)
+    );
+
+    // Only sync if nodes were added/removed, not just updated
+    if (nodeAdded || nodeRemoved) {
+      setNodes(initialNodes);
+    } else {
+      // Update node data without replacing the entire array
+      // IMPORTANT: Preserve position and all React Flow state from current nodes
+      setNodes(nds =>
+        nds.map(node => {
+          const updated = initialNodes.find(n => n.id === node.id);
+          if (!updated) return node;
+
+          // Only update the data property - preserve everything else
+          // This prevents React Flow from repositioning nodes
+          return {
+            ...node,
+            data: updated.data,
+          };
+        })
+      );
+    }
+
+    // Update ref for next comparison
+    prevInitialNodesRef.current = initialNodes;
+  }, [initialNodes, setNodes]);
+
+  // Sync edges when initialEdges changes
+  useEffect(() => {
+    setEdges(initialEdges);
+  }, [initialEdges, setEdges]);
+
+  // Handle node changes and save positions when nodes are dragged
+  const handleNodesChange = useCallback(
+    (changes: NodeChange<Node<SkuNodeData>>[]) => {
+      onNodesChange(changes);
+
+      // Check if any changes are position changes
+      const positionChanges = changes.filter(
+        change => change.type === "position" && change.dragging === false
+      );
+
+      if (positionChanges.length > 0) {
+        // Update node positions in the scenario
+        const newPositions = { ...currentScenario.nodePositions };
+        positionChanges.forEach(change => {
+          if (change.type === "position" && change.position) {
+            newPositions[change.id] = change.position;
+          }
+        });
+
+        const updated = {
+          ...currentScenario,
+          nodePositions: newPositions,
+          modifiedAt: new Date().toISOString(),
+        };
+        updateCurrentScenario(updated);
+      }
+    },
+    [onNodesChange, currentScenario, updateCurrentScenario]
+  );
+
+  // Update nodes when custom SKUs change
+  useEffect(() => {
+    setNodes(initialNodes);
+  }, [initialNodes, setNodes]);
+
   // Update edges when scenario or filters change
-  useMemo(() => {
+  useEffect(() => {
     setEdges(initialEdges);
   }, [initialEdges, setEdges]);
 
@@ -372,27 +524,6 @@ export default function VisualBuilder() {
     },
     [updateAccountTypeAndSku]
   );
-
-  // Listen for edit node events from NodeToolbar
-  useEffect(() => {
-    const handleEditEvent = (event: CustomEvent<{ skuId: SkuId }>) => {
-      setSelectedSkuId(event.detail.skuId);
-      setIsEditorOpen(true);
-    };
-
-    window.addEventListener("edit-sku-node", handleEditEvent as EventListener);
-    return () => {
-      window.removeEventListener(
-        "edit-sku-node",
-        handleEditEvent as EventListener
-      );
-    };
-  }, []);
-
-  const handleCloseEditor = useCallback(() => {
-    setIsEditorOpen(false);
-    setSelectedSkuId(null);
-  }, []);
 
   // Handle edge click - select edge for marking as desired and navigate to target
   const onEdgeClick = useCallback(
@@ -435,24 +566,152 @@ export default function VisualBuilder() {
     setSelectedEdgeId(null);
   }, []);
 
+  // Handle Add Custom SKU button click
+  const handleAddCustomSku = useCallback(() => {
+    // Generate unique ID for the new SKU
+    const timestamp = Date.now();
+    const newSkuId = `custom-${timestamp}` as SkuId;
+
+    // Create a default custom SKU
+    const newSku: Sku = {
+      id: newSkuId,
+      name: "New Custom Plan",
+      description: "",
+      audience: "individual",
+      tier: 2,
+      available: true,
+      pricing: {
+        monthlyUsd: 0,
+        perSeat: false,
+      },
+      limits: {
+        premiumRequestsPerMonth: 500,
+        premiumRequestsOveragePolicy: {
+          behavior: OverageBehavior.BILL,
+          pricePerUnit: 0.04,
+          maxOverage: null,
+          allowBudgetCap: true,
+          warningThreshold: 80,
+        },
+        chatMessagesPerMonth: null,
+        chatMessagesOveragePolicy: null,
+        codeCompletionsPerMonth: null,
+        codeCompletionsOveragePolicy: null,
+        canPurchaseAdditionalPremiumRequests: true,
+      },
+      features: {
+        copilotCodingAgent: true,
+        agentMode: true,
+        copilotCodeReview: true,
+        modelContextProtocol: true,
+        chatInIdes: true,
+        inlineChat: true,
+        slashCommands: true,
+        chatInGitHubMobile: true,
+        chatInGitHub: true,
+        chatInWindowsTerminal: true,
+        chatSkillsInIdes: true,
+        premiumModelsAccess: true,
+        allModelsAccess: true,
+        nextEditSuggestions: true,
+        repositoryAndPersonalCustomInstructions: true,
+        organizationCustomInstructions: false,
+        promptFiles: true,
+        blockSuggestionsMatchingPublicCode: true,
+        excludeSpecifiedFiles: true,
+        organizationPolicyManagement: false,
+        pullRequestSummaries: true,
+        auditLogs: false,
+        contentExclusion: true,
+        knowledgeBases: true,
+        copilotCli: true,
+        gitHubSpark: true,
+      },
+    };
+
+    // Create a self-loop budget edge for the new SKU
+    const budgetEdge = {
+      id: `${newSkuId}-budget`,
+      source: newSkuId,
+      target: newSkuId,
+      type: EdgeType.BUDGET as unknown as import("@/types/scenario").EdgeType,
+      label: "Set overages",
+    };
+
+    // Update the scenario with both the SKU and edge in a single operation
+    const updated = {
+      ...currentScenario,
+      customSkus: [...(currentScenario.customSkus || []), newSku],
+      edges: [...currentScenario.edges, budgetEdge],
+      modifiedAt: new Date().toISOString(),
+    };
+
+    updateCurrentScenario(updated);
+
+    // Mark this SKU as pending to switch to after it's added
+    setPendingSkuSwitch(newSkuId);
+    // Also set the ref for panning
+    pendingPanRef.current = newSkuId;
+  }, [currentScenario, updateCurrentScenario]);
+
+  // Switch to new SKU when it's added to the scenario
+  useEffect(() => {
+    if (pendingSkuSwitch) {
+      const customSkuExists = currentScenario.customSkus?.some(
+        s => s.id === pendingSkuSwitch
+      );
+      if (customSkuExists) {
+        updateAccountTypeAndSku("individual", pendingSkuSwitch);
+        setPendingSkuSwitch(null);
+      }
+    }
+  }, [pendingSkuSwitch, currentScenario.customSkus, updateAccountTypeAndSku]);
+
+  // Separate effect: Pan to new node when it appears in nodes array
+  useEffect(() => {
+    if (pendingPanRef.current) {
+      const newNode = nodes.find(n => n.id === pendingPanRef.current);
+      if (newNode) {
+        const targetX = newNode.position.x + 100;
+        const targetY = newNode.position.y + 75;
+
+        requestAnimationFrame(() => {
+          setCenter(targetX, targetY, {
+            zoom: 1,
+            duration: 800,
+          });
+        });
+
+        pendingPanRef.current = null;
+      }
+    }
+  }, [nodes, setCenter]);
+
   return (
     <div className={styles.visualBuilder}>
+      {/* SKU Editor Panel */}
+      <SkuEditor />
+
+      {/* Add SKU Button */}
+      <div className={styles.addSkuButton}>
+        <Button
+          variant="primary"
+          leadingVisual={PlusIcon}
+          onClick={handleAddCustomSku}
+        >
+          Add new SKU
+        </Button>
+      </div>
+
       {/* Edge Filter Controls */}
       <div className={styles.filterPanel}>
         <EdgeFilters />
       </div>
 
-      {/* Node Editor Dialog */}
-      <NodeEditor
-        skuId={selectedSkuId}
-        isOpen={isEditorOpen}
-        onClose={handleCloseEditor}
-      />
-
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        onNodesChange={onNodesChange}
+        onNodesChange={handleNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeClick={onNodeClick}
         onEdgeClick={onEdgeClick}
@@ -468,6 +727,7 @@ export default function VisualBuilder() {
         edgesFocusable={true}
         nodesDraggable={true}
         nodesConnectable={false}
+        deleteKeyCode={null}
         minZoom={0.3}
         maxZoom={2}
       >
@@ -479,5 +739,16 @@ export default function VisualBuilder() {
         />
       </ReactFlow>
     </div>
+  );
+}
+
+/**
+ * Main Visual Builder component with ReactFlowProvider wrapper
+ */
+export default function VisualBuilder() {
+  return (
+    <ReactFlowProvider>
+      <VisualBuilderInner />
+    </ReactFlowProvider>
   );
 }

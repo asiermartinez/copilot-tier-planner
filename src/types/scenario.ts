@@ -73,10 +73,14 @@ export interface SkuScenario {
   name: string;
   /** Optional description */
   description?: string;
+  /** Custom SKUs created by the user */
+  customSkus?: Sku[];
   /** Custom SKU property overrides */
   skuVariations?: Partial<Record<SkuId, SkuVariation>>;
   /** Edge configuration */
   edges: SkuEdge[];
+  /** Node positions for the visual builder */
+  nodePositions?: Record<string, { x: number; y: number }>;
   /** Associated threshold configurations */
   thresholds?: ThresholdsConfig;
   /** Creation timestamp */

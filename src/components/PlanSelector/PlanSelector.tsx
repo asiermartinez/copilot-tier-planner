@@ -3,8 +3,13 @@
 import { ActionMenu, ActionList, Button } from "@primer/react";
 import { TriangleDownIcon, DotFillIcon } from "@primer/octicons-react";
 import type { SkuId } from "@/types/sku";
-import { SKU_MAP } from "@/data/skus";
+import {
+  getAllSkus as getBuiltInSkus,
+  getSimplifiedSkuName,
+  getSkusByAudienceSortedByPrice,
+} from "@/data/skus";
 import { useScenario } from "@/contexts";
+import { useMemo } from "react";
 
 type AccountType = "individual" | "organization" | "enterprise";
 
@@ -13,21 +18,66 @@ interface PlanSelectorProps {
   onChange: (accountType: AccountType, skuId: SkuId) => void;
 }
 
-const INDIVIDUAL_PLANS: Array<{ skuId: SkuId; label: string }> = [
-  { skuId: "free", label: "Free" },
-  { skuId: "pro-trial", label: "Pro (Trial)" },
-  { skuId: "pro", label: "Pro" },
-  { skuId: "pro-plus", label: "Pro+" },
-];
-
-const ORGANIZATION_PLANS: Array<{ skuId: SkuId; label: string }> = [
-  { skuId: "business", label: "Business" },
-  { skuId: "enterprise", label: "Enterprise" },
-];
-
 export default function PlanSelector({ skuId, onChange }: PlanSelectorProps) {
   const { currentScenario } = useScenario();
-  const currentLabel = SKU_MAP[skuId].name;
+
+  // Get all SKUs (built-in + custom)
+  const allSkus = useMemo(() => {
+    const builtIn = getBuiltInSkus();
+    return [...builtIn, ...(currentScenario.customSkus || [])];
+  }, [currentScenario.customSkus]);
+
+  // Build plan groups sorted by price (cheapest to most expensive)
+  const individualPlans = useMemo(() => {
+    const builtInIndividuals = getSkusByAudienceSortedByPrice("individual");
+    const customIndividuals = (currentScenario.customSkus || []).filter(
+      sku => sku.audience === "individual"
+    );
+
+    // Combine and sort all individuals by price
+    const allIndividuals = [...builtInIndividuals, ...customIndividuals].sort(
+      (a, b) => {
+        const priceDiff = a.pricing.monthlyUsd - b.pricing.monthlyUsd;
+        if (priceDiff !== 0) return priceDiff;
+        return a.tier - b.tier;
+      }
+    );
+
+    return allIndividuals.map(sku => ({
+      skuId: sku.id,
+      label: getSimplifiedSkuName(sku),
+    }));
+  }, [currentScenario.customSkus]);
+
+  const organizationPlans = useMemo(() => {
+    const builtInOrgs = getSkusByAudienceSortedByPrice("organization");
+    const builtInEnterprises = getSkusByAudienceSortedByPrice("enterprise");
+    const customOrgsAndEnterprises = (currentScenario.customSkus || []).filter(
+      sku => sku.audience === "organization" || sku.audience === "enterprise"
+    );
+
+    // Combine and sort all organizations/enterprises by price
+    const allOrgsAndEnterprises = [
+      ...builtInOrgs,
+      ...builtInEnterprises,
+      ...customOrgsAndEnterprises,
+    ].sort((a, b) => {
+      const priceDiff = a.pricing.monthlyUsd - b.pricing.monthlyUsd;
+      if (priceDiff !== 0) return priceDiff;
+      return a.tier - b.tier;
+    });
+
+    return allOrgsAndEnterprises.map(sku => ({
+      skuId: sku.id,
+      label: getSimplifiedSkuName(sku),
+    }));
+  }, [currentScenario.customSkus]);
+
+  // Get current SKU info
+  const currentSku = allSkus.find(s => s.id === skuId);
+  const currentLabel = currentSku
+    ? getSimplifiedSkuName(currentSku)
+    : "Unknown";
   const isCurrentModified =
     currentScenario.skuVariations?.[skuId] &&
     Object.keys(currentScenario.skuVariations[skuId]).length > 0;
@@ -76,7 +126,7 @@ export default function PlanSelector({ skuId, onChange }: PlanSelectorProps) {
       <ActionMenu.Overlay align="end">
         <ActionList>
           <ActionList.Group title="Individual" selectionVariant="single">
-            {INDIVIDUAL_PLANS.map(plan => {
+            {individualPlans.map(plan => {
               const variation = currentScenario.skuVariations?.[plan.skuId];
               const isModified = variation && Object.keys(variation).length > 0;
               return (
@@ -110,7 +160,7 @@ export default function PlanSelector({ skuId, onChange }: PlanSelectorProps) {
             title="Organization and enterprise"
             selectionVariant="single"
           >
-            {ORGANIZATION_PLANS.map(plan => {
+            {organizationPlans.map(plan => {
               const variation = currentScenario.skuVariations?.[plan.skuId];
               const isModified = variation && Object.keys(variation).length > 0;
               return (

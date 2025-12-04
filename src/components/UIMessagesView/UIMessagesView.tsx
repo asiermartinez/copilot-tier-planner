@@ -5,7 +5,7 @@ import { Button } from "@primer/react";
 import type { UserState } from "@/types/userState";
 import AlertBanner from "@/components/AlertBanner";
 import { getHighestPriorityAlert } from "@/utils/alerts/generateThresholdAlerts";
-import { usePlanner } from "@/contexts";
+import { usePlanner, useScenario } from "@/contexts";
 import styles from "./UIMessagesView.module.css";
 
 interface UIMessagesViewProps {
@@ -15,7 +15,12 @@ interface UIMessagesViewProps {
 export default function UIMessagesView({ userState }: UIMessagesViewProps) {
   const { thresholdsConfig, setActiveAlertId, dismissedAlerts, dismissAlert } =
     usePlanner();
-  const alert = getHighestPriorityAlert(userState, thresholdsConfig);
+  const { currentScenario } = useScenario();
+  const alert = getHighestPriorityAlert(
+    userState,
+    thresholdsConfig,
+    currentScenario.customSkus
+  );
 
   // Filter out dismissed alerts
   const visibleAlert = alert && !dismissedAlerts.has(alert.id) ? alert : null;

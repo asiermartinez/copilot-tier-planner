@@ -1,8 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import { FormControl, Stack, TextInput, ToggleSwitch } from "@primer/react";
 import { usePlanner, useScenario } from "@/contexts";
-import { SKU_MAP } from "@/data/skus";
+import { getSkuById } from "@/data/skus";
 import type { Sku } from "@/types/sku";
 import styles from "./UsageControls.module.css";
 
@@ -28,12 +29,45 @@ export default function UsageControls() {
     updateDaysIntoPeriod,
     getSimpleState,
     loadFromSimpleState,
+    updateAccountTypeAndSku,
   } = usePlanner();
 
   const { currentScenario } = useScenario();
 
-  // Get base SKU and merge with variations
-  const baseSku = SKU_MAP[userState.subscription.skuId];
+  // Get base SKU from built-in SKUs or custom SKUs
+  let baseSku: Sku | undefined = getSkuById(userState.subscription.skuId);
+
+  // If not found in built-in SKUs, check custom SKUs
+  if (!baseSku && currentScenario.customSkus) {
+    baseSku = currentScenario.customSkus.find(
+      sku => sku.id === userState.subscription.skuId
+    );
+  }
+
+  // If still not found, fallback to FREE SKU
+  if (!baseSku) {
+    baseSku = getSkuById("free");
+    if (!baseSku) {
+      throw new Error("FREE SKU not found - this should never happen");
+    }
+  }
+
+  // Handle missing SKU - switch to FREE in an effect to avoid setState during render
+  useEffect(() => {
+    const currentSku = getSkuById(userState.subscription.skuId);
+    const customSku = currentScenario.customSkus?.find(
+      sku => sku.id === userState.subscription.skuId
+    );
+
+    if (!currentSku && !customSku) {
+      updateAccountTypeAndSku("individual", "free");
+    }
+  }, [
+    userState.subscription.skuId,
+    currentScenario.customSkus,
+    updateAccountTypeAndSku,
+  ]);
+
   const variation =
     currentScenario.skuVariations?.[userState.subscription.skuId];
   const currentSku: Sku = {

@@ -149,12 +149,25 @@ const getDefaultSimpleState = (): SimpleUserState => {
  */
 function generateStateFromSimple(
   simple: SimpleUserState,
-  skuVariation?: SkuVariation
+  skuVariation?: SkuVariation,
+  customSkus?: Sku[]
 ): UserState {
   const accountType = simple.accountType;
 
-  // Get base SKU and merge with variations
-  const baseSku = getSkuById(simple.skuId);
+  // Get base SKU from built-in SKUs or custom SKUs
+  let baseSku: Sku | undefined = getSkuById(simple.skuId);
+
+  // If not found in built-in SKUs, check custom SKUs
+  if (!baseSku && customSkus) {
+    baseSku = customSkus.find(sku => sku.id === simple.skuId);
+  }
+
+  // If still not found, default to FREE plan (guaranteed to exist in built-in SKUs)
+  if (!baseSku) {
+    console.warn(`SKU not found: ${simple.skuId}, defaulting to FREE plan`);
+    baseSku = getSkuById("free")!;
+  }
+
   const sku: Sku = {
     ...baseSku,
     ...(skuVariation || {}),
@@ -338,13 +351,21 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
         const simpleState = decodeStateFromUrl(encoded);
         if (simpleState) {
           const variation = currentScenario.skuVariations?.[simpleState.skuId];
-          return generateStateFromSimple(simpleState, variation);
+          return generateStateFromSimple(
+            simpleState,
+            variation,
+            currentScenario.customSkus
+          );
         }
       }
     }
     const defaultState = getDefaultSimpleState();
     const variation = currentScenario.skuVariations?.[defaultState.skuId];
-    return generateStateFromSimple(defaultState, variation);
+    return generateStateFromSimple(
+      defaultState,
+      variation,
+      currentScenario.customSkus
+    );
   });
 
   // Debounce URL updates to prevent rate limiting
@@ -362,7 +383,11 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
       const currentSkuId = prevState.subscription.skuId;
       const variation = currentScenario.skuVariations?.[currentSkuId];
       const simpleState = toSimpleState(prevState);
-      const newState = generateStateFromSimple(simpleState, variation);
+      const newState = generateStateFromSimple(
+        simpleState,
+        variation,
+        currentScenario.customSkus
+      );
 
       // Only update if the limits actually changed (to avoid infinite loops)
       const oldLimit = prevState.usage.premiumRequests.limit;
@@ -373,7 +398,11 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
       }
       return prevState;
     });
-  }, [skuVariationsKey, currentScenario.skuVariations]);
+  }, [
+    skuVariationsKey,
+    currentScenario.skuVariations,
+    currentScenario.customSkus,
+  ]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -406,7 +435,11 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
    * Update userState with threshold-related data whenever thresholds config or plan changes
    */
   useEffect(() => {
-    const alert = getHighestPriorityAlert(userState, thresholdsConfig);
+    const alert = getHighestPriorityAlert(
+      userState,
+      thresholdsConfig,
+      currentScenario.customSkus
+    );
     const lastCrossedThresholdMessage = alert?.message ?? undefined;
 
     const currentSkuId = userState.subscription.skuId;
@@ -500,6 +533,7 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
     userState.account.accountType,
     userState.usage.premiumRequests.percentageUsed,
     userState.overageBudget?.percentageConsumed,
+    currentScenario.customSkus,
   ]);
 
   /**
@@ -511,17 +545,29 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
       simpleState.skuId = skuId;
 
       // Clear overage budget when switching to a SKU that doesn't allow budget caps
-      const sku = getSkuById(skuId);
+      let sku = getSkuById(skuId);
+
+      // If not found in built-in SKUs, check custom SKUs
+      if (!sku && currentScenario.customSkus) {
+        sku = currentScenario.customSkus.find(s => s.id === skuId);
+      }
+
       const allowsOverageBudget =
-        sku.limits.premiumRequestsOveragePolicy?.allowBudgetCap ?? false;
+        sku?.limits.premiumRequestsOveragePolicy?.allowBudgetCap ?? false;
 
       if (!allowsOverageBudget) {
         simpleState.overageBudgetUsd = null;
       }
 
-      setUserState(generateStateFromSimple(simpleState));
+      setUserState(
+        generateStateFromSimple(
+          simpleState,
+          undefined,
+          currentScenario.customSkus
+        )
+      );
     },
-    [userState]
+    [userState, currentScenario.customSkus]
   );
 
   /**
@@ -531,9 +577,15 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
     (newAccountType: "individual" | "organization" | "enterprise") => {
       const simpleState = toSimpleState(userState);
       simpleState.accountType = newAccountType;
-      setUserState(generateStateFromSimple(simpleState));
+      setUserState(
+        generateStateFromSimple(
+          simpleState,
+          undefined,
+          currentScenario.customSkus
+        )
+      );
     },
-    [userState]
+    [userState, currentScenario.customSkus]
   );
 
   /**
@@ -548,9 +600,15 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
       simpleState.accountType = newAccountType;
       simpleState.skuId = skuId;
       const variation = currentScenario.skuVariations?.[skuId];
-      setUserState(generateStateFromSimple(simpleState, variation));
+      setUserState(
+        generateStateFromSimple(
+          simpleState,
+          variation,
+          currentScenario.customSkus
+        )
+      );
     },
-    [userState, currentScenario.skuVariations]
+    [userState, currentScenario.skuVariations, currentScenario.customSkus]
   );
 
   /**
@@ -561,9 +619,15 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
       const simpleState = toSimpleState(userState);
       simpleState.seats = seats;
       const variation = currentScenario.skuVariations?.[simpleState.skuId];
-      setUserState(generateStateFromSimple(simpleState, variation));
+      setUserState(
+        generateStateFromSimple(
+          simpleState,
+          variation,
+          currentScenario.customSkus
+        )
+      );
     },
-    [userState, currentScenario.skuVariations]
+    [userState, currentScenario.skuVariations, currentScenario.customSkus]
   );
 
   /**
@@ -574,9 +638,15 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
       const simpleState = toSimpleState(userState);
       simpleState.premiumRequestsUsed = used;
       const variation = currentScenario.skuVariations?.[simpleState.skuId];
-      setUserState(generateStateFromSimple(simpleState, variation));
+      setUserState(
+        generateStateFromSimple(
+          simpleState,
+          variation,
+          currentScenario.customSkus
+        )
+      );
     },
-    [userState, currentScenario.skuVariations]
+    [userState, currentScenario.skuVariations, currentScenario.customSkus]
   );
 
   /**
@@ -587,9 +657,15 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
       const simpleState = toSimpleState(userState);
       simpleState.chatMessagesUsed = used;
       const variation = currentScenario.skuVariations?.[simpleState.skuId];
-      setUserState(generateStateFromSimple(simpleState, variation));
+      setUserState(
+        generateStateFromSimple(
+          simpleState,
+          variation,
+          currentScenario.customSkus
+        )
+      );
     },
-    [userState, currentScenario.skuVariations]
+    [userState, currentScenario.skuVariations, currentScenario.customSkus]
   );
 
   /**
@@ -600,9 +676,15 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
       const simpleState = toSimpleState(userState);
       simpleState.codeCompletionsUsed = used;
       const variation = currentScenario.skuVariations?.[simpleState.skuId];
-      setUserState(generateStateFromSimple(simpleState, variation));
+      setUserState(
+        generateStateFromSimple(
+          simpleState,
+          variation,
+          currentScenario.customSkus
+        )
+      );
     },
-    [userState, currentScenario.skuVariations]
+    [userState, currentScenario.skuVariations, currentScenario.customSkus]
   );
 
   /**
@@ -613,9 +695,15 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
       const simpleState = toSimpleState(userState);
       simpleState.overageBudgetUsd = maxBudgetUsd;
       const variation = currentScenario.skuVariations?.[simpleState.skuId];
-      setUserState(generateStateFromSimple(simpleState, variation));
+      setUserState(
+        generateStateFromSimple(
+          simpleState,
+          variation,
+          currentScenario.customSkus
+        )
+      );
     },
-    [userState, currentScenario.skuVariations]
+    [userState, currentScenario.skuVariations, currentScenario.customSkus]
   );
 
   /**
@@ -626,9 +714,15 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
       const simpleState = toSimpleState(userState);
       simpleState.daysIntoPeriod = days;
       const variation = currentScenario.skuVariations?.[simpleState.skuId];
-      setUserState(generateStateFromSimple(simpleState, variation));
+      setUserState(
+        generateStateFromSimple(
+          simpleState,
+          variation,
+          currentScenario.customSkus
+        )
+      );
     },
-    [userState, currentScenario.skuVariations]
+    [userState, currentScenario.skuVariations, currentScenario.customSkus]
   );
 
   /**
@@ -643,8 +737,14 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
    * Reset to default state
    */
   const reset = useCallback(() => {
-    setUserState(generateStateFromSimple(getDefaultSimpleState()));
-  }, []);
+    setUserState(
+      generateStateFromSimple(
+        getDefaultSimpleState(),
+        undefined,
+        currentScenario.customSkus
+      )
+    );
+  }, [currentScenario.customSkus]);
 
   /**
    * Get simplified state for URL sharing
@@ -659,9 +759,15 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
   const loadFromSimpleState = useCallback(
     (simpleState: SimpleUserState) => {
       const variation = currentScenario.skuVariations?.[simpleState.skuId];
-      setUserState(generateStateFromSimple(simpleState, variation));
+      setUserState(
+        generateStateFromSimple(
+          simpleState,
+          variation,
+          currentScenario.customSkus
+        )
+      );
     },
-    [currentScenario.skuVariations]
+    [currentScenario.skuVariations, currentScenario.customSkus]
   );
 
   const value = useMemo<PlannerContextValue>(

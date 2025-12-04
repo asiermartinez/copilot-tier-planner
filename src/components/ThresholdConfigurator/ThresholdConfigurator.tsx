@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   Button,
   FormControl,
@@ -32,10 +32,14 @@ import type {
   ThresholdArea,
   ThresholdSeverity,
 } from "@/types/thresholds";
-import type { SkuId } from "@/types/sku";
+import type { SkuId, Sku } from "@/types/sku";
 import { DEFAULT_THRESHOLDS } from "@/types/thresholds";
-import { SKU_MAP } from "@/data/skus";
-import { usePlanner } from "@/contexts";
+import {
+  SKU_MAP,
+  getSimplifiedSkuName,
+  getSkusByAudienceSortedByPrice,
+} from "@/data/skus";
+import { usePlanner, useScenario } from "@/contexts";
 import { clearStaticBannerStates } from "@/utils/alerts/generateThresholdAlerts";
 import styles from "./ThresholdConfigurator.module.css";
 
@@ -81,15 +85,6 @@ function suggestSeverity(percentage: number): ThresholdSeverity {
   }
 }
 
-const PLAN_OPTIONS: { value: SkuId; label: string }[] = [
-  { value: "free", label: "Free" },
-  { value: "pro-trial", label: "Pro (Trial)" },
-  { value: "pro", label: "Pro" },
-  { value: "pro-plus", label: "Pro+" },
-  { value: "business", label: "Business" },
-  { value: "enterprise", label: "Enterprise" },
-];
-
 const AREA_OPTIONS: { value: ThresholdArea; label: string }[] = [
   { value: "quota", label: "Quota" },
   { value: "overage", label: "Overage" },
@@ -118,30 +113,80 @@ function getAvailableAreas(plans: SkuId[]): ThresholdArea[] {
   return ["quota", "overage"];
 }
 
-/**
- * Format threshold scope for display (compact)
- */
-function formatThresholdScope(plans: SkuId[], areas: ThresholdArea[]): string {
-  const planLabels =
-    plans.length === PLAN_OPTIONS.length
-      ? "all plans"
-      : plans
-          .map(p => PLAN_OPTIONS.find(opt => opt.value === p)?.label || p)
-          .join(", ");
-  const areaLabels = areas
-    .map(a =>
-      (AREA_OPTIONS.find(opt => opt.value === a)?.label || a).toLowerCase()
-    )
-    .join(" or ");
-
-  return `${areaLabels} (${planLabels})`;
-}
-
 export default function ThresholdConfigurator({
   config,
   onChange,
 }: ThresholdConfiguratorProps) {
   const { userState, activeAlertId } = usePlanner();
+  const { currentScenario } = useScenario();
+
+  // Build plan options from all SKUs (built-in + custom), sorted by price within each audience group
+  const planOptions = useMemo(() => {
+    const builtInIndividuals = getSkusByAudienceSortedByPrice("individual");
+    const builtInOrganizations = getSkusByAudienceSortedByPrice("organization");
+    const builtInEnterprises = getSkusByAudienceSortedByPrice("enterprise");
+
+    const customIndividuals = (currentScenario.customSkus || []).filter(
+      sku => sku.audience === "individual"
+    );
+    const customOrganizations = (currentScenario.customSkus || []).filter(
+      sku => sku.audience === "organization"
+    );
+    const customEnterprises = (currentScenario.customSkus || []).filter(
+      sku => sku.audience === "enterprise"
+    );
+
+    // Combine and sort each audience group by price
+    const sortByPrice = (skus: Sku[]) =>
+      skus.sort((a, b) => {
+        const priceDiff = a.pricing.monthlyUsd - b.pricing.monthlyUsd;
+        if (priceDiff !== 0) return priceDiff;
+        return a.tier - b.tier;
+      });
+
+    const allIndividuals = sortByPrice([
+      ...builtInIndividuals,
+      ...customIndividuals,
+    ]);
+    const allOrganizations = sortByPrice([
+      ...builtInOrganizations,
+      ...customOrganizations,
+    ]);
+    const allEnterprises = sortByPrice([
+      ...builtInEnterprises,
+      ...customEnterprises,
+    ]);
+
+    const allSkus = [...allIndividuals, ...allOrganizations, ...allEnterprises];
+
+    return allSkus.map(sku => ({
+      value: sku.id,
+      label: getSimplifiedSkuName(sku),
+    }));
+  }, [currentScenario.customSkus]);
+
+  /**
+   * Format threshold scope for display (compact)
+   */
+  const formatThresholdScope = useCallback(
+    (plans: SkuId[], areas: ThresholdArea[]): string => {
+      const planLabels =
+        plans.length === planOptions.length
+          ? "all plans"
+          : plans
+              .map(p => planOptions.find(opt => opt.value === p)?.label || p)
+              .join(", ");
+      const areaLabels = areas
+        .map(a =>
+          (AREA_OPTIONS.find(opt => opt.value === a)?.label || a).toLowerCase()
+        )
+        .join(" or ");
+
+      return `${areaLabels} (${planLabels})`;
+    },
+    [planOptions]
+  );
+
   const [isVariablesDialogOpen, setIsVariablesDialogOpen] = useState(false);
   const [showThresholdDialog, setShowThresholdDialog] = useState(false);
   const [dialogMode, setDialogMode] = useState<"export" | "import">("export");
@@ -217,9 +262,18 @@ export default function ThresholdConfigurator({
     const hasOverageBudget = userState.overageBudget !== null;
 
     // Check if current SKU allows overage budgets
-    const currentSku = SKU_MAP[userState.subscription.skuId];
+    // Get SKU from built-in SKUs or custom SKUs
+    let currentSku: Sku | undefined = SKU_MAP[userState.subscription.skuId];
+
+    // If not found in built-in SKUs, check custom SKUs
+    if (!currentSku && currentScenario.customSkus) {
+      currentSku = currentScenario.customSkus.find(
+        s => s.id === userState.subscription.skuId
+      );
+    }
+
     const skuAllowsOverageBudget =
-      currentSku.limits.premiumRequestsOveragePolicy?.allowBudgetCap ?? false;
+      currentSku?.limits.premiumRequestsOveragePolicy?.allowBudgetCap ?? false;
 
     // Suggest plans based on current SKU
     const currentSkuId = userState.subscription.skuId;
@@ -668,7 +722,7 @@ export default function ThresholdConfigurator({
                 <ActionMenu.Overlay align="end">
                   <ActionList>
                     <ActionList.Group title="Plans" selectionVariant="multiple">
-                      {PLAN_OPTIONS.map(option => (
+                      {planOptions.map(option => (
                         <ActionList.Item
                           key={option.value}
                           selected={threshold.plans.includes(option.value)}

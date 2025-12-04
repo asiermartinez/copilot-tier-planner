@@ -227,7 +227,7 @@ export function generateUserState(
   options: GenerateUserStateOptions
 ): UserState {
   // Use provided SKU (with variations) or fetch base SKU
-  const sku = options.sku || getSkuById(options.skuId);
+  const sku = options.sku || getSkuById(options.skuId) || getSkuById("free")!;
 
   const premiumRequestsCurrent = options.usage.premiumRequests ?? 0;
   const chatMessagesCurrent = options.usage.chatMessages ?? 0;

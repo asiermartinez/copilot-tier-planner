@@ -508,7 +508,7 @@ export const SKU_MAP: Record<SkuId, Sku> = {
 /**
  * Get a SKU by its ID
  */
-export function getSkuById(id: SkuId): Sku {
+export function getSkuById(id: SkuId): Sku | undefined {
   return SKU_MAP[id];
 }
 
@@ -526,6 +526,31 @@ export function getSkusByAudience(
   audience: "individual" | "organization" | "enterprise"
 ): Sku[] {
   return ALL_SKUS.filter(sku => sku.audience === audience);
+}
+
+/**
+ * Sort SKUs by price (monthly USD) in ascending order
+ * For SKUs with the same price, maintains stable order based on tier
+ */
+function sortSkusByPrice(skus: Sku[]): Sku[] {
+  return [...skus].sort((a, b) => {
+    // Primary sort: by monthly price (ascending)
+    const priceDiff = a.pricing.monthlyUsd - b.pricing.monthlyUsd;
+    if (priceDiff !== 0) return priceDiff;
+
+    // Secondary sort: by tier (ascending) for same-price SKUs
+    return a.tier - b.tier;
+  });
+}
+
+/**
+ * Get SKUs filtered by audience and sorted by price (cheapest to most expensive)
+ */
+export function getSkusByAudienceSortedByPrice(
+  audience: "individual" | "organization" | "enterprise"
+): Sku[] {
+  const filtered = ALL_SKUS.filter(sku => sku.audience === audience);
+  return sortSkusByPrice(filtered);
 }
 
 /**
@@ -605,4 +630,11 @@ export function canDowngradeTo(
     targetSku.tier < currentSku.tier &&
     targetSku.audience === currentSku.audience
   );
+}
+
+/**
+ * Get simplified display name for a SKU (removes "GitHub Copilot " prefix)
+ */
+export function getSimplifiedSkuName(sku: Sku): string {
+  return sku.name.replace(/^GitHub Copilot\s+/i, "");
 }

@@ -1,0 +1,87 @@
+/* SKU Editor Component Styles - based on threshold card styling */
+
+.container {
+  position: absolute;
+  top: var(--base-size-16);
+  right: var(--base-size-16);
+  z-index: 1;
+  width: 360px;
+}
+
+.card {
+  border: 1px solid var(--borderColor-default);
+  border-radius: var(--borderRadius-medium);
+  background-color: var(--bgColor-default);
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--base-size-8) var(--base-size-16);
+  background-color: var(--bgColor-muted);
+  border-bottom: 1px solid var(--borderColor-muted);
+  min-height: 48px;
+}
+
+.headerContent {
+  display: flex;
+  align-items: center;
+  gap: var(--base-size-8);
+}
+
+.cardTitle {
+  font-weight: var(--base-text-weight-semibold);
+  font-size: var(--text-body-size-medium);
+  color: var(--fgColor-default);
+}
+
+.modifiedDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--fgColor-accent);
+  flex-shrink: 0;
+}
+
+.cardBody {
+  padding: var(--base-size-16);
+}
+
+.actions {
+  margin-top: var(--base-size-4);
+}
+
+.saveButton {
+  flex-grow: 1;
+}
+
+.inputWithSuffix {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.inputWithSuffix input[type="number"] {
+  padding-right: 60px;
+  -moz-appearance: textfield;
+}
+
+.inputWithSuffix input[type="number"]::-webkit-outer-spin-button,
+.inputWithSuffix input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.inputSuffix {
+  position: absolute;
+  right: var(--base-size-8);
+  color: var(--fgColor-muted);
+  font: var(--text-body-shorthand-medium);
+  pointer-events: none;
+  user-select: none;
+}

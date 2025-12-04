@@ -1,10 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ActionMenu, ActionList, Button } from "@primer/react";
 import { TriangleDownIcon } from "@primer/octicons-react";
 import type { SkuId } from "@/types/sku";
-import { SKU_MAP } from "@/data/skus";
+import {
+  SKU_MAP,
+  getAllSkus as getBuiltInSkus,
+  getSimplifiedSkuName,
+} from "@/data/skus";
+import { useScenario } from "@/contexts";
 
 type AccountType = "individual" | "organization" | "enterprise";
 
@@ -23,30 +28,39 @@ const SKU_LABELS: Record<SkuId, string> = {
   enterprise: "Enterprise",
 };
 
-// Get available SKU IDs based on account type
-function getAvailableSkuIds(accountType: AccountType): SkuId[] {
-  if (accountType === "individual") {
-    return ["free", "pro-trial", "pro", "pro-plus"];
-  } else if (accountType === "organization") {
-    // Organizations can have Business or Enterprise
-    return ["business", "enterprise"];
-  } else {
-    // Enterprises can also have Business or Enterprise
-    return ["business", "enterprise"];
-  }
-}
-
 export default function SkuSelector({
   value,
   accountType,
   onChange,
 }: SkuSelectorProps) {
   const [open, setOpen] = useState(false);
+  const { currentScenario } = useScenario();
+
+  // Get all SKUs (built-in + custom)
+  const allSkus = useMemo(() => {
+    const builtIn = getBuiltInSkus();
+    return [...builtIn, ...(currentScenario.customSkus || [])];
+  }, [currentScenario.customSkus]);
 
   // Get available SKU IDs for the current account type
-  const availableSkuIds = getAvailableSkuIds(accountType);
+  const availableSkuIds = useMemo(() => {
+    return allSkus
+      .filter(sku => {
+        if (accountType === "individual") {
+          return sku.audience === "individual";
+        } else {
+          return (
+            sku.audience === "organization" || sku.audience === "enterprise"
+          );
+        }
+      })
+      .map(sku => sku.id);
+  }, [allSkus, accountType]);
 
-  const currentLabel = SKU_LABELS[value] || "Select SKU";
+  const currentSku = allSkus.find(s => s.id === value);
+  const currentLabel = currentSku
+    ? getSimplifiedSkuName(currentSku)
+    : SKU_LABELS[value] || "Select SKU";
 
   const handleSelect = (newValue: SkuId) => {
     setOpen(false);
@@ -70,15 +84,20 @@ export default function SkuSelector({
       </ActionMenu.Anchor>
       <ActionMenu.Overlay align="end">
         <ActionList selectionVariant="single">
-          {availableSkuIds.map(skuId => (
-            <ActionList.Item
-              key={skuId}
-              selected={value === skuId}
-              onSelect={() => handleSelect(skuId)}
-            >
-              {SKU_MAP[skuId].name}
-            </ActionList.Item>
-          ))}
+          {availableSkuIds.map(skuId => {
+            const sku = allSkus.find(s => s.id === skuId);
+            return (
+              <ActionList.Item
+                key={skuId}
+                selected={value === skuId}
+                onSelect={() => handleSelect(skuId)}
+              >
+                {sku
+                  ? getSimplifiedSkuName(sku)
+                  : SKU_MAP[skuId]?.name || skuId}
+              </ActionList.Item>
+            );
+          })}
         </ActionList>
       </ActionMenu.Overlay>
     </ActionMenu>

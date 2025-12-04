@@ -1,11 +1,10 @@
 "use client";
 
-import { memo } from "react";
-import { Handle, Position, NodeToolbar } from "@xyflow/react";
-import { Button } from "@primer/react";
-import { PencilIcon, DotFillIcon } from "@primer/octicons-react";
+import { useMemo } from "react";
+import { Handle, Position } from "@xyflow/react";
+import { DotFillIcon } from "@primer/octicons-react";
 import { usePlanner, useScenario } from "@/contexts";
-import { SKU_MAP } from "@/data/skus";
+import { getSkuById } from "@/data/skus";
 import type { SkuId, Sku } from "@/types/sku";
 import styles from "./SkuNode.module.css";
 
@@ -17,6 +16,8 @@ export interface SkuNodeData extends Record<string, unknown> {
   label: string;
   tier: string;
   isIndividual: boolean;
+  /** Monthly price in USD - included to trigger re-renders when pricing changes */
+  monthlyUsd: number;
 }
 
 /**
@@ -33,20 +34,45 @@ function SkuNode({
   const { currentScenario } = useScenario();
 
   const skuId = data.skuId;
-  const baseSku = SKU_MAP[skuId];
-  const variation = currentScenario.skuVariations?.[skuId];
 
-  // Merge base SKU with variations
-  const sku: Sku = {
-    ...baseSku,
-    ...(variation || {}),
-    pricing: variation?.pricing
-      ? { ...baseSku.pricing, ...variation.pricing }
-      : baseSku.pricing,
-    limits: variation?.limits
-      ? { ...baseSku.limits, ...variation.limits }
-      : baseSku.limits,
-  };
+  // Get base SKU from built-in SKUs or custom SKUs - memoized for stable references
+  const baseSku = useMemo(() => {
+    const builtInSku = getSkuById(skuId);
+    if (builtInSku) return builtInSku;
+
+    // If not found in built-in SKUs, check custom SKUs
+    if (currentScenario.customSkus) {
+      return currentScenario.customSkus.find(s => s.id === skuId);
+    }
+
+    return undefined;
+  }, [skuId, currentScenario.customSkus]);
+
+  const variation = useMemo(
+    () => currentScenario.skuVariations?.[skuId],
+    [currentScenario.skuVariations, skuId]
+  );
+
+  // Merge base SKU with variations - memoized for stable references
+  const sku = useMemo((): Sku | null => {
+    if (!baseSku) return null;
+
+    return {
+      ...baseSku,
+      ...(variation || {}),
+      pricing: variation?.pricing
+        ? { ...baseSku.pricing, ...variation.pricing }
+        : baseSku.pricing,
+      limits: variation?.limits
+        ? { ...baseSku.limits, ...variation.limits }
+        : baseSku.limits,
+    };
+  }, [baseSku, variation]);
+
+  // If SKU not found, return null (shouldn't happen)
+  if (!sku) {
+    return null;
+  }
 
   const isCurrentSku = userState.subscription.skuId === skuId;
   const isModified = variation && Object.keys(variation).length > 0;
@@ -60,27 +86,8 @@ function SkuNode({
     .filter(Boolean)
     .join(" ");
 
-  // Handle edit button click
-  const handleEdit = () => {
-    window.dispatchEvent(
-      new CustomEvent("edit-sku-node", { detail: { skuId } })
-    );
-  };
-
   return (
     <>
-      {/* Toolbar appears when node is selected */}
-      <NodeToolbar isVisible={selected} position={Position.Top}>
-        <Button
-          size="small"
-          leadingVisual={PencilIcon}
-          onClick={handleEdit}
-          variant="default"
-        >
-          Edit
-        </Button>
-      </NodeToolbar>
-
       <div className={nodeClass}>
         {/* Multiple handles for smart edge routing */}
         <Handle
@@ -168,9 +175,7 @@ function SkuNode({
         {/* Body with product specs */}
         <div className={styles.nodeBody}>
           <div className={styles.limitItem}>
-            {sku.limits.premiumRequestsPerMonth >= 2000
-              ? `${sku.limits.premiumRequestsPerMonth}+ premium requests`
-              : `${sku.limits.premiumRequestsPerMonth} premium requests`}
+            {sku.limits.premiumRequestsPerMonth} premium requests
           </div>
         </div>
       </div>
@@ -178,4 +183,4 @@ function SkuNode({
   );
 }
 
-export default memo(SkuNode);
+export default SkuNode;

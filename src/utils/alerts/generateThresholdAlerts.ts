@@ -15,6 +15,7 @@ import type {
 } from "@/types/thresholds";
 import { SKU_MAP, getSkuById } from "@/data/skus";
 import { replaceTemplate } from "@/utils/messages/templateUtils";
+import type { Sku } from "@/types/sku";
 
 /**
  * Alert to be displayed to the user
@@ -121,10 +122,28 @@ function calculatePriority(
 /**
  * Build template context from user state
  */
-function buildTemplateContext(userState: UserState): ThresholdTemplateContext {
+function buildTemplateContext(
+  userState: UserState,
+  customSkus?: Sku[]
+): ThresholdTemplateContext {
   const { premiumRequests } = userState.usage;
   const { overageBudget } = userState;
-  const sku = SKU_MAP[userState.subscription.skuId];
+
+  // Get SKU from built-in SKUs or custom SKUs
+  let sku: Sku | undefined = SKU_MAP[userState.subscription.skuId];
+
+  // If not found in built-in SKUs, check custom SKUs
+  if (!sku && customSkus) {
+    sku = customSkus.find(s => s.id === userState.subscription.skuId);
+  }
+
+  // If still not found, use FREE SKU as fallback
+  if (!sku) {
+    sku = SKU_MAP["free"] || getSkuById("free");
+    if (!sku) {
+      throw new Error("FREE SKU not found - this should never happen");
+    }
+  }
 
   // Quota-related values
   const current = premiumRequests.current;
@@ -240,14 +259,26 @@ function isOverageThresholdTriggered(
  */
 function isThresholdTriggered(
   threshold: ThresholdConfig,
-  userState: UserState
+  userState: UserState,
+  customSkus?: Sku[]
 ): boolean {
   if (!threshold.enabled) {
     return false;
   }
 
   // Get SKU to check plan applicability
-  const sku = getSkuById(userState.subscription.skuId);
+  let sku: Sku | undefined = getSkuById(userState.subscription.skuId);
+
+  // If not found in built-in SKUs, check custom SKUs
+  if (!sku && customSkus) {
+    sku = customSkus.find(s => s.id === userState.subscription.skuId);
+  }
+
+  // If still not found, return false (can't determine if threshold applies)
+  if (!sku) {
+    return false;
+  }
+
   const skuId = userState.subscription.skuId;
   const allowsOverageBudget =
     sku.limits.premiumRequestsOveragePolicy?.allowBudgetCap ?? false;
@@ -302,14 +333,15 @@ function isThresholdTriggered(
  */
 export function generateThresholdAlerts(
   userState: UserState,
-  thresholdsConfig: ThresholdsConfig
+  thresholdsConfig: ThresholdsConfig,
+  customSkus?: Sku[]
 ): ThresholdAlert[] {
-  const context = buildTemplateContext(userState);
+  const context = buildTemplateContext(userState, customSkus);
   const alerts: ThresholdAlert[] = [];
 
   // Check each threshold
   for (const threshold of thresholdsConfig.thresholds) {
-    const isTriggered = isThresholdTriggered(threshold, userState);
+    const isTriggered = isThresholdTriggered(threshold, userState, customSkus);
 
     if (isTriggered) {
       // For static banners, freeze the context when first triggered
@@ -421,8 +453,13 @@ export function generateThresholdAlerts(
  */
 export function getHighestPriorityAlert(
   userState: UserState,
-  thresholdsConfig: ThresholdsConfig
+  thresholdsConfig: ThresholdsConfig,
+  customSkus?: Sku[]
 ): ThresholdAlert | null {
-  const alerts = generateThresholdAlerts(userState, thresholdsConfig);
+  const alerts = generateThresholdAlerts(
+    userState,
+    thresholdsConfig,
+    customSkus
+  );
   return alerts[0] ?? null;
 }

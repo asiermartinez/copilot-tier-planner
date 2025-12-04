@@ -5,7 +5,6 @@
   border: 1px solid var(--borderColor-default);
   border-radius: var(--borderRadius-medium);
   padding: var(--base-size-16);
-  box-shadow: var(--shadow-resting-medium);
   display: flex;
   flex-direction: column;
   gap: var(--base-size-12);

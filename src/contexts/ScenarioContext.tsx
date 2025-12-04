@@ -5,6 +5,7 @@ import {
   useContext,
   useState,
   useCallback,
+  useMemo,
   type ReactNode,
 } from "react";
 import {
@@ -15,8 +16,9 @@ import {
   type ScenarioExport,
   type SkuVariation,
 } from "@/types/scenario";
-import type { SkuId } from "@/types/sku";
+import type { SkuId, Sku } from "@/types/sku";
 import { DEFAULT_SCENARIO } from "@/data/defaultScenario";
+import { getAllSkus as getBuiltInSkus } from "@/data/skus";
 
 /**
  * Context value for scenario management
@@ -61,6 +63,18 @@ interface ScenarioContextValue {
 
   /** Update SKU variation in current scenario */
   updateSkuVariation: (skuId: SkuId, variation: SkuVariation) => void;
+
+  /** Add a custom SKU to current scenario */
+  addCustomSku: (sku: Sku) => void;
+
+  /** Update a custom SKU in current scenario */
+  updateCustomSku: (skuId: SkuId, sku: Sku) => void;
+
+  /** Delete a custom SKU from current scenario */
+  deleteCustomSku: (skuId: SkuId) => void;
+
+  /** Get all SKUs (built-in + custom) from current scenario */
+  getAllSkus: () => Sku[];
 
   /** Get desired edge from a specific SKU */
   getDesiredEdge: (fromSkuId: SkuId) => SkuEdge | null;
@@ -126,9 +140,11 @@ export function ScenarioProvider({ children }: ScenarioProviderProps) {
     targetSkuId: null,
   });
 
-  // Get current scenario
-  const currentScenario =
-    scenarios.find(s => s.id === currentScenarioId) || DEFAULT_SCENARIO;
+  // Get current scenario - memoize to ensure proper updates
+  const currentScenario = useMemo(
+    () => scenarios.find(s => s.id === currentScenarioId) || DEFAULT_SCENARIO,
+    [scenarios, currentScenarioId]
+  );
 
   // Update current scenario
   const updateCurrentScenario = useCallback((scenario: SkuScenario) => {
@@ -262,6 +278,54 @@ export function ScenarioProvider({ children }: ScenarioProviderProps) {
     [currentScenario, updateCurrentScenario]
   );
 
+  // Add a custom SKU to the current scenario
+  const addCustomSku = useCallback(
+    (sku: Sku) => {
+      const updated = {
+        ...currentScenario,
+        customSkus: [...(currentScenario.customSkus || []), sku],
+        modifiedAt: new Date().toISOString(),
+      };
+      updateCurrentScenario(updated);
+    },
+    [currentScenario, updateCurrentScenario]
+  );
+
+  // Update a custom SKU in the current scenario
+  const updateCustomSku = useCallback(
+    (skuId: SkuId, sku: Sku) => {
+      const updated = {
+        ...currentScenario,
+        customSkus: (currentScenario.customSkus || []).map(s =>
+          s.id === skuId ? sku : s
+        ),
+        modifiedAt: new Date().toISOString(),
+      };
+      updateCurrentScenario(updated);
+    },
+    [currentScenario, updateCurrentScenario]
+  );
+
+  // Delete a custom SKU from the current scenario
+  const deleteCustomSku = useCallback(
+    (skuId: SkuId) => {
+      const updated = {
+        ...currentScenario,
+        customSkus: (currentScenario.customSkus || []).filter(
+          s => s.id !== skuId
+        ),
+        modifiedAt: new Date().toISOString(),
+      };
+      updateCurrentScenario(updated);
+    },
+    [currentScenario, updateCurrentScenario]
+  );
+
+  // Get all SKUs (built-in + custom) from current scenario
+  const getAllSkus = useCallback((): Sku[] => {
+    return [...getBuiltInSkus(), ...(currentScenario.customSkus || [])];
+  }, [currentScenario.customSkus]);
+
   // Get desired edge from a specific SKU
   const getDesiredEdge = useCallback(
     (fromSkuId: SkuId): SkuEdge | null => {
@@ -383,6 +447,10 @@ export function ScenarioProvider({ children }: ScenarioProviderProps) {
     deleteEdge,
     setDesiredPath,
     updateSkuVariation,
+    addCustomSku,
+    updateCustomSku,
+    deleteCustomSku,
+    getAllSkus,
     getDesiredEdge,
     updateEdgeFilters,
     setTargetSku,
