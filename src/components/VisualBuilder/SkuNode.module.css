@@ -12,39 +12,28 @@
   overflow: visible;
 }
 
-.skuNode:hover:not(.selected):not(.current),
-.skuNode:global(.connecting):not(.selected):not(.current) {
+.skuNode:hover,
+.skuNode.selected,
+.skuNode:global(.connecting),
+.skuNode:global(.dragging) {
   outline: 2px solid var(--borderColor-accent-emphasis);
   outline-offset: -2px;
-}
-
-.skuNode:global(.dragging):not(.selected):not(.current) {
-  border: 2px solid var(--borderColor-accent-emphasis);
-}
-
-.skuNode.selected {
-  border-color: var(--borderColor-accent-emphasis);
-}
-
-.skuNode.current {
-  border-color: var(--borderColor-accent-emphasis);
-  box-shadow: 0 0 0 2px var(--borderColor-accent-emphasis);
 }
 
 /* Handle styles - larger and positioned outside node */
 .handle {
   width: 24px;
   height: 24px;
-  background: var(--bgColor-default);
-  border: 2px solid var(--borderColor-accent-emphasis);
-  border-radius: 50%;
   opacity: 0;
   transition: opacity 0.15s ease;
 }
 
 /* Visible handle (right side) extends handle with inner grey dot */
 .visibleHandle {
-  composes: handle;
+  width: 24px;
+  height: 24px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
   z-index: 10;
   opacity: 0 !important; /* Hide the actual handle element */
   pointer-events: all !important; /* Keep it clickable for React Flow */
@@ -65,17 +54,6 @@
   z-index: 10;
 }
 
-/* Adjust position and border for selected/current nodes with accent border */
-.skuNode.selected .handleVisual,
-.skuNode.current .handleVisual {
-  right: -14px;
-}
-
-.skuNode.selected .handleVisual::after,
-.skuNode.current .handleVisual::after {
-  border-width: 3px;
-}
-
 /* Full circle that gets clipped by wrapper */
 .handleVisual::after {
   content: "";
@@ -90,8 +68,9 @@
   box-sizing: border-box;
 }
 
-/* Show custom handle visual when hovering node, connecting, or dragging */
+/* Show custom handle visual when hovering node, selected, connecting, or dragging */
 .skuNode:hover .handleVisual,
+.skuNode.selected .handleVisual,
 .skuNode:global(.connecting) .handleVisual,
 .skuNode:global(.dragging) .handleVisual {
   opacity: 1;
@@ -113,8 +92,9 @@
   pointer-events: none;
 }
 
-/* Show dot when hovering node, connecting, or dragging */
+/* Show dot when hovering node, selected, connecting, or dragging */
 .skuNode:hover .handleDotIndependent,
+.skuNode.selected .handleDotIndependent,
 .skuNode:global(.connecting) .handleDotIndependent,
 .skuNode:global(.dragging) .handleDotIndependent {
   opacity: 1;

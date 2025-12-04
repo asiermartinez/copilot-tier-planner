@@ -63,11 +63,12 @@ function VisualBuilderInner() {
     setDesiredPath,
     updateEdgeFilters,
     updateCurrentScenario,
+    updateViewport,
   } = useScenario();
 
   // Get React Flow instance for viewport control and screen conversion
   const reactFlowInstance = useReactFlow();
-  const { setCenter } = reactFlowInstance;
+  const { setCenter, getViewport, setViewport } = reactFlowInstance;
 
   // Track selected edge for marking as desired
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
@@ -185,12 +186,20 @@ function VisualBuilderInner() {
     changes => {
       setNodes(nds => applyNodeChanges(changes, nds) as typeof nds);
 
-      // Check if any changes are position changes
+      // Check if any changes are position changes (drag ended)
       const positionChanges = changes.filter(
         change => change.type === "position" && change.dragging === false
       );
 
       if (positionChanges.length > 0) {
+        // Deselect all nodes after drag ends
+        setNodes(nds =>
+          nds.map(node => ({
+            ...node,
+            selected: false,
+          }))
+        );
+
         // Update node positions in the scenario
         const newPositions = { ...currentScenario.nodePositions };
         let hasChanges = false;
@@ -305,6 +314,14 @@ function VisualBuilderInner() {
       // Stop tracking connection state
       setConnectingFromNode(null);
 
+      // Deselect all nodes after connection ends
+      setNodes(nds =>
+        nds.map(node => ({
+          ...node,
+          selected: false,
+        }))
+      );
+
       // Only create new node if connection didn't complete to an existing node
       if (!connectionState.toNode && connectionState.fromNode) {
         const sourceId = connectionState.fromNode.id as SkuId;
@@ -325,7 +342,7 @@ function VisualBuilderInner() {
         }
       }
     },
-    [createCustomSku, reactFlowInstance]
+    [createCustomSku, reactFlowInstance, setNodes]
   );
 
   // Sync nodes when custom SKUs are added/removed or their data changes
@@ -389,6 +406,9 @@ function VisualBuilderInner() {
     ) => {
       const targetSkuId = node.data.skuId;
 
+      // Deselect any selected edge
+      setSelectedEdgeId(null);
+
       // Determine account type based on target SKU
       let accountType: AccountType = "individual";
 
@@ -412,7 +432,7 @@ function VisualBuilderInner() {
         });
       });
     },
-    [updateAccountTypeAndSku, setCenter]
+    [updateAccountTypeAndSku, setCenter, setSelectedEdgeId]
   );
 
   // Handle edge click - select edge for marking as desired and navigate to target
@@ -426,6 +446,14 @@ function VisualBuilderInner() {
 
       // Find the target SKU from the edge
       const targetSkuId = edge.target as SkuId;
+
+      // Select the target node
+      setNodes(nds =>
+        nds.map(node => ({
+          ...node,
+          selected: node.id === targetSkuId,
+        }))
+      );
 
       // Handle budget loop clicks (same source and target) - enable overage budget
       if (edge.source === edge.target) {
@@ -450,13 +478,32 @@ function VisualBuilderInner() {
       // Update the app state to transition to the new SKU with appropriate account type
       updateAccountTypeAndSku(accountType, targetSkuId);
     },
-    [updateAccountTypeAndSku, updateOverageBudget, userState.overageBudget]
+    [
+      updateAccountTypeAndSku,
+      updateOverageBudget,
+      userState.overageBudget,
+      setNodes,
+    ]
   );
 
   // Handle canvas click - deselect edge
   const onPaneClick = useCallback(() => {
     setSelectedEdgeId(null);
   }, []);
+
+  // Handle viewport changes to preserve canvas position
+  const onMove = useCallback(() => {
+    const viewport = getViewport();
+    updateViewport(viewport);
+  }, [getViewport, updateViewport]);
+
+  // Restore viewport when component mounts or when switching back to visual mode
+  useEffect(() => {
+    if (visualState.viewport) {
+      setViewport(visualState.viewport, { duration: 0 });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount to restore saved viewport position
 
   // Handle Add Custom SKU button click
   const handleAddCustomSku = useCallback(() => {
@@ -531,7 +578,8 @@ function VisualBuilderInner() {
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         connectionMode={ConnectionMode.Loose}
-        defaultViewport={{ x: 250, y: 100, zoom: 1 }}
+        defaultViewport={visualState.viewport || { x: 250, y: 100, zoom: 1 }}
+        onMove={onMove}
         defaultEdgeOptions={{
           animated: false,
           style: { strokeWidth: 2 },

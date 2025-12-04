@@ -90,6 +90,9 @@ interface ScenarioContextValue {
   /** Toggle desired paths highlighting */
   toggleHighlightDesiredPaths: () => void;
 
+  /** Update viewport position and zoom */
+  updateViewport: (viewport: { x: number; y: number; zoom: number }) => void;
+
   /** Export scenarios to JSON */
   exportScenarios: () => ScenarioExport;
 
@@ -137,6 +140,7 @@ export function ScenarioProvider({ children }: ScenarioProviderProps) {
     },
     highlightDesiredPaths: true,
     targetSkuId: null,
+    viewport: { x: 250, y: 100, zoom: 1 },
   });
 
   // Get current scenario - memoize to ensure proper updates
@@ -366,6 +370,17 @@ export function ScenarioProvider({ children }: ScenarioProviderProps) {
     }));
   }, []);
 
+  // Update viewport position and zoom
+  const updateViewport = useCallback(
+    (viewport: { x: number; y: number; zoom: number }) => {
+      setVisualState(prev => ({
+        ...prev,
+        viewport,
+      }));
+    },
+    []
+  );
+
   // Export scenarios to JSON
   const exportScenarios = useCallback((): ScenarioExport => {
     return {
@@ -427,6 +442,7 @@ export function ScenarioProvider({ children }: ScenarioProviderProps) {
       },
       highlightDesiredPaths: true,
       targetSkuId: null,
+      viewport: { x: 250, y: 100, zoom: 1 },
     });
   }, []);
 
@@ -453,6 +469,7 @@ export function ScenarioProvider({ children }: ScenarioProviderProps) {
     updateEdgeFilters,
     setTargetSku,
     toggleHighlightDesiredPaths,
+    updateViewport,
     exportScenarios,
     importScenarios,
     resetToDefault,

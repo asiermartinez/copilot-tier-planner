@@ -124,4 +124,10 @@ export interface VisualBuilderState {
   highlightDesiredPaths: boolean;
   /** Target SKU for path highlighting (null = no target) */
   targetSkuId: SkuId | null;
+  /** Viewport position and zoom for Plan Builder canvas */
+  viewport?: {
+    x: number;
+    y: number;
+    zoom: number;
+  };
 }
