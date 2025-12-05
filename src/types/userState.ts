@@ -1,7 +1,7 @@
 /**
  * User State Type Definitions
  *
- * Defines the structure for representing a user's current GitHub Copilot
+ * Defines the structure for representing a user's current Copilot
  * license state, including subscription details, usage tracking, and billing information.
  */
 
@@ -133,7 +133,7 @@ export interface Subscription {
 /**
  * Main user state interface
  *
- * Represents the complete state of a user's GitHub Copilot license,
+ * Represents the complete state of a user's Copilot license,
  * including subscription details, usage tracking, and billing information.
  */
 export interface UserState {

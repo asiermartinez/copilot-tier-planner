@@ -36,7 +36,7 @@ function slugify(text: string): string {
 
 /**
  * Infer tier level from monthly price
- * Uses GitHub Copilot pricing tiers as reference:
+ * Uses Copilot pricing tiers as reference:
  * - $0: FREE (tier 0)
  * - $1-18: PRO (tier 1)
  * - $19-49: PRO_PLUS (tier 2)

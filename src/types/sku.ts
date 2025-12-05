@@ -1,5 +1,5 @@
 /**
- * SKU Type Definitions for GitHub Copilot Plans
+ * SKU Type Definitions for Copilot Plans
  *
  * Based on: https://docs.github.com/en/copilot/get-started/plans
  * Last updated: January 2025
@@ -152,7 +152,7 @@ export interface SkuFeatures {
 }
 
 /**
- * Main SKU interface representing a GitHub Copilot plan
+ * Main SKU interface representing a Copilot plan
  */
 export interface Sku {
   /** Unique identifier for the SKU */

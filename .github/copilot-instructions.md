@@ -122,7 +122,7 @@ This project follows a structured development plan outlined in `PLAN.md` at the 
 ## SKU Domain Knowledge
 
 ### SKU Structure
-- GitHub Copilot SKUs follow a **linear progression**: FREE → [Mid-tier plans] → Enterprise
+- Copilot SKUs follow a **linear progression**: FREE → [Mid-tier plans] → Enterprise
 - Higher plans = more expensive + more quota/features
 - Users should be able to visualize and reason about upgrade/downgrade paths
 

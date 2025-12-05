@@ -1,7 +1,7 @@
 /**
  * Default SKU Scenario
  *
- * Defines the standard GitHub Copilot SKU hierarchy with
+ * Defines the standard Copilot SKU hierarchy with
  * default upgrade paths, budget options, and organization transitions.
  */
 
@@ -207,11 +207,11 @@ const DEFAULT_EDGES: SkuEdge[] = [
 ];
 
 /**
- * Default SKU scenario with standard GitHub Copilot hierarchy
+ * Default SKU scenario with standard Copilot hierarchy
  */
 export const DEFAULT_SCENARIO: SkuScenario = {
   id: "default",
-  name: "Standard GitHub Copilot Hierarchy",
+  name: "Standard Copilot Hierarchy",
   description:
     "Default SKU structure with standard upgrade paths, budget options, and organization transitions",
   edges: DEFAULT_EDGES,

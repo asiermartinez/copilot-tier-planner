@@ -1,23 +1,23 @@
 /**
- * GitHub Copilot SKU Data
+ * Copilot SKU Data
  *
  * Based on: https://docs.github.com/en/copilot/get-started/plans
  * Last updated: January 2025
  *
- * This file contains the complete SKU definitions for all GitHub Copilot plans,
+ * This file contains the complete SKU definitions for all Copilot plans,
  * including FREE, Pro, Pro+, Business, and Enterprise tiers.
  */
 
 import { Sku, SkuTier, OverageBehavior, type SkuId } from "@/types/sku";
 
 /**
- * GitHub Copilot Free
+ * Copilot Free
  *
  * Limited access plan for individual developers to try AI-powered coding assistance at no cost.
  */
 export const FREE_SKU: Sku = {
   id: "free",
-  name: "GitHub Copilot Free",
+  name: "Copilot Free",
   tier: SkuTier.FREE,
   description: "Try Copilot with limited features and requests",
   longDescription:
@@ -92,14 +92,14 @@ export const FREE_SKU: Sku = {
 };
 
 /**
- * GitHub Copilot Pro
+ * Copilot Pro
  *
  * Designed for individuals who want more flexibility with unlimited completions,
  * access to premium models, and a monthly allowance of premium requests.
  */
 export const PRO_SKU: Sku = {
   id: "pro",
-  name: "GitHub Copilot Pro",
+  name: "Copilot Pro",
   tier: SkuTier.PRO,
   description: "Get unlimited completions and access to premium models",
   longDescription:
@@ -169,19 +169,19 @@ export const PRO_SKU: Sku = {
 };
 
 /**
- * GitHub Copilot Pro (Trial)
+ * Copilot Pro (Trial)
  *
- * Free 30-day trial of GitHub Copilot Pro for eligible users.
+ * Free 30-day trial of Copilot Pro for eligible users.
  * Includes all Pro features with no payment required during the trial period.
  */
 export const PRO_TRIAL_SKU: Sku = {
   id: "pro-trial",
-  name: "GitHub Copilot Pro 30-day trial",
+  name: "Copilot Pro 30-day trial",
   tier: SkuTier.PRO,
   description:
     "Get unlimited completions and access to premium models. Includes a free 30-day trial for eligible users.",
   longDescription:
-    "Free 30-day trial of GitHub Copilot Pro for eligible users. This trial includes all features of Copilot Pro: unlimited completions, access to premium models in Copilot Chat, access to Copilot coding agent, and a monthly allowance of premium requests. No payment required during the trial period.",
+    "Free 30-day trial of Copilot Pro for eligible users. This trial includes all features of Copilot Pro: unlimited completions, access to premium models in Copilot Chat, access to Copilot coding agent, and a monthly allowance of premium requests. No payment required during the trial period.",
   pricing: {
     monthlyUsd: 0,
     annualUsd: 0,
@@ -247,14 +247,14 @@ export const PRO_TRIAL_SKU: Sku = {
 };
 
 /**
- * GitHub Copilot Pro+
+ * Copilot Pro+
  *
  * Offers the highest level of access for individual developers with a larger
  * allowance of premium requests and full access to all available models.
  */
 export const PRO_PLUS_SKU: Sku = {
   id: "pro-plus",
-  name: "GitHub Copilot Pro+",
+  name: "Copilot Pro+",
   tier: SkuTier.PRO_PLUS,
   description:
     "Unlock advanced AI models, extended request limits, and extra capabilities",
@@ -325,14 +325,14 @@ export const PRO_PLUS_SKU: Sku = {
 };
 
 /**
- * GitHub Copilot Business
+ * Copilot Business
  *
  * For organizations on GitHub Free or GitHub Team plan, or enterprises on
  * GitHub Enterprise Cloud. Includes centralized management and policy control.
  */
 export const BUSINESS_SKU: Sku = {
   id: "business",
-  name: "GitHub Copilot Business",
+  name: "Copilot Business",
   tier: SkuTier.BUSINESS,
   description: "For teams and organizations with centralized management",
   longDescription:
@@ -403,14 +403,14 @@ export const BUSINESS_SKU: Sku = {
 };
 
 /**
- * GitHub Copilot Enterprise
+ * Copilot Enterprise
  *
  * For enterprises using GitHub Enterprise Cloud. Includes all features of
  * Copilot Business plus additional enterprise-grade capabilities.
  */
 export const ENTERPRISE_SKU: Sku = {
   id: "enterprise",
-  name: "GitHub Copilot Enterprise",
+  name: "Copilot Enterprise",
   tier: SkuTier.ENTERPRISE,
   description:
     "For enterprises with advanced features and centralized management",
@@ -633,8 +633,8 @@ export function canDowngradeTo(
 }
 
 /**
- * Get simplified display name for a SKU (removes "GitHub Copilot " prefix)
+ * Get simplified display name for a SKU (removes "Copilot " prefix)
  */
 export function getSimplifiedSkuName(sku: Sku): string {
-  return sku.name.replace(/^GitHub Copilot\s+/i, "");
+  return sku.name.replace(/^Copilot\s+/i, "");
 }

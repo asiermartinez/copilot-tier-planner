@@ -3,7 +3,7 @@
  *
  * Defines granular types and constants for tracking resource usage,
  * quota limits, and overage calculations across different
- * resource types in GitHub Copilot plans.
+ * resource types in Copilot plans.
  */
 
 /**
@@ -216,7 +216,7 @@ export const STANDARD_BUDGET_THRESHOLDS = [50, 75, 90, 100] as const;
 
 /**
  * Default overage costs per unit (in USD)
- * Based on GitHub Copilot pricing: https://docs.github.com/en/copilot/get-started/plans
+ * Based on Copilot pricing: https://docs.github.com/en/copilot/get-started/plans
  *
  * Note: Only premium requests have documented overage pricing.
  * Chat messages and code completions are either hard-blocked (Free tier)

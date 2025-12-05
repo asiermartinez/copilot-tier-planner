@@ -9,7 +9,7 @@ This document outlines the development plan for the SKU Planner project. Move th
 
 ## Project Overview
 
-The SKU Planner is an internal GitHub playground tool that helps teams quickly make sense of GitHub Copilot SKUs. It shows how users move through different license tiers, what limits apply, and how upgrades or downgrades happen. With an interactive visual roadmap and built-in scenario analysis, the SKU Planner makes it easier to explore how SKU decisions play out in practice.
+The SKU Planner is an internal GitHub playground tool that helps teams quickly make sense of Copilot SKUs. It shows how users move through different license tiers, what limits apply, and how upgrades or downgrades happen. With an interactive visual roadmap and built-in scenario analysis, the SKU Planner makes it easier to explore how SKU decisions play out in practice.
 
 **Primary Users**:
 - Product teams testing SKU logic and validating entitlement rules
@@ -29,7 +29,7 @@ The SKU Planner is an internal GitHub playground tool that helps teams quickly m
 
 **SKU Data Model**:
 
-Based on the current implementation and [GitHub Copilot plans](https://docs.github.com/en/copilot/get-started/plans), the tool tracks:
+Based on the current implementation and [Copilot plans](https://docs.github.com/en/copilot/get-started/plans), the tool tracks:
 
 - **Tiers**: FREE (0) → PRO (1) → PRO_PLUS (2) → BUSINESS (3) → ENTERPRISE (4)
 - **Audiences**: Individual, Organization, Enterprise (upgrade paths respect audience boundaries)
@@ -140,7 +140,7 @@ The playground must visually represent all key UI messaging elements that appear
 - [x] 1.1 Review and validate existing SKU type definitions (`src/types/sku.ts`)
   - Verify all SKU tiers are represented (FREE through ENTERPRISE)
   - Check OverageBehavior enum covers all needed cases
-  - Validate feature flags match current GitHub docs
+  - Validate feature flags match current docs
 - [x] 1.2 Review and validate user state type definitions (`src/types/userState.ts`)
   - Verify UserState interface covers all tracking needs
   - Check alert types and severity levels are comprehensive
@@ -177,7 +177,7 @@ The playground must visually represent all key UI messaging elements that appear
 
 
 **Acceptance Criteria**:
-- All SKU tiers (Free, Pro, Pro+, Business, Enterprise) are properly defined with accurate data from GitHub docs
+- All SKU tiers (Free, Pro, Pro+, Business, Enterprise) are properly defined with accurate data from docs
 - Type definitions are comprehensive and support all required use cases
 - Helper functions cover common queries (upgrade paths, feature comparisons, cost calculations)
 - Mock data generator can create realistic user states for all scenarios
