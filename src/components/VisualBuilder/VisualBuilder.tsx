@@ -22,14 +22,22 @@ import { PlusIcon } from "@primer/octicons-react";
 import { usePlanner, useScenario } from "@/contexts";
 import type { SkuId } from "@/types/sku";
 import type { AccountType } from "@/types/userState";
+import type { ThresholdsConfig } from "@/types/thresholds";
 import SkuNode from "./SkuNode";
 import CustomEdge from "./CustomEdge";
 import EdgeFilters from "@/components/EdgeFilters";
 import SkuEditor from "@/components/SkuEditor";
+import ConfigExportDialog from "@/components/ConfigExportDialog";
+import ExportButton from "@/components/ExportButton";
 import styles from "./VisualBuilder.module.css";
 import { getHighestPriorityAlert } from "@/utils/alerts/generateThresholdAlerts";
 import { getAllSkus as getBuiltInSkus } from "@/data/skus";
-import { useVisualNodes, useVisualEdges, useCustomSkuManager } from "@/hooks";
+import {
+  useVisualNodes,
+  useVisualEdges,
+  useCustomSkuManager,
+  useDirtyState,
+} from "@/hooks";
 import { generateEdge } from "@/utils/edgeHelpers";
 
 /**
@@ -66,6 +74,14 @@ function VisualBuilderInner() {
     updateViewport,
   } = useScenario();
 
+  const { updateThresholdsConfig } = usePlanner();
+
+  // Track dirty state for export button notification
+  const isDirty = useDirtyState({
+    scenario: currentScenario,
+    thresholds: thresholdsConfig,
+  });
+
   // Get React Flow instance for viewport control and screen conversion
   const reactFlowInstance = useReactFlow();
   const { setCenter, getViewport, setViewport } = reactFlowInstance;
@@ -84,6 +100,9 @@ function VisualBuilderInner() {
 
   // Track if we just created a node from drag to prevent pane click from closing editor
   const justCreatedNodeRef = useRef<boolean>(false);
+
+  // Export/Import dialog state
+  const [showExportDialog, setShowExportDialog] = useState(false);
 
   // Track connection state for handle visibility - store source node ID
   const [connectingFromNode, setConnectingFromNode] = useState<string | null>(
@@ -558,6 +577,22 @@ function VisualBuilderInner() {
     pendingPanRef.current = newSkuId;
   }, [createCustomSku]);
 
+  // Export configuration handler - opens dialog
+  const handleExportConfig = useCallback(() => {
+    setShowExportDialog(true);
+  }, []);
+
+  // Import configuration handler
+  const handleImport = useCallback(
+    (scenario: typeof currentScenario, thresholds?: ThresholdsConfig) => {
+      updateCurrentScenario(scenario);
+      if (thresholds) {
+        updateThresholdsConfig(thresholds);
+      }
+    },
+    [updateCurrentScenario, updateThresholdsConfig]
+  );
+
   // Switch to new SKU when it's added to the scenario
   useEffect(() => {
     if (pendingSkuSwitch && customSkuExists(pendingSkuSwitch)) {
@@ -611,7 +646,7 @@ function VisualBuilderInner() {
       {/* SKU Editor Panel */}
       {showEditor && <SkuEditor />}
 
-      {/* Add SKU Button */}
+      {/* Add SKU and Export Buttons */}
       <div className={styles.addSkuButton}>
         <Button
           variant="primary"
@@ -620,7 +655,23 @@ function VisualBuilderInner() {
         >
           Add new SKU
         </Button>
+        <ExportButton
+          onClick={handleExportConfig}
+          showBadge={isDirty}
+          variant="default"
+          size="medium"
+        />
       </div>
+
+      {/* Export/Import Dialog */}
+      {showExportDialog && (
+        <ConfigExportDialog
+          onClose={() => setShowExportDialog(false)}
+          currentScenario={currentScenario}
+          thresholdsConfig={thresholdsConfig}
+          onImport={handleImport}
+        />
+      )}
 
       {/* Edge Filter Controls */}
       <div className={styles.filterPanel}>

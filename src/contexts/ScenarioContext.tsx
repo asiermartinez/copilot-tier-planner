@@ -312,11 +312,19 @@ export function ScenarioProvider({ children }: ScenarioProviderProps) {
   // Delete a custom SKU from the current scenario
   const deleteCustomSku = useCallback(
     (skuId: SkuId) => {
+      // Remove the custom SKU and any edges that reference it
+      const newNodePositions = { ...currentScenario.nodePositions };
+      delete newNodePositions[skuId];
+
       const updated = {
         ...currentScenario,
         customSkus: (currentScenario.customSkus || []).filter(
           s => s.id !== skuId
         ),
+        edges: currentScenario.edges.filter(
+          edge => edge.source !== skuId && edge.target !== skuId
+        ),
+        nodePositions: newNodePositions,
         modifiedAt: new Date().toISOString(),
       };
       updateCurrentScenario(updated);

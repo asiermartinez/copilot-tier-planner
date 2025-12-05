@@ -17,6 +17,9 @@
   left: 50%;
   transform: translateX(-50%);
   z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--base-size-8);
 }
 
 /* Filter panel positioning */

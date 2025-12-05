@@ -22,10 +22,11 @@ import {
   SyncIcon,
   InfoIcon,
   TriangleDownIcon,
-  DownloadIcon,
   CopyIcon,
-  CheckIcon,
 } from "@primer/octicons-react";
+import ConfigExportDialog from "@/components/ConfigExportDialog";
+import ExportButton from "@/components/ExportButton";
+import { useDirtyState } from "@/hooks";
 import type {
   ThresholdConfig,
   ThresholdsConfig,
@@ -117,8 +118,14 @@ export default function ThresholdConfigurator({
   config,
   onChange,
 }: ThresholdConfiguratorProps) {
-  const { userState, activeAlertId } = usePlanner();
-  const { currentScenario } = useScenario();
+  const { userState, activeAlertId, updateThresholdsConfig } = usePlanner();
+  const { currentScenario, updateCurrentScenario } = useScenario();
+
+  // Track dirty state for export button notification
+  const isDirty = useDirtyState({
+    scenario: currentScenario,
+    thresholds: config,
+  });
 
   // Build plan options from all SKUs (built-in + custom), sorted by price within each audience group
   const planOptions = useMemo(() => {
@@ -187,12 +194,9 @@ export default function ThresholdConfigurator({
     [planOptions]
   );
 
+  // Dialog state
   const [isVariablesDialogOpen, setIsVariablesDialogOpen] = useState(false);
-  const [showThresholdDialog, setShowThresholdDialog] = useState(false);
-  const [dialogMode, setDialogMode] = useState<"export" | "import">("export");
-  const [exportedJson, setExportedJson] = useState("");
-  const [importJson, setImportJson] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
   const [filterMode, setFilterMode] = useState<"all" | "current">("all");
 
   // Refs for each threshold card to enable highlighting
@@ -332,42 +336,21 @@ export default function ThresholdConfigurator({
     onChange({ thresholds: [...DEFAULT_THRESHOLDS] });
   };
 
-  // Export thresholds configuration
+  // Export unified configuration (scenario + thresholds)
   const handleExport = () => {
-    const exportData = {
-      thresholds: config.thresholds,
-      exportedAt: new Date().toISOString(),
-      version: "1.0",
-    };
-    setExportedJson(JSON.stringify(exportData, null, 2));
-    setDialogMode("export");
-    setShowThresholdDialog(true);
+    setShowExportDialog(true);
   };
 
-  const handleImportConfirm = () => {
-    try {
-      const parsed = JSON.parse(importJson);
-      if (parsed.thresholds && Array.isArray(parsed.thresholds)) {
-        onChange({ thresholds: parsed.thresholds });
-        setShowThresholdDialog(false);
-        setImportJson("");
-      } else {
-        alert("Invalid threshold configuration format");
+  // Import configuration handler
+  const handleImport = useCallback(
+    (scenario: typeof currentScenario, thresholds?: ThresholdsConfig) => {
+      updateCurrentScenario(scenario);
+      if (thresholds) {
+        updateThresholdsConfig(thresholds);
       }
-    } catch {
-      alert("Invalid JSON format");
-    }
-  };
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(exportedJson);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
-    }
-  };
+    },
+    [updateCurrentScenario, updateThresholdsConfig]
+  );
 
   // Filter thresholds based on mode
   const filteredThresholds =
@@ -395,12 +378,11 @@ export default function ThresholdConfigurator({
           </SegmentedControl.Button>
         </SegmentedControl>
         <div className={styles.headerActions}>
-          <IconButton
-            aria-label="Export thresholds"
-            icon={DownloadIcon}
-            size="small"
+          <ExportButton
             onClick={handleExport}
+            showBadge={isDirty}
             variant="invisible"
+            size="small"
           />
 
           <IconButton
@@ -420,116 +402,13 @@ export default function ThresholdConfigurator({
         </div>
       </div>
 
-      {showThresholdDialog && (
-        <Dialog
-          title="Threshold configuration"
-          onClose={() => setShowThresholdDialog(false)}
-          footerButtons={
-            dialogMode === "import"
-              ? [
-                  {
-                    buttonType: "default",
-                    content: "Cancel",
-                    onClick: () => setShowThresholdDialog(false),
-                  },
-                  {
-                    buttonType: "primary",
-                    content: "Import",
-                    onClick: handleImportConfirm,
-                    disabled: !importJson.trim(),
-                  },
-                ]
-              : [
-                  {
-                    buttonType: "default",
-                    content: "Close",
-                    onClick: () => setShowThresholdDialog(false),
-                  },
-                ]
-          }
-        >
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            <div style={{ marginBottom: "var(--base-size-16)" }}>
-              <SegmentedControl
-                aria-label="Threshold mode"
-                onChange={index =>
-                  setDialogMode(index === 0 ? "export" : "import")
-                }
-                fullWidth
-              >
-                <SegmentedControl.Button selected={dialogMode === "export"}>
-                  Export
-                </SegmentedControl.Button>
-                <SegmentedControl.Button selected={dialogMode === "import"}>
-                  Import
-                </SegmentedControl.Button>
-              </SegmentedControl>
-            </div>
-            <div>
-              {dialogMode === "export" ? (
-                <>
-                  <FormControl style={{ display: "block", width: "100%" }}>
-                    <FormControl.Label visuallyHidden>
-                      Export configuration
-                    </FormControl.Label>
-                    <div style={{ position: "relative", width: "100%" }}>
-                      <IconButton
-                        aria-label={copied ? "Copied" : "Copy JSON"}
-                        icon={copied ? CheckIcon : CopyIcon}
-                        onClick={handleCopy}
-                        variant="invisible"
-                        style={{
-                          position: "absolute",
-                          top: "8px",
-                          right: "8px",
-                          zIndex: 1,
-                        }}
-                      />
-                      <textarea
-                        readOnly
-                        value={exportedJson}
-                        style={{
-                          width: "100%",
-                          height: "300px",
-                          fontFamily: "var(--fontStack-monospace)",
-                          fontSize: "12px",
-                          padding: "12px",
-                          border: "1px solid var(--borderColor-default)",
-                          borderRadius: "6px",
-                          backgroundColor: "var(--bgColor-muted)",
-                          resize: "none",
-                          boxSizing: "border-box",
-                          display: "block",
-                        }}
-                      />
-                    </div>
-                  </FormControl>
-                </>
-              ) : (
-                <>
-                  <FormControl style={{ display: "block", width: "100%" }}>
-                    <FormControl.Label visuallyHidden>
-                      Import configuration
-                    </FormControl.Label>
-                    <Textarea
-                      value={importJson}
-                      onChange={e => setImportJson(e.target.value)}
-                      placeholder="Paste JSON here..."
-                      block
-                      resize="none"
-                      style={{
-                        fontFamily: "var(--fontStack-monospace)",
-                        fontSize: "12px",
-                        height: "300px",
-                        boxSizing: "border-box",
-                      }}
-                    />
-                  </FormControl>
-                </>
-              )}
-            </div>
-          </div>
-        </Dialog>
+      {showExportDialog && (
+        <ConfigExportDialog
+          onClose={() => setShowExportDialog(false)}
+          currentScenario={currentScenario}
+          thresholdsConfig={config}
+          onImport={handleImport}
+        />
       )}
 
       {isVariablesDialogOpen && (

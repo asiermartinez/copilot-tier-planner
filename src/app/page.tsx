@@ -35,8 +35,8 @@ export default function RootPage() {
   // Track page title with dirty state indicator
   usePageTitle({
     baseTitle: "Copilot SKU Planner",
-    scenarioModifiedAt: currentScenario.modifiedAt,
-    thresholdsModifiedAt: thresholdsConfig.modifiedAt,
+    scenario: currentScenario,
+    thresholds: thresholdsConfig,
   });
 
   const [innerViewMode, setInnerViewMode] =

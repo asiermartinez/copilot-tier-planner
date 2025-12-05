@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
+import { useDirtyState } from "./useDirtyState";
+import type { SkuScenario } from "@/types/scenario";
+import type { ThresholdsConfig } from "@/types/thresholds";
 
 interface UsePageTitleOptions {
   baseTitle?: string;
-  scenarioModifiedAt?: string;
-  thresholdsModifiedAt?: string;
+  scenario?: SkuScenario;
+  thresholds?: ThresholdsConfig;
 }
 
 /**
@@ -16,36 +19,16 @@ interface UsePageTitleOptions {
  */
 export function usePageTitle({
   baseTitle = "Copilot SKU Planner",
-  scenarioModifiedAt,
-  thresholdsModifiedAt,
+  scenario,
+  thresholds,
 }: UsePageTitleOptions = {}) {
-  // Track initial timestamps to detect changes
-  const initialScenarioTimestamp = useRef<string | undefined>(undefined);
-  const initialThresholdsTimestamp = useRef<string | undefined>(undefined);
-  const hasInitialized = useRef(false);
+  // Use the same dirty state logic as the export buttons
+  const isDirty = useDirtyState({ scenario, thresholds });
 
   useEffect(() => {
-    // Initialize refs only once on first mount
-    if (!hasInitialized.current) {
-      hasInitialized.current = true;
-      initialScenarioTimestamp.current = scenarioModifiedAt;
-      initialThresholdsTimestamp.current = thresholdsModifiedAt;
-    }
-
-    // Check if scenario has been modified
-    const scenarioModified =
-      scenarioModifiedAt !== initialScenarioTimestamp.current;
-
-    // Check if thresholds have been modified
-    const thresholdsModified =
-      thresholdsModifiedAt !== initialThresholdsTimestamp.current;
-
-    // Determine if we need to show dirty indicator
-    const isDirty = scenarioModified || thresholdsModified;
-
-    // Update page title
+    // Update page title based on dirty state
     document.title = isDirty ? `* Edited — ${baseTitle}` : baseTitle;
-  }, [baseTitle, scenarioModifiedAt, thresholdsModifiedAt]);
+  }, [baseTitle, isDirty]);
 
   // Cleanup: reset title on unmount
   useEffect(() => {
