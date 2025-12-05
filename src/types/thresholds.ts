@@ -62,6 +62,8 @@ export interface ThresholdConfig {
 export interface ThresholdsConfig {
   /** List of threshold configurations */
   thresholds: ThresholdConfig[];
+  /** Last modified timestamp */
+  modifiedAt?: string;
 }
 
 /**

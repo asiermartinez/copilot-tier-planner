@@ -215,5 +215,6 @@ export const DEFAULT_SCENARIO: SkuScenario = {
   description:
     "Default SKU structure with standard upgrade paths, budget options, and organization transitions",
   edges: DEFAULT_EDGES,
-  createdAt: new Date().toISOString(),
+  createdAt: "2025-01-01T00:00:00.000Z",
+  modifiedAt: "2025-01-01T00:00:00.000Z",
 };

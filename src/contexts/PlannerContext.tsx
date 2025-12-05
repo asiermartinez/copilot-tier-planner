@@ -193,9 +193,18 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
   >();
 
   // Configurable thresholds
-  const [thresholdsConfig, setThresholdsConfig] = useState<ThresholdsConfig>({
-    thresholds: DEFAULT_THRESHOLDS,
-  });
+  const [thresholdsConfig, setThresholdsConfigInternal] =
+    useState<ThresholdsConfig>({
+      thresholds: DEFAULT_THRESHOLDS,
+    });
+
+  // Wrapper to automatically set modifiedAt timestamp
+  const updateThresholdsConfig = useCallback((config: ThresholdsConfig) => {
+    setThresholdsConfigInternal({
+      ...config,
+      modifiedAt: new Date().toISOString(),
+    });
+  }, []);
 
   // Active alert tracking
   const [activeAlertId, setActiveAlertId] = useState<string | null>(null);
@@ -376,7 +385,7 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
       customMessages,
       customThresholds,
       thresholdsConfig,
-      updateThresholdsConfig: setThresholdsConfig,
+      updateThresholdsConfig,
       activeAlertId,
       setActiveAlertId,
       dismissedAlerts,
@@ -407,6 +416,7 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
       dismissedAlerts,
       dismissAlert,
       clearDismissedAlerts,
+      updateThresholdsConfig,
       updateSku,
       updateAccountType,
       updateAccountTypeAndSku,

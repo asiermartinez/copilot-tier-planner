@@ -15,6 +15,7 @@ import MessageInput from "@/components/MessageInput";
 import ModeToggle from "@/components/ModeToggle";
 import { VisualBuilder } from "@/components/VisualBuilder";
 import { usePlanner, useScenario } from "@/contexts";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import styles from "./page.module.css";
 
 type ViewToggleMode = "messages" | "payload";
@@ -29,7 +30,15 @@ export default function RootPage() {
     dismissedAlerts,
     clearDismissedAlerts,
   } = usePlanner();
-  const { viewMode } = useScenario();
+  const { viewMode, currentScenario } = useScenario();
+
+  // Track page title with dirty state indicator
+  usePageTitle({
+    baseTitle: "Copilot SKU Planner",
+    scenarioModifiedAt: currentScenario.modifiedAt,
+    thresholdsModifiedAt: thresholdsConfig.modifiedAt,
+  });
+
   const [innerViewMode, setInnerViewMode] =
     useState<ViewToggleMode>("messages");
   const [messageValue, setMessageValue] = useState("");
