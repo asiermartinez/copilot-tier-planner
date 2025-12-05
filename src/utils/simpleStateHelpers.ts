@@ -44,7 +44,7 @@ export function generateStateFromSimple(
 
   // If still not found, default to FREE plan (guaranteed to exist in built-in SKUs)
   if (!baseSku) {
-    console.warn(`SKU not found: ${simple.skuId}, defaulting to FREE plan`);
+    // Silently default to FREE - custom SKUs may not be loaded yet during state transitions
     baseSku = getSkuById("free")!;
   }
 

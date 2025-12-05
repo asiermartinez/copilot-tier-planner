@@ -82,6 +82,9 @@ function VisualBuilderInner() {
   // Track pending pan - use ref to avoid stale closures
   const pendingPanRef = useRef<SkuId | null>(null);
 
+  // Track if we just created a node from drag to prevent pane click from closing editor
+  const justCreatedNodeRef = useRef<boolean>(false);
+
   // Track connection state for handle visibility - store source node ID
   const [connectingFromNode, setConnectingFromNode] = useState<string | null>(
     null
@@ -350,10 +353,19 @@ function VisualBuilderInner() {
           setPendingSkuSwitch(newSkuId);
           // Also set the ref for panning
           pendingPanRef.current = newSkuId;
+
+          // Flag that we just created a node to prevent pane click from closing editor
+          justCreatedNodeRef.current = true;
         }
       }
     },
-    [createCustomSku, reactFlowInstance, setNodes]
+    [
+      createCustomSku,
+      reactFlowInstance,
+      setNodes,
+      setShowEditor,
+      setPendingSkuSwitch,
+    ]
   );
 
   // Sync nodes when custom SKUs are added/removed or their data changes
@@ -502,6 +514,11 @@ function VisualBuilderInner() {
 
   // Handle canvas click - deselect edge and hide editor
   const onPaneClick = useCallback(() => {
+    // Don't close editor if we just created a node from drag
+    if (justCreatedNodeRef.current) {
+      justCreatedNodeRef.current = false;
+      return;
+    }
     setSelectedEdgeId(null);
     setShowEditor(false);
 
@@ -544,7 +561,22 @@ function VisualBuilderInner() {
   // Switch to new SKU when it's added to the scenario
   useEffect(() => {
     if (pendingSkuSwitch && customSkuExists(pendingSkuSwitch)) {
-      updateAccountTypeAndSku("individual", pendingSkuSwitch);
+      // Find the custom SKU to get its audience
+      const customSku = currentScenario.customSkus?.find(
+        s => s.id === pendingSkuSwitch
+      );
+
+      // Determine account type based on the SKU's audience
+      let accountType: AccountType = "individual";
+      if (customSku) {
+        if (customSku.audience === "enterprise") {
+          accountType = "enterprise";
+        } else if (customSku.audience === "organization") {
+          accountType = "organization";
+        }
+      }
+
+      updateAccountTypeAndSku(accountType, pendingSkuSwitch);
       setPendingSkuSwitch(null);
     }
   }, [
