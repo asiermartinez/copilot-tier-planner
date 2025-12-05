@@ -16,8 +16,8 @@ import {
   type OnConnectStart,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Button } from "@primer/react";
-import { PlusIcon } from "@primer/octicons-react";
+import { Button, IconButton, ConfirmationDialog } from "@primer/react";
+import { PlusIcon, SyncIcon } from "@primer/octicons-react";
 
 import { usePlanner, useScenario } from "@/contexts";
 import type { SkuId } from "@/types/sku";
@@ -72,6 +72,7 @@ function VisualBuilderInner() {
     updateEdgeFilters,
     updateCurrentScenario,
     updateViewport,
+    resetToDefault,
   } = useScenario();
 
   const { updateThresholdsConfig } = usePlanner();
@@ -103,6 +104,9 @@ function VisualBuilderInner() {
 
   // Export/Import dialog state
   const [showExportDialog, setShowExportDialog] = useState(false);
+
+  // Reset confirmation dialog state
+  const [showResetDialog, setShowResetDialog] = useState(false);
 
   // Track connection state for handle visibility - store source node ID
   const [connectingFromNode, setConnectingFromNode] = useState<string | null>(
@@ -593,6 +597,23 @@ function VisualBuilderInner() {
     [updateCurrentScenario, updateThresholdsConfig]
   );
 
+  // Reset to defaults handler
+  const handleResetToDefaults = useCallback(() => {
+    setShowResetDialog(true);
+  }, []);
+
+  // Confirm reset to defaults
+  const handleConfirmReset = useCallback(() => {
+    resetToDefault();
+    setShowEditor(false);
+    // Switch to free plan
+    updateAccountTypeAndSku("individual", "free");
+    // Don't reset dirty state tracking - let the comparison happen naturally
+    // The scenario will be compared against the initial baseline
+    // If it matches (back to defaults), badge will disappear automatically
+    // If thresholds were modified, badge will remain (correct behavior)
+  }, [resetToDefault, updateAccountTypeAndSku]);
+
   // Switch to new SKU when it's added to the scenario
   useEffect(() => {
     if (pendingSkuSwitch && customSkuExists(pendingSkuSwitch)) {
@@ -661,6 +682,13 @@ function VisualBuilderInner() {
           variant="default"
           size="medium"
         />
+        <IconButton
+          aria-label="Reset to defaults"
+          icon={SyncIcon}
+          onClick={handleResetToDefaults}
+          variant="default"
+          size="medium"
+        />
       </div>
 
       {/* Export/Import Dialog */}
@@ -671,6 +699,25 @@ function VisualBuilderInner() {
           thresholdsConfig={thresholdsConfig}
           onImport={handleImport}
         />
+      )}
+
+      {/* Reset Confirmation Dialog */}
+      {showResetDialog && (
+        <ConfirmationDialog
+          onClose={gesture => {
+            if (gesture === "confirm") {
+              handleConfirmReset();
+            }
+            setShowResetDialog(false);
+          }}
+          title="Reset to defaults"
+          confirmButtonContent="Reset"
+          cancelButtonContent="Cancel"
+          confirmButtonType="danger"
+        >
+          This will remove all custom SKUs and restore the default scenario.
+          This action cannot be undone.
+        </ConfirmationDialog>
       )}
 
       {/* Edge Filter Controls */}
