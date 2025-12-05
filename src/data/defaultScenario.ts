@@ -63,20 +63,6 @@ const DEFAULT_EDGES: SkuEdge[] = [
       description: "Upgrade to Pro+ for advanced models and higher limits",
     },
   },
-  {
-    id: "pro-trial-to-pro-plus",
-    source: "pro-trial",
-    target: "pro-plus",
-    type: EdgeType.UPGRADE,
-    label: "Upgrade",
-    cost: {
-      type: "upgrade",
-      estimatedMonthlyUsd: 39,
-      estimatedAnnualUsd: 390,
-      description: "Upgrade from trial to Pro+",
-    },
-  },
-
   // Budget additions (self-loops)
   {
     id: "pro-budget",

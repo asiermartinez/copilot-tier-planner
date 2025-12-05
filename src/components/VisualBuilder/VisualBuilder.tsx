@@ -653,6 +653,8 @@ function VisualBuilderInner() {
         deleteKeyCode="Delete"
         minZoom={0.3}
         maxZoom={2}
+        snapToGrid={true}
+        snapGrid={[10, 10]}
       >
         <Background
           color="#d0d7de"
