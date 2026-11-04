@@ -15,42 +15,6 @@ let globalInitialThresholds: ThresholdsConfig | undefined = undefined;
 let globalHasInitialized = false;
 
 /**
- * Reset the dirty state tracking (useful after import or reset to defaults)
- *
- * @param resetScenario - If true, clears scenario baseline (will reinitialize on next render)
- *                        If a scenario object is provided, sets it as the new baseline
- * @param resetThresholds - If true, clears thresholds baseline (will reinitialize on next render)
- *                          If a thresholds object is provided, sets it as the new baseline
- */
-export function resetDirtyState(
-  resetScenario?: SkuScenario | boolean,
-  resetThresholds?: ThresholdsConfig | boolean
-) {
-  // Handle scenario reset
-  if (resetScenario === true) {
-    // Clear scenario baseline - will reinitialize on next render
-    globalInitialScenario = undefined;
-  } else if (resetScenario && typeof resetScenario === "object") {
-    // Set specific scenario as new baseline
-    globalInitialScenario = JSON.parse(JSON.stringify(resetScenario));
-  }
-
-  // Handle thresholds reset
-  if (resetThresholds === true) {
-    // Clear thresholds baseline - will reinitialize on next render
-    globalInitialThresholds = undefined;
-  } else if (resetThresholds && typeof resetThresholds === "object") {
-    // Set specific thresholds as new baseline
-    globalInitialThresholds = JSON.parse(JSON.stringify(resetThresholds));
-  }
-
-  // Only reset initialization flag if both are being cleared
-  if (resetScenario === true && resetThresholds === true) {
-    globalHasInitialized = false;
-  }
-}
-
-/**
  * Deep comparison helper for objects
  * Compares all properties except timestamps and undefined fields
  */

@@ -11,9 +11,9 @@ export default function RootLayout({
   return (
     // Suppress hydration warning because the Primer `focus-visible` polyfill
     // changes class names during hydration
-    <html suppressHydrationWarning={true}>
+    <html lang="en" suppressHydrationWarning={true}>
       <head>
-        <title>Copilot SKU Planner</title>
+        <title>Copilot Tier Planner</title>
       </head>
       <body>
         <ThemeProvider colorMode="light">

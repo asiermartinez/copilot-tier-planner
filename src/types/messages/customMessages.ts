@@ -99,4 +99,6 @@ export type TemplatePlaceholder =
 /**
  * Template values for placeholder replacement
  */
-export type TemplateValues = Partial<Record<TemplatePlaceholder, string | number>>;
+export type TemplateValues = Partial<
+  Record<TemplatePlaceholder, string | number>
+>;

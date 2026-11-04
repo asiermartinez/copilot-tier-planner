@@ -190,7 +190,7 @@ export default function UsageControls() {
           </div>
           <FormControl.Caption>
             {currentSku.limits.premiumRequestsPerMonth
-              ? `Quota: ${currentSku.limits.premiumRequestsPerMonth.toLocaleString()} per month${overagesEnabled ? " (overages enabled)" : ""}`
+              ? `Quota: ${currentSku.limits.premiumRequestsPerMonth.toLocaleString("en-US")} per month${overagesEnabled ? " (overages enabled)" : ""}`
               : "Unlimited quota"}
           </FormControl.Caption>
         </FormControl>
@@ -231,7 +231,7 @@ export default function UsageControls() {
                 <FormControl.Caption>
                   Maximum amount to spend on premium request overages per month
                   {additionalRequests > 0 &&
-                    ` (up to ${additionalRequests.toLocaleString()} additional requests)`}
+                    ` (up to ${additionalRequests.toLocaleString("en-US")} additional requests)`}
                 </FormControl.Caption>
               </FormControl>
             )}
@@ -272,7 +272,7 @@ export default function UsageControls() {
           </div>
           <FormControl.Caption>
             {currentSku.limits.chatMessagesPerMonth
-              ? `Quota: ${currentSku.limits.chatMessagesPerMonth.toLocaleString()} per month`
+              ? `Quota: ${currentSku.limits.chatMessagesPerMonth.toLocaleString("en-US")} per month`
               : "Unlimited quota"}
           </FormControl.Caption>
         </FormControl> */}
@@ -311,7 +311,7 @@ export default function UsageControls() {
           </div>
           <FormControl.Caption>
             {currentSku.limits.codeCompletionsPerMonth
-              ? `Quota: ${currentSku.limits.codeCompletionsPerMonth.toLocaleString()} per month`
+              ? `Quota: ${currentSku.limits.codeCompletionsPerMonth.toLocaleString("en-US")} per month`
               : "Unlimited quota"}
           </FormControl.Caption>
         </FormControl>

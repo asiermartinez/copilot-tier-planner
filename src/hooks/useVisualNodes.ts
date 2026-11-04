@@ -5,10 +5,7 @@ import { Node, Position } from "@xyflow/react";
 import type { Sku } from "@/types/sku";
 import type { SkuNodeData } from "@/components/VisualBuilder/SkuNode";
 import { getSimplifiedSkuName } from "@/data/skus";
-import {
-  getTierName,
-  getDefaultPosition,
-} from "@/utils/nodePositioning";
+import { getTierName, getDefaultPosition } from "@/utils/nodePositioning";
 
 interface UseVisualNodesOptions {
   builtInSkus: Sku[];

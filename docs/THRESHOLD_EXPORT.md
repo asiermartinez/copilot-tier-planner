@@ -1,6 +1,6 @@
 # Configuration Export/Import System
 
-This document explains how to use the unified configuration export/import system in the SKU Planner application.
+This document explains how to use the unified configuration export/import system in the Tier Planner application.
 
 ## Overview
 
@@ -70,7 +70,7 @@ The exported JSON has the following structure:
   },
   "exportedAt": "2025-01-27T10:00:00.000Z",
   "version": "1.0",
-  "description": "Copilot SKU Planner configuration export"
+  "description": "Copilot Tier Planner configuration export"
 }
 ```
 
@@ -299,7 +299,7 @@ Here's an example of a complete configuration export with custom SKUs and thresh
   },
   "exportedAt": "2025-01-27T10:00:00.000Z",
   "version": "1.0",
-  "description": "Copilot SKU Planner configuration export"
+  "description": "Copilot Tier Planner configuration export"
 }
 ```
 

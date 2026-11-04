@@ -18,7 +18,7 @@ interface UsePageTitleOptions {
  * to the page title when modifications are detected.
  */
 export function usePageTitle({
-  baseTitle = "Copilot SKU Planner",
+  baseTitle = "Copilot Tier Planner",
   scenario,
   thresholds,
 }: UsePageTitleOptions = {}) {

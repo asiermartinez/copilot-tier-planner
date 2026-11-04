@@ -30,9 +30,10 @@ export function replaceTemplate(
   for (const [key, value] of Object.entries(values)) {
     if (value !== undefined && value !== null) {
       // Format numbers with commas for readability
-      const formattedValue = typeof value === "number" && Number.isInteger(value)
-        ? value.toLocaleString()
-        : String(value);
+      const formattedValue =
+        typeof value === "number" && Number.isInteger(value)
+          ? value.toLocaleString("en-US")
+          : String(value);
 
       // Replace all occurrences of {key} with the formatted value
       const regex = new RegExp(`\\{${key}\\}`, "g");
@@ -41,39 +42,4 @@ export function replaceTemplate(
   }
 
   return result;
-}
-
-/**
- * Extract placeholders from a template string
- *
- * @param template - Message template
- * @returns Array of placeholder names found in the template
- *
- * @example
- * extractPlaceholders("You have {current} of {limit} requests")
- * // Returns: ["current", "limit"]
- */
-export function extractPlaceholders(template: string): string[] {
-  const matches = template.match(/\{([^}]+)\}/g);
-  if (!matches) return [];
-
-  return matches.map(match => match.slice(1, -1)); // Remove { and }
-}
-
-/**
- * Validate that all required placeholders are provided
- *
- * @param template - Message template
- * @param values - Provided values
- * @returns True if all placeholders have values
- */
-export function validateTemplate(
-  template: string,
-  values: TemplateValues
-): boolean {
-  const placeholders = extractPlaceholders(template);
-  return placeholders.every(placeholder => {
-    const value = values[placeholder as keyof TemplateValues];
-    return value !== undefined && value !== null;
-  });
 }

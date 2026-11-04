@@ -20,12 +20,7 @@ export enum SkuTier {
  * String literal type for SKU IDs
  */
 export type SkuId =
-  | "free"
-  | "pro"
-  | "pro-trial"
-  | "pro-plus"
-  | "business"
-  | "enterprise";
+  "free" | "pro" | "pro-trial" | "pro-plus" | "business" | "enterprise";
 
 /**
  * Pricing structure for a SKU
@@ -177,18 +172,4 @@ export interface Sku {
   available: boolean;
   /** Custom metadata for extensions */
   metadata?: Record<string, unknown>;
-}
-
-/**
- * Type guard to check if a string is a valid SkuId
- */
-export function isValidSkuId(id: string): id is SkuId {
-  return ["free", "pro", "pro-plus", "business", "enterprise"].includes(id);
-}
-
-/**
- * Type guard to check if a tier level is valid
- */
-export function isValidTier(tier: number): tier is SkuTier {
-  return tier >= SkuTier.FREE && tier <= SkuTier.ENTERPRISE;
 }

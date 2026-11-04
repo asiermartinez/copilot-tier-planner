@@ -33,7 +33,9 @@ export default function ExportButton({
         variant={variant}
         size={size}
       />
-      {showBadge && <span className={styles.badge} aria-label="Unsaved changes" />}
+      {showBadge && (
+        <span className={styles.badge} aria-label="Unsaved changes" />
+      )}
     </div>
   );
 }

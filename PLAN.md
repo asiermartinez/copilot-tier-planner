@@ -1,6 +1,6 @@
-# SKU Planner Development Plan
+# Tier Planner Development Plan
 
-This document outlines the development plan for the SKU Planner project. Move through each phase step by step, completing tasks in order. If something isn’t clear, feel free to ask for clarification, just ask one question at a time.
+This document outlines the development plan for the Tier Planner project. Move through each phase step by step, completing tasks in order. If something isn’t clear, feel free to ask for clarification, just ask one question at a time.
 
 **Status Indicators**:
 - `[ ]` = TODO (not started)
@@ -9,7 +9,7 @@ This document outlines the development plan for the SKU Planner project. Move th
 
 ## Project Overview
 
-The SKU Planner is an internal GitHub playground tool that helps teams quickly make sense of Copilot SKUs. It shows how users move through different license tiers, what limits apply, and how upgrades or downgrades happen. With an interactive visual roadmap and built-in scenario analysis, the SKU Planner makes it easier to explore how SKU decisions play out in practice.
+The Tier Planner is an internal GitHub playground tool that helps teams quickly make sense of Copilot SKUs. It shows how users move through different license tiers, what limits apply, and how upgrades or downgrades happen. With an interactive visual roadmap and built-in scenario analysis, the Tier Planner makes it easier to explore how SKU decisions play out in practice.
 
 **Primary Users**:
 - Product teams testing SKU logic and validating entitlement rules

@@ -35,35 +35,6 @@ export const ALERT_THRESHOLDS = [50, 75, 90, 100] as const;
 export const DEFAULT_ALERT_THRESHOLDS: number[] = [...ALERT_THRESHOLDS];
 
 /**
- * Map threshold percentages to their severity levels
- */
-export const THRESHOLD_SEVERITY_MAP: Record<number, AlertSeverityLevel> = {
-  50: AlertSeverityLevel.INFO,
-  75: AlertSeverityLevel.WARNING,
-  90: AlertSeverityLevel.CRITICAL,
-  100: AlertSeverityLevel.EXCEEDED,
-};
-
-/**
- * Get the severity level for a given percentage
- * Returns the highest severity level that has been crossed
- */
-export function getSeverityForPercentage(
-  percentage: number | null
-): AlertSeverityLevel | null {
-  if (percentage === null) return null;
-
-  // Find the highest threshold that has been crossed
-  const crossedThreshold = ALERT_THRESHOLDS.slice()
-    .reverse()
-    .find(threshold => percentage >= threshold);
-
-  return crossedThreshold !== undefined
-    ? THRESHOLD_SEVERITY_MAP[crossedThreshold]
-    : null;
-}
-
-/**
  * Get the last crossed threshold value for a given percentage
  * Returns null if no thresholds have been crossed
  */
@@ -80,15 +51,4 @@ export function getLastCrossedThreshold(
     .find(threshold => percentage >= threshold);
 
   return crossedThreshold ?? null;
-}
-
-/**
- * Check if a specific threshold has been crossed
- */
-export function hasReachedThreshold(
-  percentage: number | null,
-  threshold: number
-): boolean {
-  if (percentage === null) return false;
-  return percentage >= threshold;
 }

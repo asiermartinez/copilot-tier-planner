@@ -30,6 +30,7 @@ import { usePlannerState } from "@/hooks/usePlannerState";
 import { useUrlState } from "@/hooks/useUrlState";
 import {
   getDefaultSimpleState,
+  getFirstRenderSimpleState,
   toSimpleState,
   generateStateFromSimple,
 } from "@/utils/simpleStateHelpers";
@@ -134,7 +135,7 @@ interface PlannerProviderProps {
 }
 
 /**
- * Provider component that manages SKU planner state
+ * Provider component that manages tier planner state
  */
 export function PlannerProvider({ children }: PlannerProviderProps) {
   // Access scenario context for SKU variations
@@ -143,22 +144,12 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
   // URL state management
   const { readFromUrl, updateUrl } = useUrlState();
 
-  // Initialize state from URL or default
+  // Deterministic first render, so hydration matches the prerendered page
   const getInitialState = (): UserState => {
-    const urlState = readFromUrl();
-    if (urlState) {
-      const variation = currentScenario.skuVariations?.[urlState.skuId];
-      return generateStateFromSimple(
-        urlState,
-        variation,
-        currentScenario.customSkus
-      );
-    }
-    const defaultState = getDefaultSimpleState();
-    const variation = currentScenario.skuVariations?.[defaultState.skuId];
+    const firstRenderState = getFirstRenderSimpleState();
     return generateStateFromSimple(
-      defaultState,
-      variation,
+      firstRenderState,
+      currentScenario.skuVariations?.[firstRenderState.skuId],
       currentScenario.customSkus
     );
   };
@@ -254,6 +245,14 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
     userState,
     setState,
   ]);
+
+  // Load the real state after hydration: the URL if it has one, otherwise
+  // defaults based on today's date. Runs once, so later changes to the scenario
+  // can't overwrite what the user has done since.
+  useEffect(() => {
+    loadFromSimpleState(readFromUrl() ?? getDefaultSimpleState());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Sync state to URL
   useEffect(() => {

@@ -16,11 +16,7 @@ export type ThresholdArea = "quota" | "overage";
  * Alert severity levels for banners (maps to Primer Banner variants)
  */
 export type ThresholdSeverity =
-  | "info"
-  | "warning"
-  | "critical"
-  | "success"
-  | "upsell";
+  "info" | "warning" | "critical" | "success" | "upsell";
 
 /**
  * A single threshold configuration

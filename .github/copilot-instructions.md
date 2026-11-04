@@ -1,4 +1,4 @@
-# Copilot Instructions for SKU Planner
+# Copilot Instructions for Tier Planner
 
 ## Development Workflow
 
@@ -80,7 +80,7 @@ This project follows a structured development plan outlined in `PLAN.md` at the 
 - **Prefer CSS modules** for custom styling over inline styles or other approaches
 - Use semantic class names that describe purpose, not appearance
 - Import styles: `import styles from './Component.module.css'`
-- Apply classes: `className={styles.myClass}` or use `clsx` for conditional classes
+- Apply classes: `className={styles.myClass}`
 
 #### Styling Priority
 1. Primer React components (first choice)

@@ -25,6 +25,22 @@ export function getDefaultSimpleState(): SimpleUserState {
 }
 
 /**
+ * State for the first render only.
+ *
+ * The page is prerendered at build time, so the first client render has to
+ * match it exactly. This uses a fixed date instead of the clock, and
+ * PlannerProvider loads the real state right after hydration. The mid-month
+ * midday timestamp keeps the billing calculations the same in every time zone.
+ */
+export function getFirstRenderSimpleState(): SimpleUserState {
+  return {
+    ...getDefaultSimpleState(),
+    daysIntoPeriod: 14,
+    currentTimestamp: "2025-12-15T12:00:00.000Z",
+  };
+}
+
+/**
  * Generate full UserState from SimpleUserState
  */
 export function generateStateFromSimple(

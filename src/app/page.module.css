@@ -34,6 +34,12 @@
   flex-shrink: 0;
 }
 
+.snapshotNote {
+  margin: 0;
+  font-size: var(--text-body-size-small);
+  color: var(--fgColor-muted);
+}
+
 /* Header controls row */
 .headerControls {
   display: flex;

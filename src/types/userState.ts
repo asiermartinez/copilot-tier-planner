@@ -198,26 +198,6 @@ export interface SimpleUserState {
 }
 
 /**
- * Type guard to check if a user state is valid
- */
-export function isValidUserState(state: unknown): state is UserState {
-  if (typeof state !== "object" || state === null) return false;
-
-  const s = state as Partial<UserState>;
-
-  return !!(
-    s.id &&
-    s.timestamp &&
-    s.version &&
-    s.account &&
-    s.subscription &&
-    s.billingPeriod &&
-    s.usage &&
-    s.costs
-  );
-}
-
-/**
  * Alert types for user notifications
  */
 export enum AlertType {

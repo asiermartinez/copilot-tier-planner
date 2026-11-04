@@ -98,16 +98,6 @@ export function getDefaultPosition(
 }
 
 /**
- * Calculate relative positions for smart edge routing
- */
-export function getNodePosition(
-  nodes: Node<SkuNodeData>[],
-  nodeId: string
-): { x: number; y: number } {
-  return nodes.find(n => n.id === nodeId)?.position || { x: 0, y: 0 };
-}
-
-/**
  * Determine best handles based on relative position between nodes
  */
 export function calculateEdgeHandles(

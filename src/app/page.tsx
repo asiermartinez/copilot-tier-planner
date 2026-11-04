@@ -34,7 +34,7 @@ export default function RootPage() {
 
   // Track page title with dirty state indicator
   usePageTitle({
-    baseTitle: "Copilot SKU Planner",
+    baseTitle: "Copilot Tier Planner",
     scenario: currentScenario,
     thresholds: thresholdsConfig,
   });
@@ -88,6 +88,16 @@ export default function RootPage() {
           <MarkGithubIcon size={24} className={styles.titleIcon} />
           Copilot Tier Planner
         </h1>
+        <p className={styles.snapshotNote}>
+          Unofficial snapshot of late-2025 Copilot plans.{" "}
+          <a
+            href="https://docs.github.com/en/copilot/get-started/plans"
+            target="_blank"
+            rel="noreferrer"
+          >
+            See current plans
+          </a>
+        </p>
         <div style={{ marginLeft: "auto" }}>
           <ModeToggle />
         </div>
