@@ -25,6 +25,7 @@ import {
   CopyIcon,
 } from "@primer/octicons-react";
 import ConfigExportDialog from "@/components/ConfigExportDialog";
+import CopyableVariable from "./CopyableVariable";
 import ExportButton from "@/components/ExportButton";
 import { useDirtyState } from "@/hooks";
 import type {
@@ -42,6 +43,7 @@ import {
 } from "@/data/skus";
 import { usePlanner, useScenario } from "@/contexts";
 import { clearStaticBannerStates } from "@/utils/alerts/generateThresholdAlerts";
+import { getSliderStyle } from "@/utils/sliderStyle";
 import styles from "./ThresholdConfigurator.module.css";
 
 interface ThresholdConfiguratorProps {
@@ -426,23 +428,23 @@ export default function ThresholdConfigurator({
                 <strong>Quota</strong>
                 <div className={styles.variableList}>
                   <div>
-                    <code>{"{current}"}</code>
+                    <CopyableVariable name="current" />
                     <span>Current requests used</span>
                   </div>
                   <div>
-                    <code>{"{limit}"}</code>
+                    <CopyableVariable name="limit" />
                     <span>Monthly quota limit</span>
                   </div>
                   <div>
-                    <code>{"{percentage}"}</code>
+                    <CopyableVariable name="percentage" />
                     <span>Quota usage percentage</span>
                   </div>
                   <div>
-                    <code>{"{remaining}"}</code>
+                    <CopyableVariable name="remaining" />
                     <span>Requests remaining</span>
                   </div>
                   <div>
-                    <code>{"{overage}"}</code>
+                    <CopyableVariable name="overage" />
                     <span>Overage request count</span>
                   </div>
                 </div>
@@ -451,23 +453,23 @@ export default function ThresholdConfigurator({
                 <strong>Overage Budget</strong>
                 <div className={styles.variableList}>
                   <div>
-                    <code>{"{budget}"}</code>
+                    <CopyableVariable name="budget" />
                     <span>Total budget amount</span>
                   </div>
                   <div>
-                    <code>{"{budgetUsed}"}</code>
+                    <CopyableVariable name="budgetUsed" />
                     <span>Amount spent</span>
                   </div>
                   <div>
-                    <code>{"{budgetRemaining}"}</code>
+                    <CopyableVariable name="budgetRemaining" />
                     <span>Amount remaining</span>
                   </div>
                   <div>
-                    <code>{"{budgetPercentage}"}</code>
+                    <CopyableVariable name="budgetPercentage" />
                     <span>Budget consumed (%)</span>
                   </div>
                   <div>
-                    <code>{"{overageRemaining}"}</code>
+                    <CopyableVariable name="overageRemaining" />
                     <span>Overage requests remaining</span>
                   </div>
                 </div>
@@ -476,22 +478,22 @@ export default function ThresholdConfigurator({
                 <strong>Plan</strong>
                 <div className={styles.variableList}>
                   <div>
-                    <code>{"{planName}"}</code>
+                    <CopyableVariable name="planName" />
                     <span>Current plan name</span>
                   </div>
                   <div>
-                    <code>{"{nextPlan}"}</code>
+                    <CopyableVariable name="nextPlan" />
                     <span>Next tier plan name</span>
                   </div>
                   <div>
-                    <code>{"{actionType}"}</code>
+                    <CopyableVariable name="actionType" />
                     <span>
                       CTA action (e.g., &quot;Upgrade to&quot;,
                       &quot;Join&quot;)
                     </span>
                   </div>
                   <div>
-                    <code>{"{targetPlan}"}</code>
+                    <CopyableVariable name="targetPlan" />
                     <span>Suggested upgrade target plan</span>
                   </div>
                 </div>
@@ -500,15 +502,15 @@ export default function ThresholdConfigurator({
                 <strong>Billing Period</strong>
                 <div className={styles.variableList}>
                   <div>
-                    <code>{"{daysRemaining}"}</code>
+                    <CopyableVariable name="daysRemaining" />
                     <span>Days left in period</span>
                   </div>
                   <div>
-                    <code>{"{daysInPeriod}"}</code>
+                    <CopyableVariable name="daysInPeriod" />
                     <span>Total days in period</span>
                   </div>
                   <div>
-                    <code>{"{resetDate}"}</code>
+                    <CopyableVariable name="resetDate" />
                     <span>Plan reset date (e.g., Mar 7, 2025)</span>
                   </div>
                 </div>
@@ -723,6 +725,7 @@ export default function ThresholdConfigurator({
                       })
                     }
                     className={styles.slider}
+                    style={getSliderStyle(threshold.percentage, 100)}
                     aria-label="Threshold percentage"
                   />
                   <div className={styles.numberInput}>
@@ -807,6 +810,10 @@ export default function ThresholdConfigurator({
                           })
                         }
                         className={styles.slider}
+                        style={getSliderStyle(
+                          threshold.billingPeriod.maxDaysIntoPeriod,
+                          userState.billingPeriod.daysInPeriod
+                        )}
                         aria-label="Days into billing period slider"
                       />
                       <div className={styles.numberInput}>

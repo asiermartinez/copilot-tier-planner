@@ -22,7 +22,11 @@
   min-width: 0;
   height: 8px;
   border-radius: 4px;
-  background: var(--borderColor-default);
+  background: linear-gradient(
+    to right,
+    var(--fgColor-accent) calc(10px + (100% - 20px) * var(--slider-progress, 0)),
+    var(--borderColor-default) 0
+  );
   outline: none;
   -webkit-appearance: none;
   appearance: none;
@@ -78,6 +82,7 @@
 .slider:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  background: var(--borderColor-default);
 }
 
 .slider:disabled::-webkit-slider-thumb {

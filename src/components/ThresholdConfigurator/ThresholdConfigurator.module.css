@@ -64,6 +64,7 @@
 .addButtonContainer {
   padding: var(--base-size-16) var(--base-size-24);
   background-color: var(--bgColor-default);
+  border-top: 1px solid var(--borderColor-default);
   flex-shrink: 0;
   display: flex;
   justify-content: flex-end;
@@ -197,7 +198,11 @@
   min-width: 0;
   height: 8px;
   border-radius: 4px;
-  background: var(--borderColor-default);
+  background: linear-gradient(
+    to right,
+    var(--fgColor-accent) calc(10px + (100% - 20px) * var(--slider-progress, 0)),
+    var(--borderColor-default) 0
+  );
   outline: none;
   -webkit-appearance: none;
   appearance: none;
@@ -276,6 +281,73 @@
 .numberInput input[type="number"] {
   -moz-appearance: textfield;
   appearance: textfield;
+}
+
+.variablesGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--base-size-16);
+  margin-top: var(--base-size-16);
+}
+
+.variableList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--base-size-8);
+  margin-top: var(--base-size-8);
+}
+
+.variableList > div {
+  display: grid;
+  grid-template-columns: 176px 1fr;
+  align-items: center;
+  column-gap: var(--base-size-8);
+}
+
+.variableList > div > button {
+  justify-self: start;
+}
+
+.copyableVariable {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--base-size-4);
+  padding: 0;
+  border: 0;
+  border-radius: var(--borderRadius-small);
+  background: none;
+  color: var(--fgColor-muted);
+  cursor: pointer;
+}
+
+.copyableVariable:hover {
+  color: var(--fgColor-default);
+}
+
+.copyableVariable:focus-visible {
+  outline: 2px solid var(--focus-outlineColor);
+  outline-offset: 2px;
+}
+
+.copyableVariable[data-copied] {
+  color: var(--fgColor-success);
+}
+
+.copyableVariableIcon {
+  flex-shrink: 0;
+  opacity: 0;
+}
+
+.copyableVariable:hover .copyableVariableIcon,
+.copyableVariable:focus-visible .copyableVariableIcon,
+.copyableVariable[data-copied] .copyableVariableIcon {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .copyableVariableIcon {
+    opacity: 1;
+  }
 }
 
 @media (max-width: 768px) {

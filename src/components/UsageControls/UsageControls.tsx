@@ -5,6 +5,7 @@ import { FormControl, Stack, TextInput, ToggleSwitch } from "@primer/react";
 import { usePlanner, useScenario } from "@/contexts";
 import { getSkuById } from "@/data/skus";
 import type { Sku } from "@/types/sku";
+import { getSliderStyle } from "@/utils/sliderStyle";
 import styles from "./UsageControls.module.css";
 
 /**
@@ -169,6 +170,10 @@ export default function UsageControls() {
               value={usage.premiumRequests.current}
               onChange={e => updatePremiumRequests(Number(e.target.value))}
               className={styles.slider}
+              style={getSliderStyle(
+                usage.premiumRequests.current,
+                premiumRequestsMax
+              )}
               aria-label="Premium requests usage slider"
             />
             <div className={styles.numberInput}>
@@ -249,6 +254,7 @@ export default function UsageControls() {
               value={usage.chatMessages.current}
               onChange={e => updateChatMessages(Number(e.target.value))}
               className={styles.slider}
+              style={getSliderStyle(usage.chatMessages.current, chatMessagesMax)}
               disabled={currentSku.limits.chatMessagesPerMonth === null}
               aria-label="Chat messages usage slider"
             />
@@ -288,6 +294,10 @@ export default function UsageControls() {
               value={usage.codeCompletions.current}
               onChange={e => updateCodeCompletions(Number(e.target.value))}
               className={styles.slider}
+              style={getSliderStyle(
+                usage.codeCompletions.current,
+                codeCompletionsMax
+              )}
               disabled={currentSku.limits.codeCompletionsPerMonth === null}
               aria-label="Code completions usage slider"
             />
@@ -328,6 +338,7 @@ export default function UsageControls() {
                 value={daysIntoPeriod}
                 onChange={e => updateDaysIntoPeriod(Number(e.target.value))}
                 className={styles.slider}
+                style={getSliderStyle(daysIntoPeriod, totalDays)}
                 aria-label="Days into billing period slider"
               />
               <div className={styles.numberInput}>
