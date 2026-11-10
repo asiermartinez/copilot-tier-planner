@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { MarkGithubIcon } from "@primer/octicons-react";
 import { Button } from "@primer/react";
 
@@ -51,18 +51,21 @@ export default function RootPage() {
 
   // Use the isBlocked flag from userState (already calculated with proper logic)
   const isBlocked = userState.usage.premiumRequests.isBlocked;
-  const premiumRequestsUsed = userState.usage.premiumRequests.current;
 
-  // Each sent message consumes one premium request. Stable identity so the
-  // memoized MessageInput doesn't re-render on unrelated page updates.
-  const handleSendMessage = useCallback(
-    (message: string) => {
-      if (isBlocked) return;
-      console.log("Message sent:", message);
-      updatePremiumRequests(premiumRequestsUsed + 1);
-    },
-    [isBlocked, premiumRequestsUsed, updatePremiumRequests]
-  );
+  // Read the latest usage through a ref so handleSendMessage keeps a stable
+  // identity and the memoized MessageInput doesn't re-render on every send.
+  const latestRef = useRef({ userState, updatePremiumRequests });
+  useLayoutEffect(() => {
+    latestRef.current = { userState, updatePremiumRequests };
+  });
+
+  // Each sent message consumes one premium request.
+  const handleSendMessage = useCallback((message: string) => {
+    const { userState, updatePremiumRequests } = latestRef.current;
+    if (userState.usage.premiumRequests.isBlocked) return;
+    console.log("Message sent:", message);
+    updatePremiumRequests(userState.usage.premiumRequests.current + 1);
+  }, []);
 
   return (
     <div className={styles.container}>

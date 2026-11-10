@@ -78,11 +78,6 @@ function MessageInput({ onSendMessage, disabled = false }: MessageInputProps) {
     }
   };
 
-  const disabledWrapperStyle = {
-    pointerEvents: disabled ? "none" : "auto",
-    opacity: disabled ? 0.6 : 1,
-  } as const;
-
   return (
     <div className={`${styles.container} ${isFocused ? styles.focused : ""}`}>
       <div className={styles.inputWrapper}>
@@ -102,17 +97,17 @@ function MessageInput({ onSendMessage, disabled = false }: MessageInputProps) {
         />
       </div>
       <div className={styles.actionsContainer}>
-        <div style={disabledWrapperStyle}>
+        <Toolbar disabled={disabled}>
           <AttachActionMenu />
-        </div>
+        </Toolbar>
         <div className={styles.actionsWrapper}>
-          <div style={disabledWrapperStyle}>
+          <Toolbar disabled={disabled}>
             <ModelActionMenu />
-          </div>
+          </Toolbar>
           <div className={styles.toolsContainer}>
-            <div style={disabledWrapperStyle}>
+            <Toolbar disabled={disabled}>
               <ToolsSelectPanel />
-            </div>
+            </Toolbar>
             <IconButton
               variant="invisible"
               icon={PaperAirplaneIcon}
@@ -126,5 +121,31 @@ function MessageInput({ onSendMessage, disabled = false }: MessageInputProps) {
     </div>
   );
 }
+
+/**
+ * Wraps the static menus. Memoized on `disabled` only, so the Primer menus
+ * don't re-render on every keystroke.
+ */
+const Toolbar = memo(
+  function Toolbar({
+    disabled,
+    children,
+  }: {
+    disabled: boolean;
+    children: React.ReactNode;
+  }) {
+    return (
+      <div
+        style={{
+          pointerEvents: disabled ? "none" : "auto",
+          opacity: disabled ? 0.6 : 1,
+        }}
+      >
+        {children}
+      </div>
+    );
+  },
+  (prev, next) => prev.disabled === next.disabled
+);
 
 export default memo(MessageInput);

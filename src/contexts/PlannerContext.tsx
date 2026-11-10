@@ -14,7 +14,7 @@ import type {
   SimpleUserState,
   AccountType,
 } from "@/types/userState";
-import type { SkuId } from "@/types/sku";
+import type { Sku, SkuId } from "@/types/sku";
 import type {
   CustomMessages,
   CustomThresholds,
@@ -156,7 +156,7 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
 
   // State management with reducer pattern
   const {
-    state: userState,
+    state: baseUserState,
     updateSku,
     updateAccountType,
     updateAccountTypeAndSku,
@@ -166,7 +166,6 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
     updateCodeCompletions,
     updateOverageBudget,
     updateDaysIntoPeriod,
-    updateThresholdData,
     setState,
     loadFromSimpleState,
   } = usePlannerState({
@@ -188,6 +187,20 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
     useState<ThresholdsConfig>({
       thresholds: DEFAULT_THRESHOLDS,
     });
+
+  // Threshold data (crossed thresholds, alert message) is derived from the
+  // usage state and the thresholds config during render. Computing it in an
+  // effect and dispatching it back caused a second full re-render after every
+  // usage change, with a frame where the threshold data was missing.
+  const userState = useMemo(
+    () =>
+      withThresholdData(
+        baseUserState,
+        thresholdsConfig,
+        currentScenario.customSkus
+      ),
+    [baseUserState, thresholdsConfig, currentScenario.customSkus]
+  );
 
   // Wrapper to automatically set modifiedAt timestamp
   const updateThresholdsConfig = useCallback((config: ThresholdsConfig) => {
@@ -259,101 +272,6 @@ export function PlannerProvider({ children }: PlannerProviderProps) {
     const simpleState = toSimpleState(userState);
     updateUrl(simpleState);
   }, [userState, updateUrl]);
-
-  // Update userState with threshold-related data whenever thresholds config or plan changes
-  useEffect(() => {
-    const alert = getHighestPriorityAlert(
-      userState,
-      thresholdsConfig,
-      currentScenario.customSkus
-    );
-    const lastCrossedThresholdMessage = alert?.message ?? undefined;
-
-    const currentSkuId = userState.subscription.skuId;
-
-    // Extract quota thresholds for premium requests (filtered by plan and area)
-    const quotaThresholds = Array.from(
-      new Set(
-        thresholdsConfig.thresholds
-          .filter(
-            t =>
-              t.enabled &&
-              t.plans.includes(currentSkuId) &&
-              t.areas.includes("quota")
-          )
-          .map(t => t.percentage)
-      )
-    ).sort((a, b) => a - b);
-
-    // Extract overage budget thresholds (filtered by plan and area)
-    const overageThresholds = Array.from(
-      new Set(
-        thresholdsConfig.thresholds
-          .filter(
-            t =>
-              t.enabled &&
-              t.plans.includes(currentSkuId) &&
-              t.areas.includes("overage")
-          )
-          .map(t => t.percentage)
-      )
-    ).sort((a, b) => a - b);
-
-    // Calculate last crossed threshold for premium requests
-    const premiumPercentage =
-      userState.usage.premiumRequests.percentageUsed ?? 0;
-    const premiumLastCrossed =
-      quotaThresholds.length > 0
-        ? (quotaThresholds.filter(t => premiumPercentage >= t).pop() ?? null)
-        : null;
-
-    // Calculate last crossed threshold for overage budget
-    const overagePercentage = userState.overageBudget?.percentageConsumed ?? 0;
-    const overageLastCrossed =
-      overageThresholds.length > 0
-        ? (overageThresholds.filter(t => overagePercentage >= t).pop() ?? null)
-        : null;
-
-    // Check if any threshold data needs updating
-    const needsUpdate =
-      userState.usage.premiumRequests.lastCrossedThresholdMessage !==
-        lastCrossedThresholdMessage ||
-      JSON.stringify(userState.usage.premiumRequests.alertThresholds) !==
-        JSON.stringify(quotaThresholds.length > 0 ? quotaThresholds : null) ||
-      userState.usage.premiumRequests.lastCrossedThreshold !==
-        premiumLastCrossed ||
-      (userState.overageBudget &&
-        (JSON.stringify(userState.overageBudget.alertThresholds) !==
-          JSON.stringify(
-            overageThresholds.length > 0 ? overageThresholds : []
-          ) ||
-          userState.overageBudget.lastCrossedThreshold !== overageLastCrossed));
-
-    if (needsUpdate) {
-      updateThresholdData({
-        quotaThresholds: quotaThresholds.length > 0 ? quotaThresholds : null,
-        overageThresholds:
-          overageThresholds.length > 0 ? overageThresholds : [],
-        premiumLastCrossed,
-        overageLastCrossed,
-        lastCrossedThresholdMessage,
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    thresholdsConfig,
-    userState.subscription.skuId,
-    userState.account.accountType,
-    userState.usage.premiumRequests.percentageUsed,
-    userState.usage.premiumRequests.lastCrossedThresholdMessage,
-    userState.usage.premiumRequests.alertThresholds,
-    userState.usage.premiumRequests.lastCrossedThreshold,
-    userState.overageBudget?.percentageConsumed,
-    userState.overageBudget?.alertThresholds,
-    userState.overageBudget?.lastCrossedThreshold,
-    currentScenario.customSkus,
-    updateThresholdData,
-  ]);
 
   // Load a preset state (placeholder - will be implemented when presets are finalized)
   const loadPreset = useCallback((presetId: string) => {
@@ -446,4 +364,63 @@ export function usePlanner() {
     throw new Error("usePlanner must be used within PlannerProvider");
   }
   return context;
+}
+
+/**
+ * Attach the threshold-derived fields (configured alert thresholds, last
+ * crossed threshold and its message) for the current plan to a user state.
+ */
+function withThresholdData(
+  state: UserState,
+  thresholdsConfig: ThresholdsConfig,
+  customSkus?: Sku[]
+): UserState {
+  const alert = getHighestPriorityAlert(state, thresholdsConfig, customSkus);
+  const currentSkuId = state.subscription.skuId;
+
+  const thresholdsFor = (area: "quota" | "overage") =>
+    Array.from(
+      new Set(
+        thresholdsConfig.thresholds
+          .filter(
+            t =>
+              t.enabled &&
+              t.plans.includes(currentSkuId) &&
+              t.areas.includes(area)
+          )
+          .map(t => t.percentage)
+      )
+    ).sort((a, b) => a - b);
+
+  const lastCrossed = (thresholds: number[], percentage: number) =>
+    thresholds.filter(t => percentage >= t).pop() ?? null;
+
+  const quotaThresholds = thresholdsFor("quota");
+  const overageThresholds = thresholdsFor("overage");
+
+  return {
+    ...state,
+    usage: {
+      ...state.usage,
+      premiumRequests: {
+        ...state.usage.premiumRequests,
+        alertThresholds: quotaThresholds.length > 0 ? quotaThresholds : null,
+        lastCrossedThreshold: lastCrossed(
+          quotaThresholds,
+          state.usage.premiumRequests.percentageUsed ?? 0
+        ),
+        lastCrossedThresholdMessage: alert?.message ?? undefined,
+      },
+    },
+    overageBudget: state.overageBudget
+      ? {
+          ...state.overageBudget,
+          alertThresholds: overageThresholds,
+          lastCrossedThreshold: lastCrossed(
+            overageThresholds,
+            state.overageBudget.percentageConsumed ?? 0
+          ),
+        }
+      : null,
+  };
 }

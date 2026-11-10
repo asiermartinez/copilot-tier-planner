@@ -229,37 +229,45 @@ export default function ThresholdConfigurator({
     }
   }, [activeAlertId]);
 
-  const handleUpdateThreshold = (
-    id: string,
-    updates: Partial<ThresholdConfig>
-  ) => {
-    const newThresholds = config.thresholds.map(t =>
-      t.id === id ? { ...t, ...updates } : t
-    );
-    onChange({ thresholds: newThresholds });
-  };
+  const thresholds = config.thresholds;
 
-  const handleRemoveThreshold = (id: string) => {
-    const newThresholds = config.thresholds.filter(t => t.id !== id);
-    onChange({ thresholds: newThresholds });
-  };
+  const handleUpdateThreshold = useCallback(
+    (id: string, updates: Partial<ThresholdConfig>) => {
+      const newThresholds = thresholds.map(t =>
+        t.id === id ? { ...t, ...updates } : t
+      );
+      onChange({ thresholds: newThresholds });
+    },
+    [thresholds, onChange]
+  );
 
-  const handleDuplicateThreshold = (id: string) => {
-    const threshold = config.thresholds.find(t => t.id === id);
-    if (!threshold) return;
+  const handleRemoveThreshold = useCallback(
+    (id: string) => {
+      const newThresholds = thresholds.filter(t => t.id !== id);
+      onChange({ thresholds: newThresholds });
+    },
+    [thresholds, onChange]
+  );
 
-    // Create a copy with a new ID
-    const duplicatedThreshold: ThresholdConfig = {
-      ...threshold,
-      id: `threshold-${Date.now()}`,
-    };
+  const handleDuplicateThreshold = useCallback(
+    (id: string) => {
+      const threshold = thresholds.find(t => t.id === id);
+      if (!threshold) return;
 
-    // Add the duplicated threshold right after the original
-    const originalIndex = config.thresholds.findIndex(t => t.id === id);
-    const newThresholds = [...config.thresholds];
-    newThresholds.splice(originalIndex + 1, 0, duplicatedThreshold);
-    onChange({ thresholds: newThresholds });
-  };
+      // Create a copy with a new ID
+      const duplicatedThreshold: ThresholdConfig = {
+        ...threshold,
+        id: `threshold-${Date.now()}`,
+      };
+
+      // Add the duplicated threshold right after the original
+      const originalIndex = thresholds.findIndex(t => t.id === id);
+      const newThresholds = [...thresholds];
+      newThresholds.splice(originalIndex + 1, 0, duplicatedThreshold);
+      onChange({ thresholds: newThresholds });
+    },
+    [thresholds, onChange]
+  );
 
   const handleAddThreshold = () => {
     // Get current state to pre-configure the threshold
@@ -355,14 +363,495 @@ export default function ThresholdConfigurator({
   );
 
   // Filter thresholds based on mode
-  const filteredThresholds =
-    filterMode === "current"
-      ? config.thresholds.filter(threshold => {
-          // Check if threshold applies to current SKU
-          const currentSkuId = userState.subscription.skuId;
-          return threshold.plans.includes(currentSkuId);
-        })
-      : config.thresholds;
+  const currentSkuId = userState.subscription.skuId;
+  const daysInPeriod = userState.billingPeriod.daysInPeriod;
+  const filteredThresholds = useMemo(
+    () =>
+      filterMode === "current"
+        ? thresholds.filter(threshold => threshold.plans.includes(currentSkuId))
+        : thresholds,
+    [filterMode, thresholds, currentSkuId]
+  );
+
+  // The cards are the expensive part of this panel. Memoize them so usage
+  // changes (e.g. sending a message) don't re-render every card; they only
+  // depend on the thresholds, the active alert and the billing period length.
+  const thresholdCards = useMemo(
+    () =>
+      filteredThresholds.map(threshold => (
+        <div
+          key={threshold.id}
+          ref={el => {
+            if (el) {
+              thresholdRefs.current.set(threshold.id, el);
+            } else {
+              thresholdRefs.current.delete(threshold.id);
+            }
+          }}
+          className={`${styles.thresholdCard} ${
+            threshold.id === activeAlertId ? styles.activeCard : ""
+          }`}
+          onFocus={() => {
+            userInteractingWithCard.current = threshold.id;
+          }}
+          onBlur={() => {
+            if (userInteractingWithCard.current === threshold.id) {
+              userInteractingWithCard.current = null;
+            }
+          }}
+          onMouseDown={() => {
+            userInteractingWithCard.current = threshold.id;
+          }}
+          onMouseUp={() => {
+            // Delay clearing to allow click events to complete
+            setTimeout(() => {
+              if (userInteractingWithCard.current === threshold.id) {
+                userInteractingWithCard.current = null;
+              }
+            }, 100);
+          }}
+        >
+          <div className={styles.cardHeader}>
+            <div className={styles.cardActions}>
+              <ToggleSwitch
+                size="small"
+                checked={threshold.enabled}
+                onClick={() =>
+                  handleUpdateThreshold(threshold.id, {
+                    enabled: !threshold.enabled,
+                  })
+                }
+                aria-labelledby={`threshold-title-${threshold.id}`}
+                statusLabelPosition="end"
+                buttonLabelOff=""
+                buttonLabelOn=""
+                className={styles.toggleSwitch}
+              />
+              <Text
+                className={styles.cardTitle}
+                id={`threshold-title-${threshold.id}`}
+              >
+                {threshold.percentage}%{" "}
+                {formatThresholdScope(threshold.plans, threshold.areas)}
+              </Text>
+            </div>
+            <div style={{ display: "flex", gap: "var(--base-size-4)" }}>
+              <IconButton
+                aria-label="Duplicate threshold"
+                icon={CopyIcon}
+                size="small"
+                variant="invisible"
+                onClick={() => handleDuplicateThreshold(threshold.id)}
+              />
+              <IconButton
+                aria-label="Delete threshold"
+                icon={TrashIcon}
+                size="small"
+                variant="invisible"
+                onClick={() => handleRemoveThreshold(threshold.id)}
+              />
+            </div>
+          </div>
+
+          <div className={styles.cardContent}>
+            <ActionMenu>
+              <ActionMenu.Anchor>
+                <Button trailingAction={TriangleDownIcon}>
+                  <span
+                    style={{
+                      color: "var(--fgColor-muted)",
+                      display: "inline-block",
+                    }}
+                  >
+                    Threshold:
+                  </span>{" "}
+                  {formatThresholdScope(threshold.plans, threshold.areas)}
+                </Button>
+              </ActionMenu.Anchor>
+              <ActionMenu.Overlay align="end">
+                <ActionList>
+                  <ActionList.Group title="Plans" selectionVariant="multiple">
+                    {planOptions.map(option => (
+                      <ActionList.Item
+                        key={option.value}
+                        selected={threshold.plans.includes(option.value)}
+                        onSelect={() => {
+                          const isSelected = threshold.plans.includes(
+                            option.value
+                          );
+                          let newPlans: SkuId[];
+
+                          if (isSelected) {
+                            // Prevent deselecting the last plan
+                            if (threshold.plans.length === 1) {
+                              return;
+                            }
+                            newPlans = threshold.plans.filter(
+                              p => p !== option.value
+                            );
+                          } else {
+                            newPlans = [...threshold.plans, option.value];
+                          }
+
+                          // Check if areas need to be adjusted
+                          const availableAreas = getAvailableAreas(newPlans);
+                          const validAreas = threshold.areas.filter(a =>
+                            availableAreas.includes(a)
+                          );
+
+                          // Ensure at least one area is selected
+                          const newAreas =
+                            validAreas.length > 0
+                              ? validAreas
+                              : [availableAreas[0]];
+
+                          handleUpdateThreshold(threshold.id, {
+                            plans: newPlans,
+                            areas: newAreas,
+                          });
+                        }}
+                      >
+                        {option.label}
+                      </ActionList.Item>
+                    ))}
+                  </ActionList.Group>
+                  <ActionList.Divider />
+                  <ActionList.Group
+                    title="Consumption range"
+                    selectionVariant="multiple"
+                  >
+                    {AREA_OPTIONS.map(option => {
+                      const availableAreas = getAvailableAreas(threshold.plans);
+                      const isAvailable = availableAreas.includes(option.value);
+                      const isSelected = threshold.areas.includes(option.value);
+
+                      return (
+                        <ActionList.Item
+                          key={option.value}
+                          selected={isSelected}
+                          disabled={!isAvailable}
+                          onSelect={() => {
+                            if (!isAvailable) return;
+
+                            let newAreas: ThresholdArea[];
+
+                            if (isSelected) {
+                              // Prevent deselecting the last area
+                              if (threshold.areas.length === 1) {
+                                return;
+                              }
+                              newAreas = threshold.areas.filter(
+                                a => a !== option.value
+                              );
+                            } else {
+                              newAreas = [...threshold.areas, option.value];
+                            }
+
+                            handleUpdateThreshold(threshold.id, {
+                              areas: newAreas,
+                            });
+                          }}
+                        >
+                          {option.label}
+                        </ActionList.Item>
+                      );
+                    })}
+                  </ActionList.Group>
+                </ActionList>
+              </ActionMenu.Overlay>
+            </ActionMenu>
+
+            <FormControl className={styles.formControl}>
+              <FormControl.Label>Consumption</FormControl.Label>
+              <div className={styles.sliderInputContainer}>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={threshold.percentage}
+                  onChange={e =>
+                    handleUpdateThreshold(threshold.id, {
+                      percentage: parseInt(e.target.value, 10),
+                    })
+                  }
+                  className={styles.slider}
+                  style={getSliderStyle(threshold.percentage, 100)}
+                  aria-label="Threshold percentage"
+                />
+                <div className={styles.numberInput}>
+                  <TextInput
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={threshold.percentage}
+                    onChange={e =>
+                      handleUpdateThreshold(threshold.id, {
+                        percentage: parseInt(e.target.value, 10) || 0,
+                      })
+                    }
+                    trailingVisual="%"
+                    size="small"
+                    aria-label="Threshold percentage value"
+                  />
+                </div>
+              </div>
+            </FormControl>
+
+            <CheckboxGroup>
+              <CheckboxGroup.Label visuallyHidden>
+                Billing period constraint
+              </CheckboxGroup.Label>
+              <FormControl>
+                <Checkbox
+                  checked={!!threshold.billingPeriod}
+                  onChange={e => {
+                    if (e.target.checked) {
+                      // Re-enabling: use stored days or default to 0
+                      const storedDays = billingPeriodDaysRef.current.get(
+                        threshold.id
+                      );
+                      handleUpdateThreshold(threshold.id, {
+                        billingPeriod: {
+                          maxDaysIntoPeriod: storedDays ?? 0,
+                        },
+                      });
+                    } else {
+                      // Disabling: store current days before removing
+                      if (
+                        threshold.billingPeriod?.maxDaysIntoPeriod !== undefined
+                      ) {
+                        billingPeriodDaysRef.current.set(
+                          threshold.id,
+                          threshold.billingPeriod.maxDaysIntoPeriod
+                        );
+                      }
+                      handleUpdateThreshold(threshold.id, {
+                        billingPeriod: undefined,
+                      });
+                    }
+                  }}
+                />
+                <FormControl.Label>
+                  <span style={{ fontWeight: 600 }}>
+                    Days into billing period (constraint)
+                  </span>
+                </FormControl.Label>
+              </FormControl>
+            </CheckboxGroup>
+
+            <div className={styles.ctaSection}>
+              {threshold.billingPeriod && (
+                <FormControl className={styles.formControl}>
+                  <FormControl.Label visuallyHidden>
+                    Days into billing period
+                  </FormControl.Label>
+                  <div className={styles.sliderInputContainer}>
+                    <input
+                      type="range"
+                      min="0"
+                      max={daysInPeriod}
+                      value={threshold.billingPeriod.maxDaysIntoPeriod}
+                      onChange={e =>
+                        handleUpdateThreshold(threshold.id, {
+                          billingPeriod: {
+                            maxDaysIntoPeriod: Number(e.target.value),
+                          },
+                        })
+                      }
+                      className={styles.slider}
+                      style={getSliderStyle(
+                        threshold.billingPeriod.maxDaysIntoPeriod,
+                        daysInPeriod
+                      )}
+                      aria-label="Days into billing period slider"
+                    />
+                    <div className={styles.numberInput}>
+                      <TextInput
+                        type="number"
+                        min={0}
+                        max={daysInPeriod}
+                        value={threshold.billingPeriod.maxDaysIntoPeriod}
+                        onChange={e => {
+                          const value = Number(e.target.value);
+                          if (!isNaN(value)) {
+                            handleUpdateThreshold(threshold.id, {
+                              billingPeriod: {
+                                maxDaysIntoPeriod: Math.max(
+                                  0,
+                                  Math.min(daysInPeriod, value)
+                                ),
+                              },
+                            });
+                          }
+                        }}
+                        aria-label="Days into billing period value"
+                        size="small"
+                      />
+                    </div>
+                  </div>
+                  <FormControl.Caption>
+                    Threshold applies within first{" "}
+                    {threshold.billingPeriod.maxDaysIntoPeriod}{" "}
+                    {threshold.billingPeriod.maxDaysIntoPeriod === 1
+                      ? "day"
+                      : "days"}
+                  </FormControl.Caption>
+                </FormControl>
+              )}
+            </div>
+
+            <FormControl className={styles.messageControl}>
+              <FormControl.Label>Message</FormControl.Label>
+              <Textarea
+                value={threshold.message}
+                onChange={e =>
+                  handleUpdateThreshold(threshold.id, {
+                    message: e.target.value,
+                  })
+                }
+                rows={4}
+                block
+                placeholder="Enter message template with {variables}"
+                resize="vertical"
+              />
+            </FormControl>
+
+            <ActionMenu>
+              <ActionMenu.Anchor>
+                <Button trailingAction={TriangleDownIcon}>
+                  <span
+                    style={{
+                      color: "var(--fgColor-muted)",
+                      display: "inline-block",
+                    }}
+                  >
+                    Type:
+                  </span>{" "}
+                  {
+                    SEVERITY_OPTIONS.find(
+                      opt => opt.value === threshold.severity
+                    )?.label
+                  }
+                </Button>
+              </ActionMenu.Anchor>
+              <ActionMenu.Overlay align="end">
+                <ActionList selectionVariant="single">
+                  {SEVERITY_OPTIONS.map(option => (
+                    <ActionList.Item
+                      key={option.value}
+                      selected={threshold.severity === option.value}
+                      onSelect={() =>
+                        handleUpdateThreshold(threshold.id, {
+                          severity: option.value,
+                        })
+                      }
+                    >
+                      {option.label}
+                    </ActionList.Item>
+                  ))}
+                </ActionList>
+              </ActionMenu.Overlay>
+            </ActionMenu>
+
+            <CheckboxGroup>
+              <CheckboxGroup.Label visuallyHidden>
+                Threshold options
+              </CheckboxGroup.Label>
+              <FormControl>
+                <Checkbox
+                  checked={threshold.dismissable}
+                  onChange={e =>
+                    handleUpdateThreshold(threshold.id, {
+                      dismissable: e.target.checked,
+                    })
+                  }
+                />
+                <FormControl.Label>Dismissable banner</FormControl.Label>
+              </FormControl>
+
+              <FormControl>
+                <Checkbox
+                  checked={threshold.static}
+                  onChange={e =>
+                    handleUpdateThreshold(threshold.id, {
+                      static: e.target.checked,
+                    })
+                  }
+                />
+                <FormControl.Label>
+                  Static (freeze state when triggered)
+                </FormControl.Label>
+              </FormControl>
+
+              <FormControl>
+                <Checkbox
+                  checked={!!threshold.cta}
+                  onChange={e => {
+                    if (e.target.checked) {
+                      // Re-enabling: use stored label or default
+                      const storedLabel = ctaLabelsRef.current.get(
+                        threshold.id
+                      );
+                      handleUpdateThreshold(threshold.id, {
+                        cta: { label: storedLabel || "Take action" },
+                      });
+                    } else {
+                      // Disabling: store current label before removing
+                      if (threshold.cta?.label) {
+                        ctaLabelsRef.current.set(
+                          threshold.id,
+                          threshold.cta.label
+                        );
+                      }
+                      handleUpdateThreshold(threshold.id, {
+                        cta: undefined,
+                      });
+                    }
+                  }}
+                />
+                <FormControl.Label>Call-to-action button</FormControl.Label>
+              </FormControl>
+            </CheckboxGroup>
+
+            <div className={styles.ctaSection}>
+              {threshold.cta && (
+                <FormControl className={styles.ctaInput}>
+                  <FormControl.Label visuallyHidden>
+                    Button text
+                  </FormControl.Label>
+                  <TextInput
+                    value={threshold.cta.label}
+                    onChange={e =>
+                      handleUpdateThreshold(threshold.id, {
+                        cta: { label: e.target.value },
+                      })
+                    }
+                    placeholder="Button text (supports {variables})"
+                    size="small"
+                    block
+                  />
+                  <FormControl.Caption>
+                    Try {"{actionType} {targetPlan}"} to reflect desired upgrade
+                    path. All variables work here.
+                  </FormControl.Caption>
+                </FormControl>
+              )}
+            </div>
+          </div>
+        </div>
+      )),
+    [
+      filteredThresholds,
+      activeAlertId,
+      daysInPeriod,
+      planOptions,
+      formatThresholdScope,
+      handleUpdateThreshold,
+      handleRemoveThreshold,
+      handleDuplicateThreshold,
+    ]
+  );
 
   return (
     <div className={styles.container}>
@@ -520,481 +1009,7 @@ export default function ThresholdConfigurator({
         </Dialog>
       )}
 
-      <div className={styles.thresholdsList}>
-        {filteredThresholds.map(threshold => (
-          <div
-            key={threshold.id}
-            ref={el => {
-              if (el) {
-                thresholdRefs.current.set(threshold.id, el);
-              } else {
-                thresholdRefs.current.delete(threshold.id);
-              }
-            }}
-            className={`${styles.thresholdCard} ${
-              threshold.id === activeAlertId ? styles.activeCard : ""
-            }`}
-            onFocus={() => {
-              userInteractingWithCard.current = threshold.id;
-            }}
-            onBlur={() => {
-              if (userInteractingWithCard.current === threshold.id) {
-                userInteractingWithCard.current = null;
-              }
-            }}
-            onMouseDown={() => {
-              userInteractingWithCard.current = threshold.id;
-            }}
-            onMouseUp={() => {
-              // Delay clearing to allow click events to complete
-              setTimeout(() => {
-                if (userInteractingWithCard.current === threshold.id) {
-                  userInteractingWithCard.current = null;
-                }
-              }, 100);
-            }}
-          >
-            <div className={styles.cardHeader}>
-              <div className={styles.cardActions}>
-                <ToggleSwitch
-                  size="small"
-                  checked={threshold.enabled}
-                  onClick={() =>
-                    handleUpdateThreshold(threshold.id, {
-                      enabled: !threshold.enabled,
-                    })
-                  }
-                  aria-labelledby={`threshold-title-${threshold.id}`}
-                  statusLabelPosition="end"
-                  buttonLabelOff=""
-                  buttonLabelOn=""
-                  className={styles.toggleSwitch}
-                />
-                <Text
-                  className={styles.cardTitle}
-                  id={`threshold-title-${threshold.id}`}
-                >
-                  {threshold.percentage}%{" "}
-                  {formatThresholdScope(threshold.plans, threshold.areas)}
-                </Text>
-              </div>
-              <div style={{ display: "flex", gap: "var(--base-size-4)" }}>
-                <IconButton
-                  aria-label="Duplicate threshold"
-                  icon={CopyIcon}
-                  size="small"
-                  variant="invisible"
-                  onClick={() => handleDuplicateThreshold(threshold.id)}
-                />
-                <IconButton
-                  aria-label="Delete threshold"
-                  icon={TrashIcon}
-                  size="small"
-                  variant="invisible"
-                  onClick={() => handleRemoveThreshold(threshold.id)}
-                />
-              </div>
-            </div>
-
-            <div className={styles.cardContent}>
-              <ActionMenu>
-                <ActionMenu.Anchor>
-                  <Button trailingAction={TriangleDownIcon}>
-                    <span
-                      style={{
-                        color: "var(--fgColor-muted)",
-                        display: "inline-block",
-                      }}
-                    >
-                      Threshold:
-                    </span>{" "}
-                    {formatThresholdScope(threshold.plans, threshold.areas)}
-                  </Button>
-                </ActionMenu.Anchor>
-                <ActionMenu.Overlay align="end">
-                  <ActionList>
-                    <ActionList.Group title="Plans" selectionVariant="multiple">
-                      {planOptions.map(option => (
-                        <ActionList.Item
-                          key={option.value}
-                          selected={threshold.plans.includes(option.value)}
-                          onSelect={() => {
-                            const isSelected = threshold.plans.includes(
-                              option.value
-                            );
-                            let newPlans: SkuId[];
-
-                            if (isSelected) {
-                              // Prevent deselecting the last plan
-                              if (threshold.plans.length === 1) {
-                                return;
-                              }
-                              newPlans = threshold.plans.filter(
-                                p => p !== option.value
-                              );
-                            } else {
-                              newPlans = [...threshold.plans, option.value];
-                            }
-
-                            // Check if areas need to be adjusted
-                            const availableAreas = getAvailableAreas(newPlans);
-                            const validAreas = threshold.areas.filter(a =>
-                              availableAreas.includes(a)
-                            );
-
-                            // Ensure at least one area is selected
-                            const newAreas =
-                              validAreas.length > 0
-                                ? validAreas
-                                : [availableAreas[0]];
-
-                            handleUpdateThreshold(threshold.id, {
-                              plans: newPlans,
-                              areas: newAreas,
-                            });
-                          }}
-                        >
-                          {option.label}
-                        </ActionList.Item>
-                      ))}
-                    </ActionList.Group>
-                    <ActionList.Divider />
-                    <ActionList.Group
-                      title="Consumption range"
-                      selectionVariant="multiple"
-                    >
-                      {AREA_OPTIONS.map(option => {
-                        const availableAreas = getAvailableAreas(
-                          threshold.plans
-                        );
-                        const isAvailable = availableAreas.includes(
-                          option.value
-                        );
-                        const isSelected = threshold.areas.includes(
-                          option.value
-                        );
-
-                        return (
-                          <ActionList.Item
-                            key={option.value}
-                            selected={isSelected}
-                            disabled={!isAvailable}
-                            onSelect={() => {
-                              if (!isAvailable) return;
-
-                              let newAreas: ThresholdArea[];
-
-                              if (isSelected) {
-                                // Prevent deselecting the last area
-                                if (threshold.areas.length === 1) {
-                                  return;
-                                }
-                                newAreas = threshold.areas.filter(
-                                  a => a !== option.value
-                                );
-                              } else {
-                                newAreas = [...threshold.areas, option.value];
-                              }
-
-                              handleUpdateThreshold(threshold.id, {
-                                areas: newAreas,
-                              });
-                            }}
-                          >
-                            {option.label}
-                          </ActionList.Item>
-                        );
-                      })}
-                    </ActionList.Group>
-                  </ActionList>
-                </ActionMenu.Overlay>
-              </ActionMenu>
-
-              <FormControl className={styles.formControl}>
-                <FormControl.Label>Consumption</FormControl.Label>
-                <div className={styles.sliderInputContainer}>
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    step={5}
-                    value={threshold.percentage}
-                    onChange={e =>
-                      handleUpdateThreshold(threshold.id, {
-                        percentage: parseInt(e.target.value, 10),
-                      })
-                    }
-                    className={styles.slider}
-                    style={getSliderStyle(threshold.percentage, 100)}
-                    aria-label="Threshold percentage"
-                  />
-                  <div className={styles.numberInput}>
-                    <TextInput
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={threshold.percentage}
-                      onChange={e =>
-                        handleUpdateThreshold(threshold.id, {
-                          percentage: parseInt(e.target.value, 10) || 0,
-                        })
-                      }
-                      trailingVisual="%"
-                      size="small"
-                      aria-label="Threshold percentage value"
-                    />
-                  </div>
-                </div>
-              </FormControl>
-
-              <CheckboxGroup>
-                <CheckboxGroup.Label visuallyHidden>
-                  Billing period constraint
-                </CheckboxGroup.Label>
-                <FormControl>
-                  <Checkbox
-                    checked={!!threshold.billingPeriod}
-                    onChange={e => {
-                      if (e.target.checked) {
-                        // Re-enabling: use stored days or default to 0
-                        const storedDays = billingPeriodDaysRef.current.get(
-                          threshold.id
-                        );
-                        handleUpdateThreshold(threshold.id, {
-                          billingPeriod: {
-                            maxDaysIntoPeriod: storedDays ?? 0,
-                          },
-                        });
-                      } else {
-                        // Disabling: store current days before removing
-                        if (
-                          threshold.billingPeriod?.maxDaysIntoPeriod !==
-                          undefined
-                        ) {
-                          billingPeriodDaysRef.current.set(
-                            threshold.id,
-                            threshold.billingPeriod.maxDaysIntoPeriod
-                          );
-                        }
-                        handleUpdateThreshold(threshold.id, {
-                          billingPeriod: undefined,
-                        });
-                      }
-                    }}
-                  />
-                  <FormControl.Label>
-                    <span style={{ fontWeight: 600 }}>
-                      Days into billing period (constraint)
-                    </span>
-                  </FormControl.Label>
-                </FormControl>
-              </CheckboxGroup>
-
-              <div className={styles.ctaSection}>
-                {threshold.billingPeriod && (
-                  <FormControl className={styles.formControl}>
-                    <FormControl.Label visuallyHidden>
-                      Days into billing period
-                    </FormControl.Label>
-                    <div className={styles.sliderInputContainer}>
-                      <input
-                        type="range"
-                        min="0"
-                        max={userState.billingPeriod.daysInPeriod}
-                        value={threshold.billingPeriod.maxDaysIntoPeriod}
-                        onChange={e =>
-                          handleUpdateThreshold(threshold.id, {
-                            billingPeriod: {
-                              maxDaysIntoPeriod: Number(e.target.value),
-                            },
-                          })
-                        }
-                        className={styles.slider}
-                        style={getSliderStyle(
-                          threshold.billingPeriod.maxDaysIntoPeriod,
-                          userState.billingPeriod.daysInPeriod
-                        )}
-                        aria-label="Days into billing period slider"
-                      />
-                      <div className={styles.numberInput}>
-                        <TextInput
-                          type="number"
-                          min={0}
-                          max={userState.billingPeriod.daysInPeriod}
-                          value={threshold.billingPeriod.maxDaysIntoPeriod}
-                          onChange={e => {
-                            const value = Number(e.target.value);
-                            if (!isNaN(value)) {
-                              handleUpdateThreshold(threshold.id, {
-                                billingPeriod: {
-                                  maxDaysIntoPeriod: Math.max(
-                                    0,
-                                    Math.min(
-                                      userState.billingPeriod.daysInPeriod,
-                                      value
-                                    )
-                                  ),
-                                },
-                              });
-                            }
-                          }}
-                          aria-label="Days into billing period value"
-                          size="small"
-                        />
-                      </div>
-                    </div>
-                    <FormControl.Caption>
-                      Threshold applies within first{" "}
-                      {threshold.billingPeriod.maxDaysIntoPeriod}{" "}
-                      {threshold.billingPeriod.maxDaysIntoPeriod === 1
-                        ? "day"
-                        : "days"}
-                    </FormControl.Caption>
-                  </FormControl>
-                )}
-              </div>
-
-              <FormControl className={styles.messageControl}>
-                <FormControl.Label>Message</FormControl.Label>
-                <Textarea
-                  value={threshold.message}
-                  onChange={e =>
-                    handleUpdateThreshold(threshold.id, {
-                      message: e.target.value,
-                    })
-                  }
-                  rows={4}
-                  block
-                  placeholder="Enter message template with {variables}"
-                  resize="vertical"
-                />
-              </FormControl>
-
-              <ActionMenu>
-                <ActionMenu.Anchor>
-                  <Button trailingAction={TriangleDownIcon}>
-                    <span
-                      style={{
-                        color: "var(--fgColor-muted)",
-                        display: "inline-block",
-                      }}
-                    >
-                      Type:
-                    </span>{" "}
-                    {
-                      SEVERITY_OPTIONS.find(
-                        opt => opt.value === threshold.severity
-                      )?.label
-                    }
-                  </Button>
-                </ActionMenu.Anchor>
-                <ActionMenu.Overlay align="end">
-                  <ActionList selectionVariant="single">
-                    {SEVERITY_OPTIONS.map(option => (
-                      <ActionList.Item
-                        key={option.value}
-                        selected={threshold.severity === option.value}
-                        onSelect={() =>
-                          handleUpdateThreshold(threshold.id, {
-                            severity: option.value,
-                          })
-                        }
-                      >
-                        {option.label}
-                      </ActionList.Item>
-                    ))}
-                  </ActionList>
-                </ActionMenu.Overlay>
-              </ActionMenu>
-
-              <CheckboxGroup>
-                <CheckboxGroup.Label visuallyHidden>
-                  Threshold options
-                </CheckboxGroup.Label>
-                <FormControl>
-                  <Checkbox
-                    checked={threshold.dismissable}
-                    onChange={e =>
-                      handleUpdateThreshold(threshold.id, {
-                        dismissable: e.target.checked,
-                      })
-                    }
-                  />
-                  <FormControl.Label>Dismissable banner</FormControl.Label>
-                </FormControl>
-
-                <FormControl>
-                  <Checkbox
-                    checked={threshold.static}
-                    onChange={e =>
-                      handleUpdateThreshold(threshold.id, {
-                        static: e.target.checked,
-                      })
-                    }
-                  />
-                  <FormControl.Label>
-                    Static (freeze state when triggered)
-                  </FormControl.Label>
-                </FormControl>
-
-                <FormControl>
-                  <Checkbox
-                    checked={!!threshold.cta}
-                    onChange={e => {
-                      if (e.target.checked) {
-                        // Re-enabling: use stored label or default
-                        const storedLabel = ctaLabelsRef.current.get(
-                          threshold.id
-                        );
-                        handleUpdateThreshold(threshold.id, {
-                          cta: { label: storedLabel || "Take action" },
-                        });
-                      } else {
-                        // Disabling: store current label before removing
-                        if (threshold.cta?.label) {
-                          ctaLabelsRef.current.set(
-                            threshold.id,
-                            threshold.cta.label
-                          );
-                        }
-                        handleUpdateThreshold(threshold.id, {
-                          cta: undefined,
-                        });
-                      }
-                    }}
-                  />
-                  <FormControl.Label>Call-to-action button</FormControl.Label>
-                </FormControl>
-              </CheckboxGroup>
-
-              <div className={styles.ctaSection}>
-                {threshold.cta && (
-                  <FormControl className={styles.ctaInput}>
-                    <FormControl.Label visuallyHidden>
-                      Button text
-                    </FormControl.Label>
-                    <TextInput
-                      value={threshold.cta.label}
-                      onChange={e =>
-                        handleUpdateThreshold(threshold.id, {
-                          cta: { label: e.target.value },
-                        })
-                      }
-                      placeholder="Button text (supports {variables})"
-                      size="small"
-                      block
-                    />
-                    <FormControl.Caption>
-                      Try {"{actionType} {targetPlan}"} to reflect desired
-                      upgrade path. All variables work here.
-                    </FormControl.Caption>
-                  </FormControl>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <div className={styles.thresholdsList}>{thresholdCards}</div>
 
       <div className={styles.addButtonContainer}>
         <Button
