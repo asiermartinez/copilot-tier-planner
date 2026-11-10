@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { MarkGithubIcon } from "@primer/octicons-react";
 import { Button } from "@primer/react";
 
@@ -41,10 +41,6 @@ export default function RootPage() {
 
   const [innerViewMode, setInnerViewMode] =
     useState<ViewToggleMode>("messages");
-  const [messageValue, setMessageValue] = useState("");
-  const [messageHistory, setMessageHistory] = useState<string[]>([]);
-  const [currentHistoryIndex, setCurrentHistoryIndex] = useState(-1);
-  const [isLoading, setIsLoading] = useState(false);
 
   const skuId = userState.subscription.skuId;
 
@@ -53,32 +49,20 @@ export default function RootPage() {
     updateAccountTypeAndSku(newAccountType, newSkuId);
   };
 
-  const handleSendMessage = () => {
-    if (!messageValue.trim() || isLoading || isBlocked) return;
-
-    // Add to history
-    setMessageHistory(prev => [messageValue, ...prev]);
-    setCurrentHistoryIndex(-1);
-
-    // Increment premium requests usage
-    const currentUsage = userState.usage.premiumRequests.current;
-    updatePremiumRequests(currentUsage + 1);
-
-    // Simulate sending
-    setIsLoading(true);
-    console.log("Message sent:", messageValue);
-
-    // Clear input
-    setMessageValue("");
-
-    // Simulate response delay
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-  };
-
   // Use the isBlocked flag from userState (already calculated with proper logic)
   const isBlocked = userState.usage.premiumRequests.isBlocked;
+  const premiumRequestsUsed = userState.usage.premiumRequests.current;
+
+  // Each sent message consumes one premium request. Stable identity so the
+  // memoized MessageInput doesn't re-render on unrelated page updates.
+  const handleSendMessage = useCallback(
+    (message: string) => {
+      if (isBlocked) return;
+      console.log("Message sent:", message);
+      updatePremiumRequests(premiumRequestsUsed + 1);
+    },
+    [isBlocked, premiumRequestsUsed, updatePremiumRequests]
+  );
 
   return (
     <div className={styles.container}>
@@ -148,14 +132,8 @@ export default function RootPage() {
                       {/* Message Input - Always visible below banner */}
                       <div style={{ flexShrink: 0 }}>
                         <MessageInput
-                          value={messageValue}
-                          onValueChange={setMessageValue}
                           onSendMessage={handleSendMessage}
-                          loading={isLoading}
                           disabled={isBlocked}
-                          history={messageHistory}
-                          currentHistoryIndex={currentHistoryIndex}
-                          onHistoryIndexChange={setCurrentHistoryIndex}
                         />
                       </div>
                     </div>

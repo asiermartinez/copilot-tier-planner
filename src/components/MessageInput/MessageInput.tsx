@@ -2,139 +2,123 @@
 
 import { Textarea, IconButton } from "@primer/react";
 import { PaperAirplaneIcon } from "@primer/octicons-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useLayoutEffect, memo } from "react";
 import styles from "./MessageInput.module.css";
 
 import AttachActionMenu from "./AttachActionMenu";
-// import ModelSelectPanel from "./ModelSelectPanel";
-// import ModelActionMenu from "./ModelActionMenu";
 import ModelActionMenu from "./ModelActionMenuNext";
 import ToolsSelectPanel from "./ToolsSelectPanel";
 
 interface MessageInputProps {
-  value: string;
-  onValueChange: (value: string) => void;
-  onSendMessage: () => void;
-  loading: boolean;
+  onSendMessage: (message: string) => void;
   disabled?: boolean;
-  history: string[];
-  currentHistoryIndex: number;
-  onHistoryIndexChange: (index: number) => void;
 }
 
-export default function MessageInput({
-  value,
-  onValueChange,
-  onSendMessage,
-  loading,
-  disabled = false,
-  history,
-  currentHistoryIndex,
-  onHistoryIndexChange,
-}: MessageInputProps) {
+/**
+ * Chat input. The draft text and history live here (not in the page) so
+ * typing only re-renders this component instead of the whole planner.
+ */
+function MessageInput({ onSendMessage, disabled = false }: MessageInputProps) {
+  const [value, setValue] = useState("");
+  const [history, setHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
   const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const pendingCaretToEnd = useRef(false);
 
-  const getPlaceholderText = () => {
-    return "Ask anything";
-  };
-
-  useEffect(() => {
+  // Auto-size before paint so the box doesn't flicker while typing
+  useLayoutEffect(() => {
     const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = "auto";
-      const newHeight = Math.min(Math.max(textarea.scrollHeight, 56), 300);
-      textarea.style.height = `${newHeight}px`;
+    if (!textarea) return;
+    textarea.style.height = "auto";
+    const newHeight = Math.min(Math.max(textarea.scrollHeight, 56), 300);
+    textarea.style.height = `${newHeight}px`;
+
+    if (pendingCaretToEnd.current) {
+      pendingCaretToEnd.current = false;
+      const length = textarea.value.length;
+      textarea.setSelectionRange(length, length);
     }
   }, [value]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey && isFocused) {
-      e.preventDefault();
-      onSendMessage();
-    } else if (e.key === "ArrowUp" && isFocused) {
-      // Only navigate history when cursor is at the beginning of the text or textarea is empty
-      const textarea = e.currentTarget;
-      if (textarea.selectionStart === 0 || !value) {
-        e.preventDefault();
-        const nextIndex = Math.min(currentHistoryIndex + 1, history.length - 1);
-        if (nextIndex >= 0 && history[nextIndex]) {
-          onValueChange(history[nextIndex]);
-          onHistoryIndexChange(nextIndex);
+  const send = () => {
+    const message = value.trim();
+    if (!message || disabled) return;
+    onSendMessage(message);
+    setHistory(prev => [message, ...prev]);
+    setHistoryIndex(-1);
+    setValue("");
+  };
 
-          // Move cursor to end of text after setting value
-          setTimeout(() => {
-            if (textareaRef.current) {
-              const length = textareaRef.current.value.length;
-              textareaRef.current.selectionStart = length;
-              textareaRef.current.selectionEnd = length;
-            }
-          }, 0);
+  const recallHistory = (index: number) => {
+    setHistoryIndex(index);
+    setValue(index >= 0 ? history[index] : "");
+    pendingCaretToEnd.current = true;
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Ignore Enter while an IME composition is in progress
+    if (e.nativeEvent.isComposing) return;
+
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    } else if (e.key === "ArrowUp") {
+      // Only navigate history when the caret is at the start or the box is empty
+      if (e.currentTarget.selectionStart === 0 || !value) {
+        const nextIndex = Math.min(historyIndex + 1, history.length - 1);
+        if (nextIndex >= 0 && nextIndex !== historyIndex) {
+          e.preventDefault();
+          recallHistory(nextIndex);
         }
       }
-    } else if (e.key === "ArrowDown" && isFocused && currentHistoryIndex > -1) {
+    } else if (e.key === "ArrowDown" && historyIndex > -1) {
       e.preventDefault();
-      const nextIndex = currentHistoryIndex - 1;
-      if (nextIndex >= 0) {
-        onValueChange(history[nextIndex]);
-      } else {
-        onValueChange("");
-      }
-      onHistoryIndexChange(nextIndex);
+      recallHistory(historyIndex - 1);
     }
   };
+
+  const disabledWrapperStyle = {
+    pointerEvents: disabled ? "none" : "auto",
+    opacity: disabled ? 0.6 : 1,
+  } as const;
 
   return (
     <div className={`${styles.container} ${isFocused ? styles.focused : ""}`}>
       <div className={styles.inputWrapper}>
         <Textarea
-          placeholder={getPlaceholderText()}
+          placeholder="Ask anything"
           resize="none"
           rows={1}
           block
           value={value}
-          onChange={e => !disabled && onValueChange(e.target.value)}
-          onFocus={() => !disabled && setIsFocused(true)}
+          onChange={e => setValue(e.target.value)}
+          onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          onKeyDown={disabled ? undefined : handleKeyDown}
+          onKeyDown={handleKeyDown}
           ref={textareaRef}
           disabled={disabled}
           className={styles.textarea}
         />
       </div>
       <div className={styles.actionsContainer}>
-        <div
-          style={{
-            pointerEvents: disabled ? "none" : "auto",
-            opacity: disabled ? 0.6 : 1,
-          }}
-        >
+        <div style={disabledWrapperStyle}>
           <AttachActionMenu />
         </div>
         <div className={styles.actionsWrapper}>
-          <div
-            style={{
-              pointerEvents: disabled ? "none" : "auto",
-              opacity: disabled ? 0.6 : 1,
-            }}
-          >
+          <div style={disabledWrapperStyle}>
             <ModelActionMenu />
           </div>
           <div className={styles.toolsContainer}>
-            <div
-              style={{
-                pointerEvents: disabled ? "none" : "auto",
-                opacity: disabled ? 0.6 : 1,
-              }}
-            >
+            <div style={disabledWrapperStyle}>
               <ToolsSelectPanel />
             </div>
             <IconButton
               variant="invisible"
               icon={PaperAirplaneIcon}
               aria-label="Send now"
-              disabled={disabled || !value.trim() || loading}
-              onClick={onSendMessage}
+              disabled={disabled || !value.trim()}
+              onClick={send}
             />
           </div>
         </div>
@@ -142,3 +126,5 @@ export default function MessageInput({
     </div>
   );
 }
+
+export default memo(MessageInput);
