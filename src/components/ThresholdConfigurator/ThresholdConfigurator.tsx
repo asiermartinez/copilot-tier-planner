@@ -600,7 +600,7 @@ export default function ThresholdConfigurator({
 
             <CheckboxGroup>
               <CheckboxGroup.Label visuallyHidden>
-                Billing period constraint
+                Only show until day
               </CheckboxGroup.Label>
               <FormControl>
                 <Checkbox
@@ -633,9 +633,7 @@ export default function ThresholdConfigurator({
                   }}
                 />
                 <FormControl.Label>
-                  <span style={{ fontWeight: 600 }}>
-                    Days into billing period (constraint)
-                  </span>
+                  <span style={{ fontWeight: 600 }}>Only show until day</span>
                 </FormControl.Label>
               </FormControl>
             </CheckboxGroup>
@@ -644,7 +642,7 @@ export default function ThresholdConfigurator({
               {threshold.billingPeriod && (
                 <FormControl className={styles.formControl}>
                   <FormControl.Label visuallyHidden>
-                    Days into billing period
+                    Last day to show
                   </FormControl.Label>
                   <div className={styles.sliderInputContainer}>
                     <input
@@ -664,7 +662,7 @@ export default function ThresholdConfigurator({
                         threshold.billingPeriod.maxDaysIntoPeriod,
                         daysInPeriod
                       )}
-                      aria-label="Days into billing period slider"
+                      aria-label="Last day to show"
                     />
                     <div className={styles.numberInput}>
                       <TextInput
@@ -685,17 +683,14 @@ export default function ThresholdConfigurator({
                             });
                           }
                         }}
-                        aria-label="Days into billing period value"
+                        aria-label="Last day to show"
                         size="small"
                       />
                     </div>
                   </div>
                   <FormControl.Caption>
-                    Threshold applies within first{" "}
-                    {threshold.billingPeriod.maxDaysIntoPeriod}{" "}
-                    {threshold.billingPeriod.maxDaysIntoPeriod === 1
-                      ? "day"
-                      : "days"}
+                    Shown until day {threshold.billingPeriod.maxDaysIntoPeriod}{" "}
+                    of {daysInPeriod}, then hidden for the rest of the period
                   </FormControl.Caption>
                 </FormControl>
               )}

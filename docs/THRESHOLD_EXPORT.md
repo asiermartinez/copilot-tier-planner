@@ -100,7 +100,7 @@ The exported JSON has the following structure:
   - **dismissable**: Whether the banner can be dismissed
   - **static**: Whether the banner shows state when triggered or updates dynamically
   - **cta** (optional): Call-to-action button configuration
-  - **billingPeriod** (optional): Billing period constraints
+  - **billingPeriod** (optional): "Only show until day" — `maxDaysIntoPeriod` limits the threshold to the first N days of the billing period
 - **modifiedAt**: When thresholds were last modified
 
 #### Export Metadata
